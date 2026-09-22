@@ -56,6 +56,16 @@
     "lockAspectRatio": false
   },
   {
+    "value": "parallelogram",
+    "label": "Slant",
+    "path": "M25 0H100L75 100H0Z",
+    "proportions": [
+      1,
+      1
+    ],
+    "lockAspectRatio": true
+  },
+  {
     "value": "clover",
     "label": "Clover",
     "path": "M50 13C62 1 76 -4 89 8C104 20 102 37 87 50C102 63 104 80 89 92C76 104 62 99 50 87C38 99 24 104 11 92C-4 80 -2 63 13 50C-2 37 -4 20 11 8C24 -4 38 1 50 13Z",
