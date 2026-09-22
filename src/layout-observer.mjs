@@ -28,7 +28,6 @@ import { automaticCanvasRows } from './automatic-layout.mjs';
 import { measureCanvasSpacing } from './spacing.mjs';
 import { fillScreenRowHeight } from './fill-screen.mjs';
 import { responsiveRowMetrics, sectionRows } from './section-layout.mjs';
-import { insetFrame } from './frame-gap.mjs';
 
 // The editor and frontend share one measurement and track resolver. Core owns
 // padding; the canvas consumes that space without changing the canvas's size.
@@ -317,13 +316,10 @@ export function observeCanvasLayout( grid, onChange ) {
 			);
 		}
 		const allBlocks = canvasBlocks( blocks );
-		const framed =
-			!! geometry.desktop.insetGap ||
-			allBlocks.some(
-				( block ) =>
-					isCanvasGroup( block ) ||
-					block.attributes[ ATTRIBUTE ]?.offset
-			);
+		const framed = allBlocks.some(
+			( block ) =>
+				isCanvasGroup( block ) || block.attributes[ ATTRIBUTE ]?.offset
+		);
 		const insets = {};
 		for ( const block of allBlocks.filter( isCanvasGroup ) ) {
 			const item = elements.get( block.clientId );
@@ -378,11 +374,10 @@ export function observeCanvasLayout( grid, onChange ) {
 					) {
 						return placement;
 					}
-					const height =
-						measureBox(
-							items[ index ],
-							`${ insetFrame( placement, geometry[ mode ].insetGap ).width }px`
-						).height + ( geometry[ mode ].insetGap?.y || 0 );
+					const height = measureBox(
+						items[ index ],
+						`${ placement._rect.width }px`
+					).height;
 					if ( height <= placement._rect.height + 0.5 ) {
 						return placement;
 					}
@@ -598,13 +593,7 @@ export function observeCanvasLayout( grid, onChange ) {
 				const parentElement = parentId && elements.get( parentId );
 				const parentCss =
 					parentElement && view.getComputedStyle( parentElement );
-				const rect = isCanvasGroup( block )
-					? p._rect
-					: insetFrame(
-							p,
-							geometry[ mode ].insetGap,
-							block.name === 'core/image'
-						);
+				const rect = p._rect;
 				item.setAttribute( 'data-canvas-frame', '' );
 				if ( isCanvasGroup( block ) ) {
 					item.setAttribute( 'data-canvas-group', '' );

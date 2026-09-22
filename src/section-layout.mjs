@@ -1,10 +1,4 @@
-import {
-	COLUMNS,
-	MAX_ROWS,
-	ROW_HEIGHT,
-	integer,
-	rowHeightForWidth,
-} from './placement.mjs';
+import { COLUMNS, MAX_ROWS, integer, rowHeightForWidth } from './placement.mjs';
 import { requiredRows, resolveLayouts } from './geometry.mjs';
 import { canvasColumns, canvasRows } from './canvas-geometry.mjs';
 
@@ -56,9 +50,10 @@ export function responsiveRowMetrics( blocks, mode, geometry ) {
 	const { padding } = source;
 	const spacingGap = source.spacingGap ?? source.gap;
 	const spacingColumnGap = source.spacingColumnGap ?? source.columnGap;
-	// Fixed areas retain the default row rhythm independently of authored Gap.
-	const referenceGap = 0;
-	const referenceColumnGap = 0;
+	// Gap belongs between tracks. Rendering, guides, and snapping all consume
+	// these same edges; no block or guide receives a second visual inset.
+	const referenceGap = spacingGap;
+	const referenceColumnGap = spacingColumnGap;
 	const reference = {
 		...source,
 		gap: referenceGap,
@@ -79,7 +74,7 @@ export function responsiveRowMetrics( blocks, mode, geometry ) {
 			rowHeightForWidth(
 				width - padding.left - padding.right,
 				sourceMode
-			) + ROW_HEIGHT
+			)
 		),
 	};
 	const contentWidth = ( g ) =>
@@ -94,7 +89,6 @@ export function responsiveRowMetrics( blocks, mode, geometry ) {
 		referenceColumnGap,
 		spacingGap,
 		spacingColumnGap,
-		insetGap: { x: spacingColumnGap * scale, y: spacingGap * scale },
 		referenceRowHeight: reference.rowHeight,
 		...canvasColumns(
 			target.width,

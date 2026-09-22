@@ -48,7 +48,7 @@ for (const [name, source] of [['centered', centered], ['bottom', bottom]]) {
       close(p._canvas.height, reference._canvas.height * scale);
       close(p._rect.top, reference._rect.top * scale);
       close(p._rect.height, reference._rect.height * scale);
-      close(all[mode].insetGap.y / all[mode].rowHeight, 24 / reference._canvas.rowHeight);
+      close(all[mode].gap / all[mode].rowHeight, 24 / reference._canvas.rowHeight);
     }
     assert.equal(JSON.stringify(blocks), saved);
   });

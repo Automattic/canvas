@@ -1,9 +1,4 @@
-import {
-	MAX_ROWS,
-	ROW_HEIGHT,
-	rowHeightForWidth,
-	rowPitch,
-} from './placement.mjs';
+import { MAX_ROWS, rowHeightForWidth, rowPitch } from './placement.mjs';
 import {
 	canvasColumns,
 	canvasRows,
@@ -78,7 +73,7 @@ function referenceCanvas( source, mode, geometry, rows ) {
 			rowHeightForWidth(
 				width - padding.left - padding.right,
 				geometry.proportional ? 'desktop' : mode
-			) + ( geometry.insetGap ? ROW_HEIGHT : 0 )
+			)
 		),
 		gap,
 	};

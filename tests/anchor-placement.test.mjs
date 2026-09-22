@@ -4,7 +4,6 @@ import { canvasColumns, canvasRows, mapCanvasPlacement, dragMovePlacement, dragR
 import { normalizePlacement, minimumSpans } from '../src/placement.mjs';
 import { serializePlacement } from '../src/serialization.mjs';
 import { preserveRowsOnResize, resizeCanvasRows } from '../src/row-resize.mjs';
-import { insetFrame } from '../src/frame-gap.mjs';
 
 const near = (a,b) => assert.ok(Math.abs(a-b)<.01, `${a} != ${b}`);
 const same = (a,b) => { for (const key of ['left','top','width','height']) near(a[key],b[key]); };
@@ -71,18 +70,6 @@ test('precise vertical frames retain wide and mixed horizontal boundaries across
       const horizontal=mapCanvasPlacement({...saved,free:undefined,anchors:{left:saved.anchors.left,right:saved.anchors.right}},'desktop',target);
       near(p._rect.left,horizontal._rect.left);near(p._rect.width,horizontal._rect.width);
       near(p._rect.top,drop._rect.top);
-    }
-  }
-});
-
-test('Gap preserves horizontal boundaries while every vertical frame insets symmetrically',()=>{
-  const rect={left:100,top:150,width:400,height:200};
-  for(const anchors of [{},{left:'wide'},{right:'canvas'},{left:'wide',right:'wide'}]) {
-    for(const gap of [0,24,48]) {
-      const p=insetFrame({_rect:rect,anchors},{x:gap,y:gap});
-      near(p.top,rect.top+gap/2);near(p.height,rect.height-gap);
-      if(anchors.left) near(p.left,rect.left);
-      if(anchors.right) near(p.left+p.width,rect.left+rect.width);
     }
   }
 });

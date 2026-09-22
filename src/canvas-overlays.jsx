@@ -3,7 +3,6 @@ import { focusCanvasControl } from './canvas-keyboard';
 import { gridMetrics } from './canvas-metrics.mjs';
 import { nearestTouchHandle } from './touch-geometry.mjs';
 import { canvasRows } from './canvas-geometry.mjs';
-import { insetFrame } from './frame-gap.mjs';
 
 export const RESIZE_HANDLES = {
 	n: 'top',
@@ -189,19 +188,8 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 				) {
 					return null;
 				}
-				const frame = insetFrame(
-					{
-						_rect: {
-							left: column.start,
-							top: row.start,
-							width: column.end - column.start,
-							height: row.end - row.start,
-						},
-					},
-					lines.insetGap
-				);
-				const width = Math.max( 0, frame.width - 1 );
-				const height = Math.max( 0, frame.height - 1 );
+				const width = Math.max( 0, column.end - column.start - 1 );
+				const height = Math.max( 0, row.end - row.start - 1 );
 				const radius = Math.min( 2, width / 2, height / 2 );
 				// Ignore subpixel edge contact so a shared boundary never lights its neighbor.
 				const covered =
@@ -223,8 +211,8 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 							'canvas__grid-cell' +
 							( covered ? ' is-covered' : '' )
 						}
-						x={ frame.left + 0.5 }
-						y={ frame.top + 0.5 }
+						x={ column.start + 0.5 }
+						y={ row.start + 0.5 }
 						width={ width }
 						height={ height }
 						rx={ radius }

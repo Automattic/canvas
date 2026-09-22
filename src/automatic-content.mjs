@@ -110,10 +110,7 @@ export function resolveAutomaticContent(
 			automatic,
 			areaFit,
 			widthFit,
-			minWidth: Math.min(
-				available,
-				minWidth + ( geometry.insetGap?.x || 0 )
-			),
+			minWidth: Math.min( available, minWidth ),
 			sourceLeft: ( current._rect.left - columns[ 0 ].start ) / available,
 			sourceRight:
 				( current._rect.left +
@@ -150,15 +147,5 @@ export function resolveAutomaticContent(
 				.height
 		);
 	};
-	return readablePlacements(
-		data,
-		mode,
-		geometry,
-		placements,
-		( item, width ) =>
-			measure(
-				item,
-				Math.max( 1, width - ( geometry.insetGap?.x || 0 ) )
-			) + ( geometry.insetGap?.y || 0 )
-	);
+	return readablePlacements( data, mode, geometry, placements, measure );
 }
