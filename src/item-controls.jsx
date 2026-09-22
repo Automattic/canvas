@@ -314,36 +314,13 @@ function ItemMenuItems( {
 					layer={ layer }
 					contextMenu
 				/>
-				<CanvasSubmenu>
-					<Menu.SubmenuTriggerItem>
-						<Menu.ItemLabel>Alignment</Menu.ItemLabel>
-					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Alignment">
-						<Menu.Item
-							hideOnClick={ hideOnClick }
-							disabled={ ! editable || rotationLocked }
-							onClick={ () =>
-								centerBlock( menu.id, 'horizontal' )
-							}
-						>
-							<Menu.ItemLabel>Center horizontally</Menu.ItemLabel>
-						</Menu.Item>
-						<Menu.Item
-							hideOnClick={ hideOnClick }
-							disabled={ ! editable || rotationLocked }
-							onClick={ () => centerBlock( menu.id, 'vertical' ) }
-						>
-							<Menu.ItemLabel>Center vertically</Menu.ItemLabel>
-						</Menu.Item>
-						<Menu.Item
-							hideOnClick={ hideOnClick }
-							disabled={ ! editable || rotationLocked }
-							onClick={ () => centerBlock( menu.id ) }
-						>
-							<Menu.ItemLabel>Center in canvas</Menu.ItemLabel>
-						</Menu.Item>
-					</Menu.Popover>
-				</CanvasSubmenu>
+				<Menu.Item
+					hideOnClick={ hideOnClick }
+					disabled={ ! editable || rotationLocked }
+					onClick={ () => centerBlock( menu.id ) }
+				>
+					<Menu.ItemLabel>Center</Menu.ItemLabel>
+				</Menu.Item>
 				<Menu.Separator />
 			</Menu.Group>
 			{ image && (
