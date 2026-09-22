@@ -66,7 +66,8 @@ export function ImageShapeMenu( {
 				<Menu.ItemLabel>Shape</Menu.ItemLabel>
 			</Menu.SubmenuTriggerItem>
 			<Menu.Popover
-				aria-label="Shape"
+				className="canvas-shape-picker"
+				aria-label="Image shape"
 				onPointerLeave={ clearShapePreview }
 				onBlur={ ( event ) => {
 					if (
@@ -77,32 +78,22 @@ export function ImageShapeMenu( {
 				} }
 			>
 				{ IMAGE_SHAPES.map( ( { value, label } ) => (
-					<Menu.RadioItem
+					<Menu.Item
 						key={ value }
-						name="image-shape"
-						value={ value }
-						checked={ shape === value }
+						className="canvas-shape-picker__option"
+						role="menuitemradio"
+						aria-checked={ shape === value }
 						disabled={ ! editable }
 						hideOnClick
-						onChange={ () => changeShape( clientId, value ) }
-						onPointerEnter={ () => {
-							if ( editable ) {
-								previewShape( clientId, value );
-							}
-						} }
-						onFocus={ () => {
-							if ( editable ) {
-								previewShape( clientId, value );
-							}
-						} }
+						onClick={ () => changeShape( clientId, value ) }
+						onPointerEnter={ () => previewShape( clientId, value ) }
+						onFocus={ () => previewShape( clientId, value ) }
 					>
-						<Menu.ItemLabel>
-							<span className="canvas-image-shape-label">
-								<ShapeIcon shape={ value } />
-								<span>{ label }</span>
-							</span>
-						</Menu.ItemLabel>
-					</Menu.RadioItem>
+						<span className="canvas-shape-picker__label">
+							<ShapeIcon shape={ value } />
+							<span>{ label }</span>
+						</span>
+					</Menu.Item>
 				) ) }
 			</Menu.Popover>
 		</CanvasSubmenu>
