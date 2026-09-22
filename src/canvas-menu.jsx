@@ -5,6 +5,7 @@ import {
 	useLayoutEffect,
 } from '@wordpress/element';
 import { __experimentalStyleProvider as StyleProvider } from '@wordpress/components';
+
 import { Menu } from './core-menu';
 import { gestureDocuments } from './gesture-pointer.mjs';
 
