@@ -83,9 +83,6 @@ export function CanvasSettings( {
 				attributes={ attributes }
 				{ ...props }
 			/>
-			<p>
-				Restore automatic positioning and sizing on mobile and tablet.
-			</p>
 			<PanelRow>
 				<Button
 					variant="secondary"
