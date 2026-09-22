@@ -4,7 +4,7 @@ A WordPress block for moving, resizing, rotating, and layering core blocks in re
 
 **[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground)**
 
-Open a fresh WordPress site with the **Build it** pattern as its homepage, logged in and ready to edit. The link uses the latest successful build from `trunk` and becomes available after the first [Build Playground workflow](https://github.com/Automattic/canvas/actions/workflows/playground.yml) run. See [Share the demo](#share-the-demo) for details.
+Open a fresh WordPress site with the **pattern-1** pattern as its homepage, logged in and ready to edit. The link uses the latest successful build from `trunk` and becomes available after the first [Build Playground workflow](https://github.com/Automattic/canvas/actions/workflows/playground.yml) run. See [Share the demo](#share-the-demo) for details.
 
 **Install:** download the **canvas** artifact from a successful [build](https://github.com/Automattic/canvas/actions/workflows/playground.yml), extract its `canvas.zip`, then upload that ZIP in WordPress. Versioned downloads can also be published as [release](https://github.com/Automattic/canvas/releases) assets.
 
@@ -158,7 +158,7 @@ For a first run, confirm the skill is discovered, the pattern appears in WordPre
 
 [Build Playground](.github/workflows/playground.yml) runs on pushes to `trunk`, on demand, and monthly to refresh the artifact. It installs locked dependencies, runs `npm run check`, and packages the plugin with `npm run package:preview`. The build needs no local WordPress database or repository secrets; its GitHub token has read-only repository access.
 
-The resulting `dist/canvas-preview.zip` contains a Blueprint and the compiled `canvas.zip`. The Blueprint installs Twenty Twenty-Five and Canvas, creates a homepage from the registered **Build it** pattern using the theme's **Page No Title** template, disables editor welcome guides, logs the visitor in, and opens that page in the Site Editor. The pattern remains ordinary editable blocks. Change the pattern name in [scripts/setup-preview.php](scripts/setup-preview.php) to choose a different bundled composition.
+The resulting `dist/canvas-preview.zip` contains a Blueprint and the compiled `canvas.zip`. The Blueprint installs Twenty Twenty-Five and Canvas, creates a homepage from the registered **pattern-1** pattern using the theme's **Page No Title** template, disables editor welcome guides, logs the visitor in, and opens that page in the Site Editor. The pattern remains ordinary editable blocks. Change the pattern name in [scripts/setup-preview.php](scripts/setup-preview.php) to choose a different bundled composition.
 
 The workflow uploads the bundle's **contents** as the `canvas-playground` artifact so `blueprint.json` sits at the ZIP root. [Playground's GitHub proxy](https://github.com/WordPress/wordpress-playground/blob/trunk/packages/playground/website/public/plugin-proxy.php) serves this artifact directly to the README link. Keep the workflow name `Build Playground`, branch `trunk`, and artifact name `canvas-playground` in sync with that link. No release or manual upload is needed.
 

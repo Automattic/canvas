@@ -3,9 +3,9 @@
 require '/wordpress/wp-load.php';
 wp_set_current_user( 1 );
 
-$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( 'tabor/canvas-build-it' );
+$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( 'tabor/canvas-pattern-1' );
 if ( ! $pattern || empty( $pattern['content'] ) ) {
-	throw new Exception( 'The Canvas Build it pattern is unavailable.' );
+	throw new Exception( 'The Canvas pattern-1 pattern is unavailable.' );
 }
 
 $page_id = wp_insert_post( wp_slash( array(

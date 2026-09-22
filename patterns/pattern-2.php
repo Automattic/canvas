@@ -1,6 +1,6 @@
 <?php
 /**
- * Skydiving school: staggered headings and rounded images.
+ * Pattern-2: staggered headings and rounded images.
  *
  * @package Canvas
  */

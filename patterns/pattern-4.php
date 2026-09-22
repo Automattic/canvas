@@ -1,6 +1,6 @@
 <?php
 /**
- * Portfolio: layered headings and a soft-square image.
+ * Pattern-4: layered headings and a soft-square image.
  *
  * @package Canvas
  */

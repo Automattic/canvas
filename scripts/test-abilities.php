@@ -18,7 +18,7 @@ try {
 	$context = call_canvas( 'get-context' );
 	$guide = $context['guide'];
 	preg_match( '/```html\n(.*?)\n```/s', $guide, $match ); $markup = $match[1];
-	foreach ( array( 'build-it', 'skydiving-school', 'energy-healing' ) as $slug ) {
+	foreach ( array( 'pattern-1', 'pattern-2', 'pattern-3' ) as $slug ) {
 		$pattern = \WP_Block_Patterns_Registry::get_instance()->get_registered( 'tabor/canvas-' . $slug )['content'];
 		check_canvas( ! is_wp_error( wp_get_ability( 'canvas/validate-sections' )->execute( array( 'markup' => $pattern ) ) ), 'bundled composition validates: ' . $slug );
 	}

@@ -1,6 +1,6 @@
 <?php
 /**
- * Our story: an editorial introduction with staggered images.
+ * Pattern-5: an editorial introduction with staggered images.
  *
  * @package Canvas
  */

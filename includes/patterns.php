@@ -30,48 +30,60 @@ add_filter( 'block_editor_settings_all', __NAMESPACE__ . '\\enable_pattern_editi
 function register_patterns() {
 	register_block_pattern_category( 'tabor-canvas', array( 'label' => __( 'Canvas', 'canvas' ) ) );
 	ob_start();
-	require dirname( __DIR__ ) . '/patterns/build-it.php';
+	require dirname( __DIR__ ) . '/patterns/pattern-1.php';
 	$content = ob_get_clean();
 	register_block_pattern(
-		'tabor/canvas-build-it',
+		'tabor/canvas-pattern-1',
 		array(
-			'title'       => __( 'Build it', 'canvas' ),
+			'title'       => __( 'pattern-1', 'canvas' ),
 			'description' => __( 'A full-width Canvas section with a large centered headline over a scalloped image, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
 	);
 	ob_start();
-	require dirname( __DIR__ ) . '/patterns/skydiving-school.php';
+	require dirname( __DIR__ ) . '/patterns/pattern-6.php';
 	$content = ob_get_clean();
 	register_block_pattern(
-		'tabor/canvas-skydiving-school',
+		'tabor/canvas-pattern-6',
 		array(
-			'title'       => __( 'Skydiving school', 'canvas' ),
+			'title'       => __( 'pattern-6', 'canvas' ),
+			'description' => __( 'A full-width Canvas coaching introduction with a large headline, overlapping images, and a call-to-action button, with desktop, tablet, and mobile layouts.', 'canvas' ),
+			'categories'  => array( 'tabor-canvas' ),
+			'content'     => $content,
+		)
+	);
+	ob_start();
+	require dirname( __DIR__ ) . '/patterns/pattern-2.php';
+	$content = ob_get_clean();
+	register_block_pattern(
+		'tabor/canvas-pattern-2',
+		array(
+			'title'       => __( 'pattern-2', 'canvas' ),
 			'description' => __( 'A full-width Canvas section with two oversized headings and staggered rounded images, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
 	);
 	ob_start();
-	require dirname( __DIR__ ) . '/patterns/portfolio.php';
+	require dirname( __DIR__ ) . '/patterns/pattern-4.php';
 	$content = ob_get_clean();
 	register_block_pattern(
-		'tabor/canvas-portfolio',
+		'tabor/canvas-pattern-4',
 		array(
-			'title'       => __( 'Portfolio', 'canvas' ),
+			'title'       => __( 'pattern-4', 'canvas' ),
 			'description' => __( 'A full-width Canvas portfolio introduction with two oversized red headings layered around a soft-square image.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
 	);
 	ob_start();
-	require dirname( __DIR__ ) . '/patterns/our-story.php';
+	require dirname( __DIR__ ) . '/patterns/pattern-5.php';
 	$content = ob_get_clean();
 	register_block_pattern(
-		'tabor/canvas-our-story',
+		'tabor/canvas-pattern-5',
 		array(
-			'title'       => __( 'Our story', 'canvas' ),
+			'title'       => __( 'pattern-5', 'canvas' ),
 			'description' => __( 'A full-width Canvas introduction with an oversized heading, story text, and two staggered images, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas' ),
 			'content'     => $content,
@@ -87,12 +99,12 @@ add_action( 'init', __NAMESPACE__ . '\\register_patterns', 20 );
  */
 function register_energy_healing_pattern() {
 	ob_start();
-	require dirname( __DIR__ ) . '/patterns/energy-healing.php';
+	require dirname( __DIR__ ) . '/patterns/pattern-3.php';
 	$content = ob_get_clean();
 	register_block_pattern(
-		'tabor/canvas-energy-healing',
+		'tabor/canvas-pattern-3',
 		array(
-			'title'       => __( 'Energy healing', 'canvas' ),
+			'title'       => __( 'pattern-3', 'canvas' ),
 			'description' => __( 'A full-width Canvas section with a tilted oval image, yellow headings, and a centered booking button, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,

@@ -1,6 +1,6 @@
 <?php
 /**
- * Energy healing: tilted oval image, headings, and booking button.
+ * Pattern-3: tilted oval image, headings, and booking button.
  *
  * @package Canvas
  */

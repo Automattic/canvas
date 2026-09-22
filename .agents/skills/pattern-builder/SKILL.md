@@ -13,9 +13,9 @@ Paths below are relative to the project root. Read [AUTHORING.md](../../../AUTHO
 
 Inspect the relevant example and [pattern registration](../../../includes/patterns.php):
 
-- [Build it](../../../patterns/build-it.php): a centered heading overlapping a scalloped image.
-- [Skydiving school](../../../patterns/skydiving-school.php): staggered images and oversized typography.
-- [Energy healing](../../../patterns/energy-healing.php): a tilted oval, layered headings, and a booking button.
+- [pattern-1](../../../patterns/pattern-1.php): a centered heading overlapping a scalloped image.
+- [pattern-2](../../../patterns/pattern-2.php): staggered images and oversized typography.
+- [pattern-3](../../../patterns/pattern-3.php): a tilted oval, layered headings, and a booking button.
 
 These are composition references, not templates to copy literally. Their attachment IDs, upload paths, theme styles, and explicit responsive placements are specific to the existing site. Verify destination assets and styles before reusing them.
 
