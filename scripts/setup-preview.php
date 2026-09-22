@@ -20,20 +20,7 @@ if ( is_wp_error( $page_id ) ) {
 	throw new Exception( $page_id->get_error_message() );
 }
 
-// Give the pattern the full page, without a theme header or duplicated page title.
-$template_id = wp_insert_post( array(
-	'post_type'    => 'wp_template',
-	'post_status'  => 'publish',
-	'post_name'    => 'canvas-preview',
-	'post_title'   => 'Canvas preview',
-	'post_content' => '<!-- wp:post-content {"layout":{"type":"constrained"}} /-->',
-), true );
-if ( is_wp_error( $template_id ) ) {
-	throw new Exception( $template_id->get_error_message() );
-}
-wp_set_object_terms( $template_id, get_stylesheet(), 'wp_theme' );
-update_post_meta( $template_id, 'origin', 'theme' );
-update_post_meta( $page_id, '_wp_page_template', 'canvas-preview' );
+update_post_meta( $page_id, '_wp_page_template', 'page-no-title' );
 update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $page_id );
 update_option( 'blogname', 'Canvas' );
