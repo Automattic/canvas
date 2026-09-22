@@ -2,11 +2,11 @@
 
 A WordPress block for moving, resizing, rotating, and layering core blocks in responsive layouts. The [Automattic/canvas repository](https://github.com/Automattic/canvas) contains the plugin source, tests, and development tools. Playground provides a persistent local WordPress environment.
 
-**[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Frepo%3DAutomattic%2Fcanvas%26name%3Dcanvas-playground.zip)**
+**[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground)**
 
-Explore Canvas with a theme and sample content in your browser. The demo link uses the latest release's `canvas-playground.zip`; it becomes available once that asset is published. See [Share the demo](#share-the-demo) for setup.
+Open a fresh WordPress site with the **Build it** pattern as its homepage, logged in and ready to edit. The link uses the latest successful build from `trunk` and becomes available after the first [Build Playground workflow](https://github.com/Automattic/canvas/actions/workflows/playground.yml) run. See [Share the demo](#share-the-demo) for details.
 
-**Install:** download `canvas.zip` from a [release](https://github.com/Automattic/canvas/releases), then upload it in WordPress. Release downloads become available when published.
+**Install:** download the **canvas** artifact from a successful [build](https://github.com/Automattic/canvas/actions/workflows/playground.yml), extract its `canvas.zip`, then upload that ZIP in WordPress. Versioned downloads can also be published as [release](https://github.com/Automattic/canvas/releases) assets.
 
 **Develop:** clone the repository, run `npm ci`, then `npm run dev`. See [Develop](#develop) for details.
 
@@ -55,6 +55,7 @@ npm run format:js         # Apply automatic JavaScript fixes
 npm run format:css        # Apply automatic SCSS fixes
 npm run build             # Production block assets
 npm run package:plugin    # Installable dist/canvas.zip, built in isolation
+npm run package:preview   # Plugin ZIP plus a reproducible browser Playground bundle
 npm run watch:blocks      # Asset watcher without starting WordPress
 npm run demo              # Create or reopen the local draft demonstration
 npm run test:abilities    # WordPress integration checks; stop dev first
@@ -78,7 +79,7 @@ Use **Run** for `npm run dev` and **Check** for `npm run check`. Each worktree k
 
 Run `npm ci`, then `npm run package:plugin`. Upload **`dist/canvas.zip`** through **Plugins → Add New → Upload Plugin** and activate **Canvas**. The ZIP includes a production build, bundled patterns and images, authoring instructions, and the editable source. It excludes the local site, accounts, credentials, MCP Adapter, and development dependencies. Node.js is not needed on the destination site.
 
-Packaging requires the `zip` command and checks version and requirement metadata before building into temporary staging. It leaves an existing ZIP intact if the build fails. `dist/canvas-playground.zip` is a separate browser demo bundle and cannot be installed as a WordPress plugin.
+Packaging requires the `zip` command and checks version and requirement metadata before building into temporary staging. It leaves an existing ZIP intact if the build fails. `dist/canvas-preview.zip` and `dist/canvas-playground.zip` are browser demo bundles and cannot be installed as WordPress plugins.
 
 For a manual installation, extract `dist/canvas.zip` and copy its `canvas/` directory into `wp-content/plugins/`. Canvas refuses activation when its compiled assets are missing. The current development site runs WordPress 7.1.1. The Update URI identifies this GitHub distribution and prevents unrelated WordPress.org plugins from replacing it; updates are installed manually.
 
@@ -120,7 +121,7 @@ New pages publish by default; request a draft when needed. Updates preserve stat
 
 ### Shared browser Playground
 
-The demo runs inside each visitor's browser. Its sharing URL is not an external WordPress REST or MCP endpoint. Configure a local stdio MCP client with the official Playground bridge:
+The demo runs inside each visitor's browser. Its sharing URL is not an external WordPress REST or MCP endpoint. The automatic preview includes Canvas only; the optional saved-site bundle also includes MCP Adapter. Either can expose Canvas abilities through the official Playground bridge. Configure a local stdio MCP client:
 
 ```json
 {
@@ -153,6 +154,20 @@ For a first run, confirm the skill is discovered, the pattern appears in WordPre
 
 ## Share the demo
 
+### Automatic preview
+
+[Build Playground](.github/workflows/playground.yml) runs on pushes to `trunk`, on demand, and monthly to refresh the artifact. It installs locked dependencies, runs `npm run check`, and packages the plugin with `npm run package:preview`. The build needs no local WordPress database or repository secrets; its GitHub token has read-only repository access.
+
+The resulting `dist/canvas-preview.zip` contains a Blueprint and the compiled `canvas.zip`. The Blueprint installs Twenty Twenty-Five and Canvas, creates a homepage from the registered **Build it** pattern, disables editor welcome guides, logs the visitor in, and opens that page in the Site Editor. The pattern remains ordinary editable blocks. Change the pattern name in [scripts/setup-preview.php](scripts/setup-preview.php) to choose a different bundled composition.
+
+The workflow uploads the bundle's **contents** as the `canvas-playground` artifact so `blueprint.json` sits at the ZIP root. [Playground's GitHub proxy](https://github.com/WordPress/wordpress-playground/blob/trunk/packages/playground/website/public/plugin-proxy.php) serves this artifact directly to the README link. Keep the workflow name `Build Playground`, branch `trunk`, and artifact name `canvas-playground` in sync with that link. No release or manual upload is needed.
+
+Artifacts last 90 days. Monthly builds refresh them while scheduled workflows remain enabled; GitHub can disable schedules on inactive public repositories. If the link expires, run **Actions → Build Playground → Run workflow** on `trunk`. Each fresh launch loads the current available build; a site already saved in a visitor's browser keeps its own plugin copy and edits.
+
+### Optional saved-site demo
+
+To share the specific composition, template, and styles saved in your local site instead of the automatic pattern preview, use the existing snapshot packager:
+
 Save local page **10**, the Pages template, and global styles before packaging; the command reads saved content rather than editor buffers.
 
 ```sh
@@ -162,7 +177,7 @@ npm run playground:link -- 'https://playground.wordpress.net/plugin-proxy.php?re
 
 Packaging writes `dist/canvas-playground.zip` with the built plugin, its readme and authoring instructions, this README, MCP Adapter, Twenty Twenty-Five 1.5, and the selected page's content and images. It requires `sqlite3`, `zip`, and network access for uncached assets. It reads the local database without modifying it and builds in temporary staging so a watcher cannot overwrite release assets.
 
-Upload `dist/canvas-playground.zip` as an asset named **`canvas-playground.zip`** on a public [Automattic/canvas release](https://github.com/Automattic/canvas/releases) marked **Latest**. The README's link uses [Playground's GitHub download proxy](https://github.com/WordPress/wordpress-playground/blob/trunk/packages/playground/website/public/plugin-proxy.php) to avoid GitHub's cross-origin download restriction. It follows GitHub's [latest-release download URL](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases), so retain that asset name on subsequent releases. Draft releases and prereleases do not supply the latest-release download.
+Upload `dist/canvas-playground.zip` as an asset named **`canvas-playground.zip`** on a public [Automattic/canvas release](https://github.com/Automattic/canvas/releases) marked **Latest**. The link printed above uses Playground's GitHub download proxy to avoid GitHub's cross-origin download restriction. It follows GitHub's [latest-release download URL](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases), so retain that asset name on subsequent releases. Draft releases and prereleases do not supply the latest-release download. This optional link is separate from the automatic preview at the top of this README.
 
 The link command prints the sharing URL; neither command uploads or publishes anything. The asset must be publicly downloadable and accessible to Playground's browser fetch. Check a fresh imported site and the actual hosted link after publishing, including images, editing, saving, and responsive layouts. Each visitor gets an independent site. Upload `canvas.zip` separately for teammates who want to install the plugin on their own WordPress site.
 

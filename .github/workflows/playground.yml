@@ -1,0 +1,70 @@
+name: Build Playground
+
+on:
+  push:
+    branches: [trunk]
+  workflow_dispatch:
+  # Refresh the preview before its 90-day artifact retention expires.
+  schedule:
+    - cron: '17 6 1 * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: playground-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: shivammathur/setup-php@b604ade2a87db23f8871b7182e69ec5e75effb45 # v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Check Canvas
+        run: npm run check
+
+      - name: Package the plugin and Playground
+        run: |
+          npm run package:preview
+          unzip -t dist/canvas.zip
+          unzip -t dist/canvas-preview.zip
+          unzip -q dist/canvas-preview.zip -d dist/playground
+
+      - name: Upload installable plugin
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: canvas
+          path: dist/canvas.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      # Upload the bundle contents: the artifact itself becomes the Blueprint ZIP.
+      # The README's proxy URL depends on this workflow and artifact name.
+      - name: Upload Playground bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: canvas-playground
+          path: dist/playground/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
