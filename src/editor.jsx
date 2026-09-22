@@ -8,11 +8,7 @@ import {
 	moveSelection,
 	centerInSection,
 } from './selection-movement.mjs';
-import {
-	imageShape,
-	imageResizeRatio,
-	lockedShapeRatio,
-} from './image-shapes.mjs';
+import { imageShape, imageResizeRatio } from './image-shapes.mjs';
 import { imageShapeUpdates } from './image-shape-layout.mjs';
 import {
 	isCanvasGroup,
@@ -741,11 +737,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			if (
 				store.getBlockName( id ) !== 'core/image' ||
 				store.getBlockEditingMode( id ) !== 'default' ||
-				layouts[ id ]?.fit !== 'cover' ||
-				lockedShapeRatio(
-					layouts[ id ]?.shape,
-					layouts[ id ]?.shapeStretch
-				)
+				layouts[ id ]?.fit !== 'cover'
 			) {
 				return;
 			}

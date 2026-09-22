@@ -57,7 +57,9 @@ test('Diamond starts near square and remains freely resizable', () => {
     const resized = dragResizePlacement(start, mode, 'e', 30, 0, minimum, imageResizeRatio({ shape: 'diamond' }, start));
     assert.ok(resized._rect.width > start._rect.width);
     near(resized._rect.height, start._rect.height);
-    assert.deepEqual(shapeInsets(resized._rect.width, resized._rect.height, 'diamond'), { x: 0, y: 0 });
+    const { width, height } = resized._rect;
+    const { x, y } = shapeInsets(width, height, 'diamond');
+    near(width - 2 * x, height - 2 * y);
   }
 });
 
@@ -110,7 +112,7 @@ test('the next manual resize remains independent on each axis', () => {
   assert.notEqual(next._rect.width / next._rect.height, fitted._rect.width / fitted._rect.height);
 });
 
-test('fixed shapes lock their ratio while flexible shapes honor the optional manual lock', () => {
+test('all shapes honor the optional manual frame lock', () => {
   const measured = Object.fromEntries(Object.keys(COLUMNS).map(mode => [mode, geometry(mode)]));
   for (const { value: shape } of IMAGE_SHAPES.slice(1)) for (const aspectRatio of [undefined, 1.7]) {
     const saved = { shape, aspectRatio, desktop: savedCanvasPlacement(placement('desktop')) };
@@ -119,13 +121,11 @@ test('fixed shapes lock their ratio while flexible shapes honor the optional man
     for (const mode of Object.keys(COLUMNS)) {
       const fitted = fitCanvasPlacementToRatio(layout[mode], mode, preferredShapeRatio(shape));
       const next = dragResizePlacement(fitted, mode, 'e', 30, 0, minimum, imageResizeRatio(layout, fitted));
-      const fixed = ['circle', 'clover', 'flower', 'scallop', 'tilted-oval'].includes(shape);
-      if (fixed) near(next._rect.width / next._rect.height, 1);
-      else if (aspectRatio) near(next._rect.width / next._rect.height, fitted._rect.width / fitted._rect.height);
+      if (aspectRatio) near(next._rect.width / next._rect.height, fitted._rect.width / fitted._rect.height);
       else near(next._rect.height, fitted._rect.height);
       const { width, height } = next._rect;
       const { x, y } = shapeInsets(width, height, shape);
-      near((width - 2 * x) / (height - 2 * y), fixed ? 1 : width / height);
+      near((width - 2 * x) / (height - 2 * y), preferredShapeRatio(shape));
       assert.equal(saved.aspectRatio, aspectRatio);
     }
   }
@@ -191,14 +191,30 @@ test('shape previews are independent proposals and preserve saved attributes unt
   assert.equal(none.style, undefined);
 });
 
-test('decorative shape locks constrain every handle on all viewports', () => {
+test('decorative shapes resize the existing frame without forcing square proportions', () => {
   for (const shape of ['circle', 'clover', 'flower', 'scallop', 'tilted-oval']) for (const mode of Object.keys(COLUMNS)) {
-    const start = fitCanvasPlacementToRatio(placement(mode), mode, 1);
+    const start = placement(mode);
     for (const handle of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
       const resized = dragResizePlacement(start, mode, handle, 23, 17, minimum, imageResizeRatio({ shape }, start));
-      near(resized._rect.width / resized._rect.height, 1);
+      assert.deepEqual(resized, dragResizePlacement(start, mode, handle, 23, 17, minimum));
     }
-    const resized = resizeCanvasWithKey(start, mode, 1, 0, minimum, imageResizeRatio({ shape }, start));
-    assert.ok(resized._rect.height > start._rect.height);
+    assert.deepEqual(resizeCanvasWithKey(start, mode, 1, 0, minimum, imageResizeRatio({ shape }, start)), resizeCanvasWithKey(start, mode, 1, 0, minimum));
+    assert.equal(imageResizeRatio({ shape, aspectRatio: 1 }, start), start._rect.width / start._rect.height);
+  }
+});
+
+test('applying and switching shapes preserves image dimensions across viewports', () => {
+  for (const mode of Object.keys(COLUMNS)) for (const { value } of IMAGE_SHAPES) for (const shapeStretch of [undefined, false, true]) {
+    const canvas = { shape: value === 'circle' ? 'clover' : 'circle', shapeStretch,
+      desktop: savedCanvasPlacement(placement('desktop')), mobile: savedCanvasPlacement(placement('mobile')) };
+    const attributes = { canvas };
+    const geometryByMode = Object.fromEntries(Object.keys(COLUMNS).map(viewport => [viewport, geometry(viewport)]));
+    const layout = resolveLayouts([{ clientId: 'image', name: 'core/image', attributes }], geometryByMode).image;
+    const next = imageShapeUpdates(attributes, layout, mode, value, true).canvas;
+    for (const viewport of ['desktop', 'mobile']) {
+      const { rotation: beforeRotation, ...before } = canvas[viewport];
+      const { rotation: afterRotation, ...after } = next[viewport];
+      assert.deepEqual(after, before);
+    }
   }
 });

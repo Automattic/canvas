@@ -30,12 +30,8 @@ export const lockedShapeRatio = ( value, shapeStretch ) =>
 		? undefined
 		: preferredShapeRatio( value );
 
-// Shape locks take precedence without overwriting the saved manual preference.
+// Frame locking is independent of the silhouette proportions.
 export function imageAspectRatio( saved = {} ) {
-	const ratio = lockedShapeRatio( saved?.shape, saved?.shapeStretch );
-	if ( ratio ) {
-		return ratio;
-	}
 	return imageFit( saved ) === 'cover' &&
 		Number.isFinite( saved?.aspectRatio ) &&
 		saved.aspectRatio > 0
@@ -46,10 +42,6 @@ export function imageAspectRatio( saved = {} ) {
 // A manual lock constrains the frame visible when this resize begins. It
 // never restores a ratio captured at a different viewport or before snapping.
 export function imageResizeRatio( layout, placement, temporaryLock = false ) {
-	const ratio = lockedShapeRatio( layout?.shape, layout?.shapeStretch );
-	if ( ratio ) {
-		return ratio;
-	}
 	return ( layout?.aspectRatio || temporaryLock ) &&
 		placement?._rect?.height > 0
 		? placement._rect.width / placement._rect.height

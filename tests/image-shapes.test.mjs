@@ -6,7 +6,7 @@ import { resolveLayouts, ATTRIBUTE, duplicateLayout } from '../src/geometry.mjs'
 import { coverImage, moveImagePosition } from '../src/image-position.mjs';
 import { readRadiusTargets } from '../src/radius-targets.mjs';
 
-const fixedShapes = ['circle', 'clover', 'flower', 'scallop', 'tilted-oval'];
+const fixedShapes = ['circle', 'clover', 'flower', 'scallop', 'tilted-oval', 'diamond', 'soft-square', 'ellipse', 'arch'];
 const file = new URL('../includes/canvas.php', import.meta.url).pathname;
 const resolve = saved => resolveLayouts([{ clientId: 'image', name: 'core/image', attributes: { [ATTRIBUTE]: saved } }]).image;
 test('supported shapes resolve unchanged and produce masks', () => {
@@ -25,7 +25,7 @@ test('shapes require cover without mutating fit, position, placement or aspect-r
       const shaped = { ...saved, shape: value };
       const layout = resolve(shaped);
       assert.equal(layout.fit, 'cover');
-      assert.equal(layout.aspectRatio, fixedShapes.includes(value) ? 1 : 1.7);
+      assert.equal(layout.aspectRatio, 1.7);
       assert.deepEqual(layout.imagePosition, saved.imagePosition);
       assert.deepEqual(layout.desktop, resolve(saved).desktop);
       assert.equal(duplicateLayout(layout, shaped).shape, value);
@@ -39,11 +39,11 @@ test('applying, switching and reopening any shape preserves the optional resize 
   for (const { value: shape } of IMAGE_SHAPES.slice(1)) for (const aspectRatio of [undefined, 1.7]) {
     const saved = { shape, aspectRatio, fit: 'contain', desktop: { column: 2, row: 3, columnSpan: 5, rowSpan: 6 } };
     const original = structuredClone(saved);
-    assert.equal(resolve(saved).aspectRatio, fixedShapes.includes(shape) ? 1 : aspectRatio);
-    assert.equal(resolve(JSON.parse(JSON.stringify(saved))).aspectRatio, fixedShapes.includes(shape) ? 1 : aspectRatio);
+    assert.equal(resolve(saved).aspectRatio, aspectRatio);
+    assert.equal(resolve(JSON.parse(JSON.stringify(saved))).aspectRatio, aspectRatio);
     assert.deepEqual(saved, original);
     for (const replacement of ['clover', 'ellipse', 'flower']) {
-      assert.equal(resolve({ ...saved, shape: replacement }).aspectRatio, fixedShapes.includes(replacement) ? 1 : aspectRatio);
+      assert.equal(resolve({ ...saved, shape: replacement }).aspectRatio, aspectRatio);
     }
     assert.equal(resolve({ ...saved, shape: 'none' }).aspectRatio, undefined);
     assert.equal(resolve({ ...saved, shape: 'none', fit: 'cover' }).aspectRatio, aspectRatio);
@@ -74,12 +74,12 @@ test('fixed silhouettes keep their intended proportions in landscape and portrai
   assert.deepEqual(shapeInsets(400, 200, 'none'), { x: 0, y: 0 });
 });
 
-test('ovals, diamonds, arches and soft squares stretch to the full width and height of portrait and landscape frames', () => {
-  for (const shape of ['ellipse', 'diamond', 'arch', 'soft-square']) {
+test('explicitly stretched ovals and arches fill portrait and landscape frames', () => {
+  for (const shape of ['ellipse', 'arch']) {
   for (const [width, height] of [[400, 200], [200, 400], [240, 240]]) {
-    assert.deepEqual(shapeInsets(width, height, shape), { x: 0, y: 0 });
+    assert.deepEqual(shapeInsets(width, height, shape, true), { x: 0, y: 0 });
   }
-  assert.ok(decodeURIComponent(shapeMask(shape)).includes('preserveAspectRatio="none"'));
+  assert.ok(decodeURIComponent(shapeMask(shape, true)).includes('preserveAspectRatio="none"'));
   }
 });
 

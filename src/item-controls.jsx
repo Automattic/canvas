@@ -1,5 +1,4 @@
 import { compactCanvas, compactCanvasAttributes } from './serialization.mjs';
-import { lockedShapeRatio } from './image-shapes.mjs';
 import { ImageShapeMenu } from './image-shape-controls';
 import {
 	isCanvasGroup,
@@ -276,52 +275,27 @@ function ItemMenuItems( {
 						<Menu.ItemLabel>Image</Menu.ItemLabel>
 					</Menu.SubmenuTriggerItem>
 					<Menu.Popover aria-label="Image">
-						{ ! shaped && (
-							<Menu.CheckboxItem
-								name="image-fill"
-								hideOnClick={ hideOnClick }
-								checked={ fill }
-								disabled={ ! editable }
-								aria-description="Crop the image to fill its area. Turn off to show the whole image."
-								onChange={ () =>
-									changeFit(
-										menu.id,
-										fill ? 'contain' : 'cover'
-									)
-								}
-							>
-								<Menu.ItemLabel>Fill image</Menu.ItemLabel>
-							</Menu.CheckboxItem>
-						) }
-						{ shaped && (
-							<Menu.CheckboxItem
-								name="shape-stretch"
-								hideOnClick={ hideOnClick }
-								checked={ layouts[ menu.id ].shapeStretch }
-								disabled={ ! editable }
-								aria-description="Fill the frame with the shape. Turn off to keep its proportions."
-								onChange={ () =>
-									changeShapeStretch(
-										menu.id,
-										! layouts[ menu.id ].shapeStretch
-									)
-								}
-							>
-								<Menu.ItemLabel>Stretch shape</Menu.ItemLabel>
-							</Menu.CheckboxItem>
-						) }
+						<Menu.CheckboxItem
+							name="image-fill"
+							hideOnClick={ hideOnClick }
+							checked={ fill }
+							disabled={ ! editable || shaped }
+							aria-description={
+								shaped
+									? 'Shapes require the image to fill its area.'
+									: 'Crop the image to fill its area. Turn off to show the whole image.'
+							}
+							onChange={ () =>
+								changeFit( menu.id, fill ? 'contain' : 'cover' )
+							}
+						>
+							<Menu.ItemLabel>Fill image</Menu.ItemLabel>
+						</Menu.CheckboxItem>
 						<Menu.CheckboxItem
 							name="image-aspect-ratio"
 							hideOnClick={ hideOnClick }
 							checked={ !! layouts[ menu.id ].aspectRatio }
-							disabled={
-								! editable ||
-								! fill ||
-								!! lockedShapeRatio(
-									layouts[ menu.id ].shape,
-									layouts[ menu.id ].shapeStretch
-								)
-							}
+							disabled={ ! editable || ! fill }
 							onChange={ () => changeAspectRatio( menu.id ) }
 						>
 							<Menu.ItemLabel>Lock aspect ratio</Menu.ItemLabel>
@@ -339,6 +313,23 @@ function ItemMenuItems( {
 						>
 							<Menu.ItemLabel>Reset rotation</Menu.ItemLabel>
 						</Menu.Item>
+						{ shaped && (
+							<Menu.CheckboxItem
+								name="shape-stretch"
+								hideOnClick={ hideOnClick }
+								checked={ layouts[ menu.id ].shapeStretch }
+								disabled={ ! editable }
+								aria-description="Fill the frame with the shape. Turn off to keep its proportions."
+								onChange={ () =>
+									changeShapeStretch(
+										menu.id,
+										! layouts[ menu.id ].shapeStretch
+									)
+								}
+							>
+								<Menu.ItemLabel>Stretch shape</Menu.ItemLabel>
+							</Menu.CheckboxItem>
+						) }
 					</Menu.Popover>
 				</CanvasSubmenu>
 			) }

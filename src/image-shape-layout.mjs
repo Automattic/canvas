@@ -1,7 +1,5 @@
-import { imageShape, preferredShapeRatio } from './image-shapes.mjs';
-import { fitCanvasPlacementToRatio } from './canvas-geometry.mjs';
-import { sourcePlacement } from './canvas-groups.mjs';
-import { ATTRIBUTE, COLUMNS, savePlacement } from './geometry.mjs';
+import { imageShape } from './image-shapes.mjs';
+import { ATTRIBUTE, COLUMNS } from './geometry.mjs';
 import { normalizeRotation } from './rotation.mjs';
 
 // Preview and commit use the same proposed attributes. Neither mutates the
@@ -26,27 +24,6 @@ export function imageShapeUpdates( attributes, current, mode, value, canMove ) {
 		return null;
 	}
 	let placement = saved;
-	if (
-		shape !== 'none' &&
-		saved.shapeStretch !== true &&
-		imageShape( saved.shape ) !== shape &&
-		current &&
-		canMove
-	) {
-		const fitted = fitCanvasPlacementToRatio(
-			current[ mode ],
-			mode,
-			preferredShapeRatio( shape )
-		);
-		if ( fitted !== current[ mode ] ) {
-			placement = savePlacement(
-				saved,
-				current,
-				mode,
-				sourcePlacement( fitted, mode, current[ mode ] )
-			);
-		}
-	}
 	if ( clearRotation ) {
 		placement = { ...placement };
 		for ( const viewport of Object.keys( COLUMNS ) ) {
@@ -62,6 +39,10 @@ export function imageShapeUpdates( attributes, current, mode, value, canMove ) {
 		[ ATTRIBUTE ]: {
 			...placement,
 			shape: shape === 'none' ? undefined : shape,
+			shapeStretch:
+				imageShape( saved.shape ) === shape
+					? saved.shapeStretch
+					: undefined,
 		},
 	};
 	if ( clearRadius ) {

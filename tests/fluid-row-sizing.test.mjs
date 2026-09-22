@@ -39,7 +39,7 @@ test('manual viewport frames and rendering are independent of the resize lock', 
   const next = dragResizePlacement(start, 'mobile', 'e', 12, 0, minimum, ratio);
   close(next._rect.width / next._rect.height, ratio);
   assert.equal(imageResizeRatio(plain, start), undefined);
-  assert.equal(imageResizeRatio({ shape: 'circle' }, start), 1);
+  assert.equal(imageResizeRatio({ shape: 'circle' }, start), undefined);
 });
 
 test('growing the canvas and reopening a keyboard resize retain the measured row pitch', () => {
