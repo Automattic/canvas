@@ -1,6 +1,6 @@
 import { compactCanvas, compactCanvasAttributes } from './serialization.mjs';
 import { lockedShapeRatio } from './image-shapes.mjs';
-import { ImageShapeMenu, ImageShapeInspector } from './image-shape-controls';
+import { ImageShapeMenu } from './image-shape-controls';
 import {
 	isCanvasGroup,
 	saveGroupMove,
@@ -748,12 +748,9 @@ export function registerItemControls() {
 				let inspectorControls;
 				if ( props.name === 'core/image' ) {
 					inspectorControls = (
-						<>
-							<ItemImageRepositionControl
-								clientId={ props.clientId }
-							/>
-							<ImageShapeInspector clientId={ props.clientId } />
-						</>
+						<ItemImageRepositionControl
+							clientId={ props.clientId }
+						/>
 					);
 				} else {
 					inspectorControls = null;

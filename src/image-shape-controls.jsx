@@ -1,11 +1,4 @@
-import { useContext, useEffect } from '@wordpress/element';
-import { useSelect } from '@wordpress/data';
-import {
-	InspectorControls,
-	store as blockEditorStore,
-} from '@wordpress/block-editor';
-import { PanelBody } from '@wordpress/components';
-import { CanvasContext } from './editor-context';
+import { useEffect } from '@wordpress/element';
 import { CanvasSubmenu } from './canvas-menu';
 import { Menu } from './core-menu';
 import {
@@ -97,73 +90,5 @@ export function ImageShapeMenu( {
 				) ) }
 			</Menu.Popover>
 		</CanvasSubmenu>
-	);
-}
-
-export function ImageShapeInspector( { clientId } ) {
-	const { layouts, changeShape, previewShape, clearShapePreview } =
-		useContext( CanvasContext );
-	useShapePreviewCleanup( clientId, clearShapePreview );
-	const editable = useSelect(
-		( select ) =>
-			select( blockEditorStore ).getBlockEditingMode( clientId ) ===
-			'default',
-		[ clientId ]
-	);
-	const shape = layouts[ clientId ].shape;
-	return (
-		<InspectorControls group="styles">
-			<PanelBody title="Shape">
-				<div
-					className="canvas-image-shapes"
-					role="radiogroup"
-					aria-label="Image shape"
-					onPointerLeave={ clearShapePreview }
-					onBlur={ ( event ) => {
-						if (
-							! event.currentTarget.contains(
-								event.relatedTarget
-							)
-						) {
-							clearShapePreview();
-						}
-					} }
-				>
-					{ IMAGE_SHAPES.map( ( { value, label } ) => (
-						<label
-							key={ value }
-							className="canvas-image-shapes__option"
-							htmlFor={ `canvas-image-shape-${ clientId }-${ value }` }
-							onPointerEnter={ () => {
-								if ( editable ) {
-									previewShape( clientId, value );
-								}
-							} }
-						>
-							<input
-								type="radio"
-								id={ `canvas-image-shape-${ clientId }-${ value }` }
-								name={ `canvas-image-shape-${ clientId }` }
-								value={ value }
-								checked={ shape === value }
-								disabled={ ! editable }
-								onChange={ () =>
-									changeShape( clientId, value )
-								}
-								onFocus={ () => {
-									if ( editable ) {
-										previewShape( clientId, value );
-									}
-								} }
-							/>
-							<span>
-								<ShapeIcon shape={ value } />
-								<span>{ label }</span>
-							</span>
-						</label>
-					) ) }
-				</div>
-			</PanelBody>
-		</InspectorControls>
 	);
 }

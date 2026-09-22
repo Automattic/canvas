@@ -708,51 +708,6 @@ body[data-canvas-drop-owner] .components-drop-zone {
 	}
 }
 
-.canvas-image-shapes {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 8px;
-
-	&__option {
-		position: relative;
-
-		input {
-			position: absolute;
-			opacity: 0;
-			width: 1px;
-			height: 1px;
-		}
-
-		> span {
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 6px;
-			min-height: 64px;
-			justify-content: center;
-			padding: 6px;
-			border: 1px solid #ddd;
-			border-radius: 2px;
-			cursor: pointer;
-		}
-
-		input:checked + span {
-			border-color: var(--wp-admin-theme-color, #3858e9);
-			box-shadow: inset 0 0 0 1px var(--wp-admin-theme-color, #3858e9);
-		}
-
-		input:focus-visible + span {
-			outline: 2px solid var(--wp-admin-theme-color, #3858e9);
-			outline-offset: 2px;
-		}
-
-		input:disabled + span {
-			opacity: 0.5;
-			cursor: default;
-		}
-	}
-}
-
 .canvas-shape-picker.canvas-shape-picker {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
