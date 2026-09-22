@@ -14,7 +14,7 @@ try {
   cpSync(path.join(dist, 'canvas.zip'), path.join(bundle, 'canvas.zip'));
   const blueprint = {
     $schema: 'https://playground.wordpress.net/blueprint-schema.json',
-    meta: { title: 'Canvas', author: 'Automattic', description: 'Try the latest Canvas build in the WordPress editor.' },
+    meta: { title: 'Canvas Demo', author: 'Automattic', description: 'Try the latest Canvas build in the WordPress editor.' },
     preferredVersions: { php: '8.3', wp: 'latest' },
     landingPage: '/wp-admin/canvas-preview.php',
     login: true,

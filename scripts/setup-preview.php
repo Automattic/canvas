@@ -23,11 +23,16 @@ if ( is_wp_error( $page_id ) ) {
 update_post_meta( $page_id, '_wp_page_template', 'page-no-title' );
 update_option( 'show_on_front', 'page' );
 update_option( 'page_on_front', $page_id );
-update_option( 'blogname', 'Canvas' );
+update_option( 'blogname', 'Canvas Demo' );
 update_option( 'blog_public', 0 );
 
 $preferences = array(
 	'_modified'      => gmdate( 'c' ),
+	'core'           => array(
+		'renderingModes' => array(
+			get_stylesheet() => array( 'page' => 'template-locked' ),
+		),
+	),
 	'core/edit-post' => array( 'welcomeGuide' => false ),
 	'core/edit-site' => array(
 		'welcomeGuide'         => false,
