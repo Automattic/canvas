@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<ruleset name="Canvas">
+	<description>WordPress coding standards for Canvas plugin PHP.</description>
+	<file>canvas.php</file>
+	<file>includes</file>
+	<file>patterns</file>
+	<exclude-pattern>/build/*</exclude-pattern>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="4"/>
+	<arg value="ps"/>
+	<config name="minimum_wp_version" value="7.1"/>
+	<rule ref="WordPress"/>
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="canvas"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>

@@ -1,0 +1,20 @@
+version = 1
+name = "Canvas"
+
+[setup]
+script = '''
+set -e
+npm ci
+composer install --no-interaction
+npm run build
+'''
+
+[[actions]]
+name = "Run"
+icon = "run"
+command = "npm run dev"
+
+[[actions]]
+name = "Check"
+icon = "tool"
+command = "npm run check"

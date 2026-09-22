@@ -1,0 +1,37 @@
+{
+  "name": "@automattic/canvas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A WordPress block for moving, resizing, rotating, and layering core blocks in responsive layouts.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Automattic/canvas.git"
+  },
+  "homepage": "https://github.com/Automattic/canvas#readme",
+  "bugs": {
+    "url": "https://github.com/Automattic/canvas/issues"
+  },
+  "scripts": {
+    "check": "npm test && npm run lint && npm run build",
+    "dev": "node scripts/dev.mjs",
+    "lint:php": "node scripts/lint-php.mjs && php vendor/bin/phpcs",
+    "build": "wp-scripts build --webpack-src-dir=src --output-path=build",
+    "watch:blocks": "wp-scripts start --webpack-src-dir=src --output-path=build",
+    "test": "node --test tests/*.test.mjs",
+    "demo": "node scripts/create-demo.mjs",
+    "package:plugin": "node scripts/package-plugin.mjs",
+    "package:playground": "node scripts/package-playground.mjs",
+    "playground:link": "node scripts/playground-link.mjs",
+    "test:abilities": "node scripts/test-abilities.mjs",
+    "lint": "npm run lint:php && npm run lint:js && npm run lint:css",
+    "lint:js": "wp-scripts lint-js \"src/**/*.{js,jsx,mjs}\" --max-warnings=0",
+    "lint:css": "wp-scripts lint-style \"src/**/*.scss\" --max-warnings=0",
+    "format:php": "php vendor/bin/phpcbf",
+    "format:js": "npm run lint:js -- --fix",
+    "format:css": "npm run lint:css -- --fix"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "35.0.0",
+    "@wp-playground/cli": "3.1.34"
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "tabor/canvas",
+  "version": "0.1.0",
+  "title": "Canvas",
+  "category": "design",
+  "description": "Move, resize, and layer blocks to create your own layout.",
+  "keywords": [
+    "grid",
+    "layout",
+    "canvas"
+  ],
+  "textdomain": "canvas",
+  "variations": [
+    {
+      "name": "full-width",
+      "isDefault": true,
+      "attributes": {
+        "align": "full"
+      },
+      "scope": [
+        "inserter"
+      ]
+    }
+  ],
+  "attributes": {
+    "fillScreen": {
+      "type": "boolean",
+      "default": false
+    },
+    "fillScreenHeight": {
+      "type": "string",
+      "enum": [ "small", "medium", "large" ],
+      "default": "large"
+    },
+    "desktopRows": {
+      "type": "number",
+      "default": 12
+    },
+    "mobileRows": {
+      "type": "number",
+      "default": 1
+    },
+    "tabletRows": {
+      "type": "number"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": [
+      "wide",
+      "full"
+    ],
+    "anchor": true,
+    "layout": {
+      "default": {
+        "type": "constrained"
+      },
+      "allowEditing": false
+    },
+    "color": {
+      "background": true,
+      "text": true,
+      "gradients": true,
+      "heading": true,
+      "button": true,
+      "link": true,
+      "__experimentalDefaultControls": {
+        "text": true,
+        "background": true,
+        "heading": true,
+        "button": true,
+        "link": true
+      }
+    },
+    "background": {
+      "backgroundImage": true,
+      "backgroundSize": true,
+      "gradient": true,
+      "__experimentalDefaultControls": {
+        "backgroundImage": true,
+        "gradient": true
+      }
+    },
+    "spacing": {
+      "padding": true,
+      "margin": [
+        "top",
+        "bottom"
+      ],
+      "blockGap": { "sides": [ "horizontal", "vertical" ] },
+      "__experimentalSkipSerialization": [ "blockGap" ],
+      "__experimentalDefaultControls": {
+        "padding": true,
+        "blockGap": true
+      }
+    }
+  },
+  "editorScript": "file:./index.js",
+  "viewScript": "file:./view.js",
+  "style": "file:./style-index.css",
+  "editorStyle": "file:./index.css"
+}

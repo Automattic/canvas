@@ -1,0 +1,19 @@
+{
+  "name": "automattic/canvas",
+  "description": "Development tools for the Canvas WordPress plugin.",
+  "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "require-dev": {
+    "wp-coding-standards/wpcs": "^3.3"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "sort-packages": true
+  },
+  "scripts": {
+    "lint": "phpcs",
+    "format": "phpcbf"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/wp-admin/",
+  "login": true,
+  "steps": [
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; require_once ABSPATH . 'wp-admin/includes/file.php'; require_once ABSPATH . 'wp-admin/includes/plugin.php'; $bundled = array_intersect(array('akismet/akismet.php', 'hello.php'), array_keys(get_plugins())); if ($bundled && true !== delete_plugins($bundled)) { throw new Exception('Could not remove bundled example plugins.'); }"
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "url",
+        "url": "https://github.com/WordPress/mcp-adapter/releases/download/v0.6.1/mcp-adapter.zip"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "activatePlugin",
+      "pluginPath": "/wordpress/wp-content/plugins/playground-plugin/canvas.php"
+    },
+    {
+      "step": "defineWpConfigConsts",
+      "consts": {
+        "WP_ENVIRONMENT_TYPE": "local"
+      }
+    }
+  ]
+}

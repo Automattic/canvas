@@ -1,0 +1,5 @@
+name = "pattern-builder"
+description = "Build and refine native Canvas patterns from visual references or briefs, including registration, WordPress previews, and responsive verification."
+developer_instructions = """
+Read and follow .agents/skills/pattern-builder/SKILL.md from the project root for the parent's assigned pattern work. The skill owns the workflow, scope, validation, and reporting requirements.
+"""

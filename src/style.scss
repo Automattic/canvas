@@ -1,0 +1,313 @@
+@use "measurements";
+
+.wp-block-tabor-canvas {
+	--canvas-viewport: desktop;
+	position: relative;
+	box-sizing: border-box;
+
+	// The shared geometry resolver expands grid rows to the screen minimum.
+	// Content can always make the section taller.
+	&[data-canvas-fill-screen] {
+		display: grid;
+		align-content: start;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	@each $size, $height in (small: 33, medium: 66, large: 100) {
+		&[data-canvas-fill-screen="#{$size}"] {
+			min-height: #{$height}vh;
+			// Keep the section stable while mobile browser chrome opens and closes.
+			min-height: #{$height}svh;
+		}
+	}
+
+	// Rotation may paint outside a full-width grid, but must not widen the page.
+	// Keep editor handles and vertical overlaps available.
+	&.alignfull:not([data-block]) {
+		overflow-x: clip;
+	}
+
+	// Measure the full canvas for edge anchors and editor handles. Logical cells
+	// sit inside its native padding; outer CSS tracks preserve that space.
+	> .canvas__grid,
+	> .canvas__stage {
+		max-width: none;
+	}
+
+	&[data-canvas-canvas] > :is(.canvas__grid, .canvas__stage) {
+		width: calc(100% + var(--canvas-pad-left) + var(--canvas-pad-right));
+		margin-left: calc(-1 * var(--canvas-pad-left)) !important;
+		margin-right: calc(-1 * var(--canvas-pad-right)) !important;
+		margin-top: calc(-1 * var(--canvas-pad-top)) !important;
+		margin-bottom: calc(-1 * var(--canvas-pad-bottom)) !important;
+	}
+
+	.canvas__grid {
+		display: grid;
+		position: relative;
+		isolation: isolate;
+		// Width settings bound the grid inside the native content padding.
+		grid-template-columns: var(--canvas-desktop-tracks, repeat(calc(var(--canvas-desktop-columns, 24) - 1), minmax(0, 1fr) var(--canvas-column-gap, 24px)) minmax(0, 1fr));
+		grid-template-rows: var(--canvas-desktop-row-tracks, repeat(var(--canvas-desktop-rows, 12), 24px));
+		grid-auto-rows: 24px;
+		row-gap: var(--canvas-gap, 24px);
+		column-gap: 0;
+		width: 100%;
+	}
+
+	&[data-canvas-canvas] .canvas__grid {
+		row-gap: 0;
+	}
+
+	.canvas__grid > .canvas__item {
+		// Every other CSS track is a gutter.
+		grid-column: var(--canvas-desktop-line-left, calc(2 * var(--canvas-desktop-column, 1) - 1)) / var(--canvas-desktop-line-right, span calc(2 * var(--canvas-desktop-columnSpan, 12) - 1));
+		grid-row: var(--canvas-desktop-line-top, var(--canvas-desktop-row, 1)) / var(--canvas-desktop-line-bottom, span var(--canvas-desktop-rowSpan, 6));
+		z-index: var(--canvas-desktop-layer, 1);
+		rotate: calc(var(--canvas-desktop-rotation, 0) * 1deg);
+		transform-origin: center;
+		position: relative;
+		min-width: 0;
+		// Oversized content stays visible without stretching
+		// the item or its neighbors. Text fitting remains an explicit choice.
+		min-height: 0;
+		max-width: none;
+		width: var(--canvas-free-width, auto);
+		height: var(--canvas-free-height, auto);
+		left: var(--canvas-free-left, 0px);
+		top: var(--canvas-free-top, 0px);
+		margin: 0;
+		align-self: stretch;
+		box-sizing: border-box;
+		overflow-wrap: anywhere;
+	}
+
+	.canvas__item > :first-child {
+		margin-block-start: 0;
+	}
+
+	.canvas__item > :last-child {
+		margin-block-end: 0;
+	}
+	// Only the frontend has a Canvas wrapper around the native Group. In the
+	// editor the Group is the grid item; its child groups keep their own height.
+	.canvas__container:not(.wp-block-group) > .wp-block-group {
+		min-height: 100%;
+		box-sizing: border-box;
+	}
+	// Fitted text must keep words intact during measurement and rendering.
+	[data-canvas-text-fit="true"],
+	[data-canvas-text-fit="true"] > :is(h1,h2,h3,h4,h5,h6,p) {
+		overflow-wrap: normal;
+		word-break: normal;
+		hyphens: manual;
+	}
+
+	[data-canvas-auto-active] .wp-block-button__link {
+		overflow-wrap: normal;
+		word-break: normal;
+	}
+
+	// Align content within the fixed grid area, in both the editor's text node
+	// and the frontend wrapper. Oversized text stays reachable from the top.
+	[data-canvas-text-align-y="center"] {
+		align-content: safe center;
+	}
+
+	[data-canvas-text-align-y="bottom"] {
+		align-content: safe end;
+	}
+
+	[data-canvas-justify="left"] {
+		--canvas-align-x: flex-start;
+	}
+
+	[data-canvas-justify="center"] {
+		--canvas-align-x: center;
+	}
+
+	[data-canvas-justify="right"] {
+		--canvas-align-x: flex-end;
+	}
+
+	[data-canvas-align-y="top"] {
+		--canvas-align-y: flex-start;
+	}
+
+	[data-canvas-align-y="center"] {
+		--canvas-align-y: center;
+	}
+
+	[data-canvas-align-y="bottom"] {
+		--canvas-align-y: flex-end;
+	}
+
+	[data-canvas-orientation="horizontal"] {
+		--canvas-button-cross: var(--canvas-align-y, stretch);
+		--canvas-button-grow: 1;
+
+		&:not([data-canvas-justify="stretch"]) {
+			--canvas-button-grow: 0;
+		}
+	}
+
+	[data-canvas-orientation="vertical"] {
+		--canvas-button-cross: var(--canvas-align-x, stretch);
+		--canvas-button-grow: 1;
+
+		&:not([data-canvas-align-y="stretch"]) {
+			--canvas-button-grow: 0;
+		}
+	}
+
+	// The editor uses the Buttons block as the grid item; the frontend wraps it.
+	.canvas__item.wp-block-buttons,
+	.canvas__item:not(.wp-block-group) > .wp-block-buttons {
+		width: 100%;
+		height: 100%;
+		align-items: var(--canvas-button-cross, stretch);
+		align-content: var(--canvas-button-cross, stretch);
+
+		> .wp-block-button {
+			display: flex;
+			flex: var(--canvas-button-grow, 1) 1 0;
+			align-self: auto;
+			min-width: 0;
+			width: auto;
+
+			> .wp-block-button__link {
+				width: 100%;
+				height: auto;
+				align-content: center;
+			}
+		}
+	}
+	// Natural-size buttons use their contents as their flex basis. A zero basis
+	// is reserved for the original fill behavior.
+	[data-canvas-orientation="horizontal"]:not([data-canvas-justify="stretch"]),
+	[data-canvas-orientation="vertical"]:not([data-canvas-align-y="stretch"]) {
+
+		&.wp-block-buttons > .wp-block-button,
+		> .wp-block-buttons > .wp-block-button {
+			flex-basis: auto;
+		}
+	}
+
+	.canvas__grid [data-canvas-text-fit="true"][data-canvas-text-fitted]:is(h1, h2, h3, h4, h5, h6, p),
+	.canvas__grid [data-canvas-text-fit="true"][data-canvas-text-fitted] > :is(h1, h2, h3, h4, h5, h6, p) {
+		font-size: var(--canvas-text-size) !important;
+		line-height: var(--canvas-text-leading) !important;
+	}
+
+	.canvas__image,
+	.canvas__image > .wp-block-image {
+		min-height: 0;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.canvas__image > .wp-block-image {
+		width: 100%;
+		margin: 0;
+	}
+
+	.canvas__grid .canvas__image {
+		width: var(--canvas-free-width, auto);
+		height: var(--canvas-free-height, 100%);
+		left: var(--canvas-free-left, 0px);
+		top: var(--canvas-free-top, 0px);
+	}
+
+	.canvas__image img {
+		display: block;
+		width: 100%;
+		max-width: none;
+		height: 0;
+		min-height: 0;
+		flex: 1 1 0;
+		object-fit: var(--canvas-fit, cover);
+		object-position: var(--canvas-image-position, 50% 50%);
+	}
+
+	.canvas__image figure > a {
+		display: flex;
+		flex: 1 1 0;
+		min-height: 0;
+	}
+
+	.canvas__image figcaption {
+		flex: none;
+	}
+}
+
+// Native Groups retain their styling surface; Canvas owns only canvas geometry.
+.wp-block-tabor-canvas [data-canvas-frame] {
+	position: absolute !important;
+	left: var(--canvas-frame-left) !important;
+	top: var(--canvas-frame-top) !important;
+	width: var(--canvas-frame-width) !important;
+	height: var(--canvas-frame-height) !important;
+	min-width: 0;
+	min-height: 0;
+	max-width: none !important;
+	margin: 0 !important;
+	box-sizing: border-box;
+	rotate: var(--canvas-frame-rotation) !important;
+	z-index: var(--canvas-frame-layer) !important;
+	grid-area: auto !important;
+}
+
+.wp-block-tabor-canvas [data-canvas-group] {
+	display: block !important;
+	isolation: isolate;
+	overflow: visible;
+
+	> .block-editor-inner-blocks,
+	> .block-editor-inner-blocks > .block-editor-block-list__layout,
+	> .wp-block-group__inner-container {
+		display: contents;
+	}
+
+	&:not(.wp-block-group) > .wp-block-group {
+		position: static;
+		display: block;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		box-sizing: border-box;
+
+		> .wp-block-group__inner-container {
+			display: contents;
+		}
+	}
+}
+
+// Masks affect pixels only. The figure, caption and Canvas frame stay intact.
+.wp-block-tabor-canvas .canvas__image[data-canvas-shape] img {
+	border-radius: 0 !important;
+	mask-image: var(--canvas-image-mask);
+	mask-size: 100% 100%;
+	mask-origin: padding-box;
+	mask-clip: padding-box;
+	mask-repeat: no-repeat;
+	box-sizing: border-box;
+	padding: var(--canvas-shape-inset-y, 0px) var(--canvas-shape-inset-x, 0px) !important;
+}
+// Core's linked-image editor supplies inline display/height values. Keep its
+// link in the same vertical fill layout so padding cannot grow the crop frame.
+.wp-block-tabor-canvas .canvas__image[data-canvas-shape] {
+
+	img {
+		height: 0 !important;
+		object-fit: cover !important;
+	}
+
+	> a,
+	> figure > a {
+		display: flex !important;
+		flex-direction: column;
+		flex: 1 1 0;
+		min-height: 0;
+	}
+}

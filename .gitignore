@@ -1,0 +1,9 @@
+node_modules/
+vendor/
+.playground/
+.DS_Store
+*.log
+build/
+dist/
+.playwright-cli/
+output/

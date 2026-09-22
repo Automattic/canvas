@@ -1,0 +1,74 @@
+// Detached measurement nodes share the editor and frontend's stylesheets.
+// Clones retain authored inline styles.
+// These overrides isolate their geometry.
+.canvas-measure-box {
+	position: fixed !important;
+	left: -100000px !important;
+	top: 0 !important;
+	visibility: hidden !important;
+	width: var(--canvas-measure-width) !important;
+	height: auto !important;
+	min-height: 0 !important;
+	max-height: none !important;
+
+	> :first-child {
+		height: auto !important;
+	}
+}
+
+.canvas-measure-buttons .wp-block-buttons {
+	height: auto !important;
+}
+
+.canvas-measure-nowrap .wp-block-button {
+	flex: 0 0 auto !important;
+	width: max-content !important;
+	min-width: max-content !important;
+
+	.wp-block-button__link {
+		white-space: nowrap !important;
+	}
+}
+
+.canvas-measure-text {
+	position: fixed;
+	left: -100000px;
+	top: 0;
+	display: block;
+	visibility: hidden;
+	pointer-events: none;
+	contain: none;
+	box-sizing: content-box;
+	height: auto;
+	min-height: 0;
+	max-height: none;
+	min-width: 0;
+	max-width: none;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	word-break: normal;
+	hyphens: manual;
+}
+
+.wp-block-tabor-canvas > .canvas-measure-wide {
+	width: 100%;
+	height: 0;
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	margin-block: 0 !important;
+	margin-inline: auto !important;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+// Override the constrained layout applied to direct Canvas children.
+.wp-block-tabor-canvas > .canvas-measure-spacing {
+	position: absolute;
+	height: 0;
+	min-height: 0;
+	max-width: none;
+	visibility: hidden;
+	pointer-events: none;
+}
