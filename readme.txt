@@ -43,7 +43,7 @@ Select the Canvas block and toggle Show cells in its toolbar to keep the grid vi
 
 Temporary guides show where a block will snap when you release it. Vertical edge snapping sets a position once. Center vertically keeps the row span and chooses the nearest cell position; a tie uses the earlier row. Increasing the row count or dragging the Canvas height handle adds space below without moving or resizing existing blocks. Hold Shift while resizing the Canvas to add equal space above and below. Partial padding-cell blocks keep their exact size as rows are added. Group moves preserve the spacing between children. Existing content, wide, padding, and full-width horizontal alignment continues to follow the section width.
 
-Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. The right-click menu provides layer order, alignment, visibility, and block-specific controls. Select several blocks and right-click the selection to access Group.
+Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. The right-click menu provides layer order, alignment, and block-specific controls. Select several blocks and right-click the selection to access Group.
 
 = Keyboard and touch =
 

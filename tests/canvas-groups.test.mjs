@@ -151,11 +151,3 @@ test('ungroup after changing the group layer preserves internal and external pai
     assert.equal(after.a[mode].layer>after.outside[mode].layer,before.g[mode].layer>before.outside[mode].layer);
   }
 });
-
-test('responsive visibility changes group bounds without moving visible children', () => {
-  const a=leaf('a',2,2), b=leaf('b',17,12);
-  b.attributes.metadata={blockVisibility:{viewport:{mobile:false}}};
-  const after=resolveCanvasLayouts([group('g',[a,b])],geometry);
-  sameRect(after.g.mobile._rect,rotatedBounds(after.a.mobile._rect,after.a.mobile.rotation));
-  assert.ok(after.g.desktop._rect.height>rotatedBounds(after.a.desktop._rect,after.a.desktop.rotation).height);
-});

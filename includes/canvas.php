@@ -408,10 +408,6 @@ function canvas_paint_layers( $blocks ) {
 				$children = array();
 				if ( $is_group( $block ) ) {
 					foreach ( $block->inner_blocks as $child ) {
-						$visibility = $child->attributes['metadata']['blockVisibility'] ?? null;
-						if ( false === $visibility || false === ( $visibility['viewport'][ $mode ] ?? null ) ) {
-							continue;
-						}
 						$children[] = $values[ spl_object_id( $child ) ][ $mode ];
 					}
 				}
@@ -490,8 +486,7 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 	foreach ( alignment_attributes( $child->name, $child->attributes ) as $key => $value ) {
 		$alignment .= ' ' . $key . '="' . esc_attr( $value ) . '"';
 	}
-	$group  = 'core/group' === $child->name && 1 === ( $saved['group'] ?? null ) ? ' data-canvas-group=""' : '';
-	$group .= ' data-canvas-visibility="' . esc_attr( wp_json_encode( $child->attributes['metadata']['blockVisibility'] ?? null ) ) . '"';
+	$group = 'core/group' === $child->name && 1 === ( $saved['group'] ?? null ) ? ' data-canvas-group=""' : '';
 	return '<div class="canvas__item' . $image_class . '" data-canvas-name="' . esc_attr( $child->name ) . '" style="' . esc_attr( $css ) . '"' . $text_fit . $alignment . $auto . $group . $shape_attribute . '>';
 }
 

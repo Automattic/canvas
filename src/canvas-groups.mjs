@@ -10,7 +10,6 @@ import {
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { resolveLayouts } from './geometry.mjs';
-import { isHiddenOnViewport } from './visibility.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 
 export const isCanvasGroup = ( block ) =>
@@ -144,13 +143,6 @@ export function resolveCanvasLayouts(
 			const offset = translations[ mode ];
 			if ( group ) {
 				const children = block.innerBlocks
-					.filter(
-						( child ) =>
-							! isHiddenOnViewport(
-								child.attributes.metadata,
-								mode
-							)
-					)
 					.map( ( child ) => result[ child.clientId ]?.[ mode ] )
 					.filter( Boolean );
 				const rect = enclosingRect(
@@ -279,18 +271,12 @@ export function groupingLayers( siblings, ids, layouts ) {
 		for ( const outside of siblings.filter(
 			( b ) => ! ids.includes( b.clientId )
 		) ) {
-			if ( isHiddenOnViewport( outside.attributes.metadata, mode ) ) {
-				continue;
-			}
 			const p = layouts[ outside.clientId ]?.[ mode ];
 			if ( ! p?._rect ) {
 				continue;
 			}
 			const a = rotatedBounds( p._rect, p.rotation );
 			for ( const inside of selected ) {
-				if ( isHiddenOnViewport( inside.attributes.metadata, mode ) ) {
-					continue;
-				}
 				const q = layouts[ inside.clientId ]?.[ mode ];
 				if ( ! q?._rect ) {
 					continue;

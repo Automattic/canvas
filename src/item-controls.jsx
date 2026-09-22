@@ -10,10 +10,8 @@ import { useCallback, useContext } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import {
 	BlockControls,
-	useSettings,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { hasBlockSupport } from '@wordpress/blocks';
 import { MenuItem, ToolbarButton } from '@wordpress/components';
 import { addFilter } from '@wordpress/hooks';
 import {
@@ -28,7 +26,6 @@ import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext } from './editor-context';
 import { Menu } from './core-menu';
 import { CanvasSubmenu } from './canvas-menu';
-import { isHiddenOnViewport } from './visibility.mjs';
 import { normalizeRotation } from './rotation.mjs';
 import { imageWasReplaced } from './image-position.mjs';
 import { RadiusSettings } from './radius-settings';
@@ -110,55 +107,6 @@ export function ItemLayerMenu( {
 				</Item>
 			) ) }
 			{ ! contextMenu && <hr className="canvas__menu-separator" /> }
-		</>
-	);
-}
-function ItemVisibilityMenu( { clientId, changeVisibility, hideOnClick } ) {
-	const [ allowEditing ] = useSettings( 'blockVisibility.allowEditing' );
-	const { metadata, editable, supported } = useSelect(
-		( select ) => {
-			const store = select( blockEditorStore );
-			return {
-				metadata: store.getBlockAttributes( clientId )?.metadata,
-				editable: store.getBlockEditingMode( clientId ) === 'default',
-				supported: hasBlockSupport(
-					store.getBlockName( clientId ),
-					'visibility',
-					true
-				),
-			};
-		},
-		[ clientId ]
-	);
-	if ( allowEditing === false || ! supported ) {
-		return null;
-	}
-	return (
-		<>
-			<Menu.Separator />
-			<CanvasSubmenu>
-				<Menu.SubmenuTriggerItem>
-					<Menu.ItemLabel>Show/Hide</Menu.ItemLabel>
-				</Menu.SubmenuTriggerItem>
-				<Menu.Popover aria-label="Show/Hide">
-					{ [ 'desktop', 'mobile' ].map( ( viewport ) => (
-						<Menu.CheckboxItem
-							key={ viewport }
-							name={ `hide-${ viewport }` }
-							hideOnClick={ hideOnClick }
-							checked={ isHiddenOnViewport( metadata, viewport ) }
-							disabled={ ! editable }
-							onChange={ () =>
-								changeVisibility( clientId, viewport )
-							}
-						>
-							<Menu.ItemLabel>
-								Hide on { viewport }
-							</Menu.ItemLabel>
-						</Menu.CheckboxItem>
-					) ) }
-				</Menu.Popover>
-			</CanvasSubmenu>
 		</>
 	);
 }
@@ -253,7 +201,6 @@ function ItemMenuItems( {
 	clearShapePreview,
 	changeTextSizing,
 	changeAlignment,
-	changeVisibility,
 	changeRotation,
 	grouping,
 } ) {
@@ -444,11 +391,6 @@ function ItemMenuItems( {
 				</CanvasSubmenu>
 			) }
 			{ grouping }
-			<ItemVisibilityMenu
-				clientId={ menu.id }
-				changeVisibility={ changeVisibility }
-				hideOnClick={ hideOnClick }
-			/>
 		</>
 	);
 }
@@ -466,7 +408,6 @@ export function ItemMenu( {
 	clearShapePreview,
 	changeTextSizing,
 	changeAlignment,
-	changeVisibility,
 	changeRotation,
 	onClose,
 	grouping,
@@ -488,7 +429,6 @@ export function ItemMenu( {
 					clearShapePreview={ clearShapePreview }
 					changeTextSizing={ changeTextSizing }
 					changeAlignment={ changeAlignment }
-					changeVisibility={ changeVisibility }
 					changeRotation={ changeRotation }
 					onClose={ onClose }
 					grouping={ grouping }
@@ -606,9 +546,6 @@ function CanvasItem( { Original, ...props } ) {
 				'data-canvas-item': props.clientId,
 				'data-canvas-layout': JSON.stringify(
 					compactCanvas( savedPlacement )
-				),
-				'data-canvas-visibility': JSON.stringify(
-					props.attributes.metadata?.blockVisibility ?? null
 				),
 				'data-canvas-group': layout.group ? '' : undefined,
 				'data-canvas-name': props.name,

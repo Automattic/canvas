@@ -124,7 +124,6 @@ test('PHP paint ranks match JavaScript fractional layers, source order, and grou
   const b=block({desktop,layers:{desktop:2.5,mobile:1},order:1},'b');
   const outside=block({desktop,layers:{desktop:1.5,mobile:3},order:2},'outside');
   const group={clientId:'group',name:'core/group',attributes:{canvas:{group:1}},innerBlocks:[a,b]};
-  b.attributes.metadata={blockVisibility:{viewport:{desktop:false}}};
   const blocks=[group,outside], g=Object.fromEntries(['desktop','tablet','mobile'].map(mode=>[mode,geometry(1200,mode,mode==='desktop'?24:mode==='tablet'?12:8)]));
   const resolved=resolveCanvasLayouts(blocks,g);
   const expected=Object.fromEntries(Object.keys(g).map(mode=>[mode,paintLayers(blocks,resolved,mode)]));

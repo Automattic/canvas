@@ -80,7 +80,6 @@ export function observeCanvasLayout( grid, onChange ) {
 			attributeFilter: [
 				'style',
 				'data-canvas-layout',
-				'data-canvas-visibility',
 				'data-canvas-auto',
 				'data-canvas-text-fit',
 				'data-canvas-desktop-minimum',
@@ -261,22 +260,11 @@ export function observeCanvasLayout( grid, onChange ) {
 					node.getAttribute( 'data-canvas-item' ) || String( index );
 				elements.set( id, node );
 				const name = node.getAttribute( 'data-canvas-name' );
-				let visibility;
-				try {
-					visibility = JSON.parse(
-						node.getAttribute( 'data-canvas-visibility' ) || 'null'
-					);
-				} catch {
-					visibility = null;
-				}
 				return {
 					clientId: id,
 					name,
 					attributes: {
 						[ ATTRIBUTE ]: saved,
-						metadata: {
-							blockVisibility: visibility,
-						},
 					},
 					innerBlocks: saved.group === 1 ? read( node ) : [],
 				};

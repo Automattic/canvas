@@ -89,7 +89,6 @@ import { useCanvasKeyboard, useLayoutAnnouncement } from './canvas-keyboard';
 import { normalizeRotation, rotationModifier } from './rotation.mjs';
 import { resizeGestureKind } from './resize-modifiers.mjs';
 import { ContainerActions, useContainerSettings } from './container-actions';
-import { toggleViewportVisibility } from './visibility.mjs';
 import {
 	CanvasInserter,
 	CanvasContextMenu,
@@ -736,23 +735,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			} );
 		return resolveCanvasLayouts( replace( rootBlocks ), geometry );
 	}, [ activeShapePreview, layouts, rootBlocks, geometry ] );
-	const changeVisibility = useCallback(
-		( id, viewport ) => {
-			const store = registry.select( blockEditorStore );
-			if ( store.getBlockEditingMode( id ) !== 'default' ) {
-				return;
-			}
-			commitUpdates( {
-				[ id ]: {
-					metadata: toggleViewportVisibility(
-						store.getBlockAttributes( id )?.metadata,
-						viewport
-					),
-				},
-			} );
-		},
-		[ registry, commitUpdates ]
-	);
 	const changeAspectRatio = useCallback(
 		( id ) => {
 			const store = registry.select( blockEditorStore );
@@ -1197,7 +1179,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				clearShapePreview={ clearShapePreview }
 				changeTextSizing={ changeTextSizing }
 				changeAlignment={ changeAlignment }
-				changeVisibility={ changeVisibility }
 				changeRotation={ changeRotation }
 				onClose={ onClose }
 				grouping={
@@ -1226,7 +1207,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			clearShapePreview,
 			changeTextSizing,
 			changeAlignment,
-			changeVisibility,
 			changeRotation,
 			clientId,
 			registry,
