@@ -43,7 +43,7 @@ Select the Canvas block and toggle Show cells in its toolbar to keep the grid vi
 
 Temporary guides show where a block will snap when you release it. Vertical edge snapping sets a position once. Center vertically keeps the row span and chooses the nearest cell position; a tie uses the earlier row. Increasing the row count or dragging the Canvas height handle adds space below without moving or resizing existing blocks. Hold Shift while resizing the Canvas to add equal space above and below. Partial padding-cell blocks keep their exact size as rows are added. Group moves preserve the spacing between children. Existing content, wide, padding, and full-width horizontal alignment continues to follow the section width.
 
-Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. Canvas options in the block toolbar and the right-click menu provide the same layer order, alignment, visibility, and block-specific controls. Select several blocks to access Group from Canvas options in the Canvas toolbar.
+Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. The right-click menu provides layer order, alignment, visibility, and block-specific controls. Select several blocks and right-click the selection to access Group.
 
 = Keyboard and touch =
 
@@ -53,7 +53,7 @@ On touch screens, tap to select, drag with one finger to move, or pinch and twis
 
 = Images and text =
 
-In Canvas options, use Text sizing to choose Default, Fit area, or Fit width, and Content alignment to position text or buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
+In the right-click menu, use Text sizing to choose Default, Fit area, or Fit width, and Content alignment to position text or buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
 Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. Shapes can have preferred proportions and resize locks. Image → Stretch shape overrides that behavior for an individual image while preserving its frame and crop. Image → Lock aspect ratio controls proportional resizing. Double-click a filled image to reposition its crop, then click outside or press Escape to finish.
 

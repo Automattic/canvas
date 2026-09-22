@@ -78,7 +78,7 @@ import {
 	resizeHandleAtTouch,
 } from './canvas-overlays';
 import { ItemMenu, ItemLayerMenu } from './item-controls';
-import { CanvasMenu, CanvasToolbarMenu } from './canvas-menu';
+import { CanvasMenu } from './canvas-menu';
 import { CanvasContext } from './editor-context';
 import { owningGridItem } from './drop-layout.mjs';
 import {
@@ -1235,8 +1235,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	);
 	const context = useMemo(
 		() => ( {
-			renderItemMenu,
-			closeContextMenu,
 			layouts,
 			shapeLayouts,
 			shapePreview: activeShapePreview,
@@ -1253,8 +1251,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			gridRef,
 		} ),
 		[
-			renderItemMenu,
-			closeContextMenu,
 			layouts,
 			shapeLayouts,
 			activeShapePreview,
@@ -1376,29 +1372,10 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				/>
 			</InspectorControls>
 			{ ! preview &&
-				( !! insertion.allowed.length || selectedIds.length > 1 ) &&
+				!! insertion.allowed.length &&
 				( isSelected || !! selectedId ) && (
 					<CanvasInserter
 						clientId={ clientId }
-						canInsert={ !! insertion.allowed.length }
-						options={
-							selectedIds.length > 1 && (
-								<CanvasToolbarMenu
-									key={ selectedIds.join( ',' ) }
-									onOpen={ closeContextMenu }
-								>
-									{ ( onClose ) =>
-										renderItemMenu(
-											{
-												id: selectedIds[ 0 ],
-												ids: selectedIds,
-											},
-											onClose
-										)
-									}
-								</CanvasToolbarMenu>
-							)
-						}
 						disabled={
 							minimumRows +
 								normalizePlacement( {}, mode ).rowSpan >

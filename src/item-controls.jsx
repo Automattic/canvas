@@ -27,7 +27,7 @@ import { alignmentAttributes } from './alignment.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext } from './editor-context';
 import { Menu } from './core-menu';
-import { CanvasSubmenu, CanvasToolbarMenu } from './canvas-menu';
+import { CanvasSubmenu } from './canvas-menu';
 import { isHiddenOnViewport } from './visibility.mjs';
 import { normalizeRotation } from './rotation.mjs';
 import { imageWasReplaced } from './image-position.mjs';
@@ -691,10 +691,6 @@ export function registerItemControls() {
 					direct &&
 					[ 'core/heading', 'core/paragraph' ].includes( props.name );
 				const image = direct && props.name === 'core/image';
-				const optionsId =
-					direct && ! canvas.layouts[ props.clientId ].parents.length
-						? props.clientId
-						: null;
 				const context = image
 					? {
 							...props.context,
@@ -804,25 +800,7 @@ export function registerItemControls() {
 							context={ context }
 							setAttributes={ setAttributes }
 						/>
-						{ props.isSelected && (
-							<>
-								{ direct && inspectorControls }
-								{ optionsId && (
-									<BlockControls group="other">
-										<CanvasToolbarMenu
-											onOpen={ canvas.closeContextMenu }
-										>
-											{ ( onClose ) =>
-												canvas.renderItemMenu(
-													{ id: optionsId },
-													onClose
-												)
-											}
-										</CanvasToolbarMenu>
-									</BlockControls>
-								) }
-							</>
-						) }
+						{ props.isSelected && direct && inspectorControls }
 					</>
 				);
 			}

@@ -134,13 +134,7 @@ export function useCanvasInsertion( { clientId, gridRef, mode, registry } ) {
 	return { allowed, onSelect, insertAt };
 }
 
-export function CanvasInserter( {
-	clientId,
-	onSelect,
-	disabled: canvasFull,
-	canInsert = true,
-	options,
-} ) {
+export function CanvasInserter( { clientId, onSelect, disabled: canvasFull } ) {
 	const registry = getInserterRegistry( useRegistry() );
 	const inserter = (
 		<RegistryProvider value={ registry }>
@@ -189,10 +183,7 @@ export function CanvasInserter( {
 			} ) }
 			className="canvas__toolbar"
 		>
-			<Toolbar label="Canvas">
-				{ canInsert && inserter }
-				{ options }
-			</Toolbar>
+			<Toolbar label="Canvas">{ inserter }</Toolbar>
 		</BlockPopover>
 	);
 }

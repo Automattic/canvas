@@ -4,47 +4,9 @@ import {
 	useEffect,
 	useLayoutEffect,
 } from '@wordpress/element';
-import {
-	__experimentalStyleProvider as StyleProvider,
-	ToolbarButton,
-} from '@wordpress/components';
+import { __experimentalStyleProvider as StyleProvider } from '@wordpress/components';
 import { Menu } from './core-menu';
-import { CANVAS_ICON } from './canvas-icon';
 import { gestureDocuments } from './gesture-pointer.mjs';
-
-function CanvasToolbarMenuContent( { children } ) {
-	const { store } = useContext( Menu.Context );
-	return (
-		<>
-			<Menu.TriggerButton
-				render={
-					<ToolbarButton
-						icon={ CANVAS_ICON }
-						label="Canvas options"
-					/>
-				}
-			/>
-			<Menu.Popover
-				aria-label="Canvas options"
-				modal={ false }
-				// Keep menu items and portal focus guards outside Core's toolbar.
-				// Otherwise its tabbable-item check remounts the toolbar on opening.
-				portal
-				preserveTabOrder={ false }
-			>
-				{ children( () => store.hide() ) }
-			</Menu.Popover>
-		</>
-	);
-}
-
-export function CanvasToolbarMenu( { children, onOpen } ) {
-	return (
-		<Menu onOpenChange={ ( open ) => open && onOpen?.() }>
-			<CanvasToolbarMenuContent>{ children }</CanvasToolbarMenuContent>
-		</Menu>
-	);
-}
 
 function containsMenuTarget( menu, target ) {
 	if ( ! menu ) {
