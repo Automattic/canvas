@@ -6,7 +6,7 @@
  */
 
 defined( 'ABSPATH' ) || exit;
-$story_image_url  = plugin_dir_url( __DIR__ ) . 'images/our-story.jpg';
+$story_image_url  = plugin_dir_url( __DIR__ ) . 'images/image-3.jpg';
 $detail_image_url = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 ?>
 <!-- wp:tabor/canvas {"desktopRows":24,"tabletRows":31,"align":"full","className":"is-style-default"} -->
