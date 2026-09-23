@@ -72,7 +72,7 @@ function register_patterns() {
 		'tabor/canvas-pattern-4',
 		array(
 			'title'       => __( 'pattern-4', 'canvas' ),
-			'description' => __( 'A full-width Canvas WordPress introduction with two oversized red headings layered around a soft-square image.', 'canvas' ),
+			'description' => __( 'A full-width Canvas floral composition with two oversized red headings layered around two flower-shaped images, with desktop and tablet layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
