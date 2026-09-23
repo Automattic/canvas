@@ -280,8 +280,13 @@ function project_placement( $value, $source_mode, $mode, $block_name = '', $coun
  */
 function alignment_attributes( $name, $attributes ) {
 	if ( in_array( $name, array( 'core/heading', 'core/paragraph' ), true ) ) {
-		$value = $attributes[ ATTRIBUTE ]['verticalAlign'] ?? 'top';
-		return array( 'data-canvas-text-align-y' => in_array( $value, array( 'center', 'bottom' ), true ) ? $value : 'top' );
+		$value  = $attributes[ ATTRIBUTE ]['verticalAlign'] ?? 'top';
+		$result = array( 'data-canvas-text-align-y' => in_array( $value, array( 'center', 'bottom' ), true ) ? $value : 'top' );
+		$mobile = $attributes[ ATTRIBUTE ]['mobileTextAlign'] ?? null;
+		if ( in_array( $mobile, array( 'left', 'center', 'right', 'justify' ), true ) ) {
+			$result['data-canvas-mobile-text-align'] = $mobile;
+		}
+		return $result;
 	}
 	if ( 'core/buttons' !== $name ) {
 		return array();

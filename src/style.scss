@@ -311,3 +311,14 @@
 		min-height: 0;
 	}
 }
+
+// Use the shared resolver's theme-defined viewport in editor and frontend.
+@each $alignment in (left, center, right, justify) {
+	.wp-block-tabor-canvas .canvas__grid[data-canvas-viewport="mobile"] > [data-canvas-mobile-text-align="#{$alignment}"] {
+
+		&,
+		> :is(h1,h2,h3,h4,h5,h6,p) {
+			text-align: $alignment !important;
+		}
+	}
+}

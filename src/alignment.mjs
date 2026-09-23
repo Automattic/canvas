@@ -3,6 +3,14 @@ export function alignmentAttributes( name, attributes = {} ) {
 	const text = [ 'core/heading', 'core/paragraph' ].includes( name );
 	if ( text ) {
 		return {
+			...( [ 'left', 'center', 'right', 'justify' ].includes(
+				attributes.canvas?.mobileTextAlign
+			)
+				? {
+						'data-canvas-mobile-text-align':
+							attributes.canvas.mobileTextAlign,
+					}
+				: {} ),
 			'data-canvas-text-align-y': [ 'center', 'bottom' ].includes(
 				attributes.canvas?.verticalAlign
 			)
@@ -33,5 +41,33 @@ export function alignmentAttributes( name, attributes = {} ) {
 			: 'stretch',
 		'data-canvas-orientation':
 			layout.orientation === 'vertical' ? 'vertical' : 'horizontal',
+	};
+}
+
+// The native control sees the mobile value; only that value belongs in Canvas.
+export function mobileAlignmentUpdates( attributes, shown, updates ) {
+	if ( ! updates.style ) {
+		return updates;
+	}
+	const alignment = updates.style.typography?.textAlign;
+	const changed = alignment !== shown.style?.typography?.textAlign;
+	return {
+		...updates,
+		style: {
+			...updates.style,
+			typography: {
+				...updates.style.typography,
+				textAlign: attributes.style?.typography?.textAlign,
+			},
+		},
+		...( changed
+			? {
+					canvas: {
+						...attributes.canvas,
+						...updates.canvas,
+						mobileTextAlign: alignment,
+					},
+				}
+			: {} ),
 	};
 }

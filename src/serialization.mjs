@@ -16,6 +16,7 @@ const settingsKeys = [
 	'shape',
 	'fit',
 	'verticalAlign',
+	'mobileTextAlign',
 	'imagePosition',
 	'aspectRatio',
 	'group',

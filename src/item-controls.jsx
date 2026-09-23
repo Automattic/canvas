@@ -20,7 +20,7 @@ import {
 	layoutVariables,
 	savePlacement,
 } from './geometry.mjs';
-import { alignmentAttributes } from './alignment.mjs';
+import { alignmentAttributes, mobileAlignmentUpdates } from './alignment.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext } from './editor-context';
 import { Menu } from './core-menu';
@@ -621,6 +621,20 @@ export function registerItemControls() {
 				} else {
 					attributes = props.attributes;
 				}
+				const mobileText = text && canvas.mode === 'mobile';
+				if ( mobileText && props.attributes.canvas?.mobileTextAlign ) {
+					attributes = {
+						...attributes,
+						style: {
+							...attributes.style,
+							typography: {
+								...attributes.style?.typography,
+								textAlign:
+									props.attributes.canvas.mobileTextAlign,
+							},
+						},
+					};
+				}
 				// Keep the native Typography controls in sync with Canvas options. Choosing
 				// core Fit text or an explicit font size also leaves our area-fitting mode.
 				const setAttributes = useCallback(
@@ -646,6 +660,13 @@ export function registerItemControls() {
 								},
 							};
 						}
+						if ( mobileText ) {
+							updates = mobileAlignmentUpdates(
+								props.attributes,
+								attributes,
+								updates
+							);
+						}
 						const fontSizeChanged =
 							( 'fontSize' in updates &&
 								updates.fontSize !==
@@ -663,6 +684,7 @@ export function registerItemControls() {
 								...updates,
 								[ ATTRIBUTE ]: {
 									...props.attributes[ ATTRIBUTE ],
+									...updates[ ATTRIBUTE ],
 									fitArea: false,
 								},
 							};
@@ -671,7 +693,15 @@ export function registerItemControls() {
 							compactCanvasAttributes( updates )
 						);
 					},
-					[ text, image, container, canvas, props ]
+					[
+						text,
+						image,
+						container,
+						canvas,
+						props,
+						mobileText,
+						attributes,
+					]
 				);
 				let inspectorControls;
 				if ( props.name === 'core/image' ) {

@@ -76,3 +76,5 @@ Use existing media attachment IDs with their actual URLs and meaningful alt text
 `canvas/get-sections` returns a block tree with zero-based paths and a fingerprint. `insert-sections` accepts a root insertion index (omitted means append). `update-section` replaces exactly one Canvas at a returned path, including a Canvas nested in a Group. Do not replace surrounding page content. Reread after every write or conflict.
 
 Writes operate on saved content, not the live editor buffer. Save and leave an actively edited page before server-side updates, then reopen it. Recovery uses native WordPress revisions, not editor Undo. Tool results include the pre-change revision ID. If the page is actively locked, retry after its editor lock expires. Do not clear another editor's lock.
+
+For headings and paragraphs, `canvas.mobileTextAlign` overrides native text alignment on mobile only (`left`, `center`, `right`, or `justify`). Omit it to inherit the native alignment. The native alignment toolbar edits this override in the mobile preview. Alignment does not create a mobile grid placement. Responsive alignment uses the shared layout resolver’s theme-defined viewport.

@@ -66,7 +66,7 @@ function serialize_placement( $value, $mode ) {
  */
 function compact_canvas( $value ) {
 	$value  = (array) $value;
-	$result = array_intersect_key( $value, array_flip( array( 'shape', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' ) ) );
+	$result = array_intersect_key( $value, array_flip( array( 'shape', 'fit', 'verticalAlign', 'mobileTextAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' ) ) );
 	if ( isset( $value['shapeStretch'] ) && is_bool( $value['shapeStretch'] ) ) {
 		$result['shapeStretch'] = $value['shapeStretch'];
 	}

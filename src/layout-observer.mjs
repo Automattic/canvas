@@ -360,6 +360,9 @@ export function observeCanvasLayout( grid, onChange ) {
 			.getComputedStyle( grid )
 			.getPropertyValue( '--canvas-viewport' )
 			.trim();
+		if ( grid.dataset.canvasViewport !== mode ) {
+			grid.dataset.canvasViewport = mode;
+		}
 		const rowGap = geometry[ mode ]?.gap ?? gap;
 		set( grid, '--canvas-gap', `${ rowGap }px` );
 		// Containers use the authored area as a minimum, including explicit layouts.
