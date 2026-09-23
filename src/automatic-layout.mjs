@@ -1,4 +1,4 @@
-import { MAX_ROWS } from './placement.mjs';
+import { MAX_ROWS, rowPitch } from './placement.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 
@@ -9,6 +9,13 @@ export function automaticCanvasRows( occupied, minimum = 1 ) {
 // Readability is the only automatic exception to proportional placement. Keep
 // the authored frame unless native text needs more room; preserve intentional
 // overlaps and move only content that a newly grown frame would cover.
+// Automatic placements may widen and grow. Explicit placements marked
+// `explicitReadable` keep their authored column, width, and top, and only grow
+// downward when their content no longer fits (for example, at a narrower
+// width within the same viewport). Explicit growth ends at a cell bottom and
+// collision clearance starts at a cell top; automatic frames stay proportional.
+const adjustable = ( item ) => item.automatic || item.explicitReadable;
+
 export function readablePlacements(
 	items,
 	mode,
@@ -18,6 +25,10 @@ export function readablePlacements(
 ) {
 	const start = geometry.contentColumns[ 0 ].start;
 	const end = geometry.contentColumns.at( -1 ).end;
+	const pitch = rowPitch( geometry );
+	const top = geometry.padding.top;
+	const nextRowStart = ( position ) =>
+		top + Math.ceil( ( position - top ) / pitch - 1e-7 ) * pitch;
 	const overlaps = ( a, b ) =>
 		a.left < b.left + b.width - 0.01 &&
 		a.left + a.width > b.left + 0.01 &&
@@ -27,9 +38,14 @@ export function readablePlacements(
 		.map( ( item, index ) => {
 			const original = placements[ index ]._rect;
 			const rect = { ...original };
+			// Fitted text derives its size from the authored frame, so an explicit
+			// frame is never grown for it.
 			const readable =
-				item.automatic && item.kind !== 'image' && ! item.areaFit;
-			if ( readable ) {
+				adjustable( item ) &&
+				item.kind !== 'image' &&
+				! item.areaFit &&
+				! ( item.explicitReadable && item.widthFit );
+			if ( readable && item.automatic ) {
 				rect.width = Math.max(
 					rect.width,
 					Math.min( end - start, item.minWidth )
@@ -48,10 +64,18 @@ export function readablePlacements(
 						)
 					);
 				}
+			}
+			if ( readable ) {
 				rect.height = Math.max(
 					original.height,
 					measure( item, rect.width )
 				);
+				if ( item.explicitReadable && rect.height > original.height ) {
+					rect.height =
+						nextRowStart( rect.top + rect.height + geometry.gap ) -
+						geometry.gap -
+						rect.top;
+				}
 			}
 			return { item, index, original, rect };
 		} )
@@ -63,7 +87,7 @@ export function readablePlacements(
 		);
 	for ( let i = 0; i < boxes.length; i++ ) {
 		const box = boxes[ i ];
-		if ( ! box.item.automatic ) {
+		if ( ! adjustable( box.item ) ) {
 			continue;
 		}
 		for ( let pass = 0; pass < boxes.length; pass++ ) {
@@ -72,7 +96,7 @@ export function readablePlacements(
 				const other = boxes[ j ];
 				if (
 					i === j ||
-					( j > i && other.item.automatic ) ||
+					( j > i && adjustable( other.item ) ) ||
 					overlaps( box.original, other.original ) ||
 					! overlaps( box.rect, other.rect )
 				) {
@@ -87,6 +111,9 @@ export function readablePlacements(
 							other.original.top -
 							other.original.height
 					);
+				if ( box.item.explicitReadable ) {
+					box.rect.top = nextRowStart( box.rect.top );
+				}
 				moved = true;
 			}
 			if ( ! moved ) {
@@ -98,7 +125,7 @@ export function readablePlacements(
 		boxes
 			.filter(
 				( { item, original, rect } ) =>
-					item.automatic &&
+					adjustable( item ) &&
 					Object.keys( rect ).some(
 						( key ) =>
 							Math.abs( rect[ key ] - original[ key ] ) > 0.01
