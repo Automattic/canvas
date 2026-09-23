@@ -1,0 +1,53 @@
+name: Playground preview comment
+
+# Posts (and keeps updated) one comment on each pull request linking to the
+# Playground demo built from that pull request by `Build Playground`.
+# Runs separately so the build keeps its read-only token and pull request code
+# never runs with write access.
+on:
+  workflow_run:
+    workflows: [Build Playground]
+    types: [completed]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Post or update the preview comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_OWNER: ${{ github.event.workflow_run.head_repository.owner.login }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+          pr=$(gh api "repos/$REPO/pulls?state=open&head=$HEAD_OWNER:$HEAD_BRANCH" --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            echo "No open pull request for $HEAD_OWNER:$HEAD_BRANCH; nothing to comment on."
+            exit 0
+          fi
+          org=${REPO%%/*}
+          name=${REPO#*/}
+          proxy="https://playground.wordpress.net/plugin-proxy.php?org=$org&repo=$name&workflow=Build%20Playground&pr=$pr&artifact=canvas-playground"
+          link="https://playground.wordpress.net/?blueprint-url=$(jq -rn --arg u "$proxy" '$u|@uri')"
+          marker='<!-- canvas-playground-preview -->'
+          body="$marker
+          **[Open this pull request in WordPress Playground]($link)**
+
+          Rich's demo homepage built from \`${HEAD_SHA:0:7}\` ([build]($RUN_URL)). Compare with the [trunk demo](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%2520Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground). The link always opens the latest successful build of this pull request; artifacts expire after 90 days."
+          body=$(printf '%s\n' "$body" | sed 's/^          //')
+          existing=$(gh api "repos/$REPO/issues/$pr/comments" --paginate --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing" -f body="$body" >/dev/null
+            echo "Updated preview comment $existing on #$pr"
+          else
+            gh api "repos/$REPO/issues/$pr/comments" -f body="$body" >/dev/null
+            echo "Posted preview comment on #$pr"
+          fi

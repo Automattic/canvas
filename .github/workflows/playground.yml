@@ -3,6 +3,9 @@ name: Build Playground
 on:
   push:
     branches: [trunk]
+  # Pull requests build the same bundle; `Playground preview comment` posts its link.
+  pull_request:
+    branches: [trunk]
   workflow_dispatch:
   # Refresh the preview before its 90-day artifact retention expires.
   schedule:
