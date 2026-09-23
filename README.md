@@ -4,7 +4,7 @@ A WordPress block for moving, resizing, rotating, and layering core blocks in re
 
 **[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground)**
 
-Open a fresh WordPress site with a five-section Canvas homepage, logged in and ready to edit. The link uses the latest successful build from `trunk` and becomes available after the first [Build Playground workflow](https://github.com/Automattic/canvas/actions/workflows/playground.yml) run. See [Share the demo](#share-the-demo) for details.
+The playground link uses the latest successful build from `trunk`.
 
 **Install:** download the **canvas** artifact from a successful [build](https://github.com/Automattic/canvas/actions/workflows/playground.yml), extract its `canvas.zip`, then upload that ZIP in WordPress. Versioned downloads can also be published as [release](https://github.com/Automattic/canvas/releases) assets.
 
@@ -19,12 +19,9 @@ Canvas 0.1.0 is a team preview for test sites using WordPress 7.1+ and PHP 8.3+.
 The September 22 package check passed 306 unit tests, PHP syntax checks, production builds, and 24 WordPress ability integration checks. A clean WordPress 7.1.1 site with Twenty Twenty-Five and Canvas as the only active plugin passed ZIP installation/update, pattern save/reload, and image/overflow checks at 320–3840px. Incomplete builds were rejected on activation. That runtime reported PHP 8.5.6; the declared PHP 8.3 minimum and a wider compatibility matrix still need separate runtime checks.
 
 Before a stable public release:
-
-- Replace the private Core menu API in `src/core-menu.js` and review remaining experimental editor APIs against the supported WordPress versions.
 - Complete localization of editor labels and messages; the plugin text domain is `canvas`.
 - Record source and redistribution permissions for the bundled images.
 - Verify additional themes, browsers, keyboard and screen-reader behavior, touch devices, and the supported WordPress/PHP versions. The unit suite is not a substitute for these checks.
-- Review the editor-wide `disableContentOnlyForUnsyncedPatterns` setting, which currently makes all inserted unsynced patterns immediately editable.
 
 ## Develop
 
