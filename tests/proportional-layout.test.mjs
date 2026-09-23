@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { freeFrameFromRect } from '../src/aspect-ratio.mjs';
 import assert from 'node:assert/strict';
 import { canvasColumns, canvasRows, mapCanvasPlacement, savedCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { COLUMNS, rowHeightForWidth } from '../src/placement.mjs';
@@ -95,4 +96,79 @@ test('explicit tablet/mobile placement and saving inherited geometry are stable'
   close(resolved.mobile._rect.left,30); close(resolved.mobile._rect.width,330);
   assert.equal(savedCanvasPlacement(resolved.mobile).columnSpan,12);
   assert.equal(JSON.stringify(blocks).includes('_rect'),false);
+});
+
+test('precise service images stop growing at wide width and keep their gaps', () => {
+  const blocks = [.05, .35625, .6625].map((x, index) => block(index, {
+    column: index * 8 + 1, row: 3, columnSpan: 8, rowSpan: 10, gridColumns: 24,
+    free: { x, y: 3, width: .2875, ratio: .99064 }, frameRatio: 1.01284,
+    anchors: index === 0 ? { left: 'wide' } : index === 2 ? { right: 'wide' } : {},
+  }));
+  const saved = JSON.stringify(blocks);
+  const expected = sortedRects(blocks, geometry(1400, blocks), 'desktop');
+  for (const width of [1400, 1600, 2000, 2560, 3840]) {
+    const actual = sortedRects(blocks, geometry(width, blocks), 'desktop');
+    actual.forEach((rect, index) => {
+      close(rect.width, expected[index].width);
+      close(rect.height, expected[index].height);
+      close(rect.left - (width - 1400) / 2, expected[index].left);
+      if (index) assert.ok(rect.left > actual[index - 1].left + actual[index - 1].width);
+    });
+  }
+  assert.equal(JSON.stringify(blocks), saved);
+});
+
+test('precise fitted headings share the wide cap and reopen after editing', () => {
+  const blocks = [block('word', {
+    column: 1, row: 3, columnSpan: 15, rowSpan: 7, gridColumns: 24,
+    free: { x: .103785, y: 1, width: .489947, ratio: 2.396795 }, anchors: { left: 'wide' },
+  }, 'core/heading'), block('press', {
+    column: 9, row: 9, columnSpan: 16, rowSpan: 7, gridColumns: 24,
+    free: { x: .372659, y: 7, width: .523556, ratio: 2.56121 }, anchors: { right: 'wide' },
+  }, 'core/heading')];
+  blocks.forEach(b => b.attributes.canvas.fitArea = true);
+  const expected = resolveLayouts(blocks, geometry(1400, blocks));
+  for (const width of [1400, 2000, 3840]) {
+    const all = geometry(width, blocks);
+    const resolved = resolveLayouts(blocks, all);
+    for (const b of blocks) {
+      const p = resolved[b.clientId].desktop;
+      close(p._rect.width, expected[b.clientId].desktop._rect.width);
+      close(p._rect.height, expected[b.clientId].desktop._rect.height);
+      const free = freeFrameFromRect(p._rect, all.desktop);
+      const reopened = mapCanvasPlacement({ ...savedCanvasPlacement(p), free }, 'desktop', all.desktop);
+      for (const key of ['left', 'top', 'width', 'height']) close(reopened._rect[key], p._rect[key]);
+    }
+  }
+});
+
+test('capped artwork can move through both outer gutters and reopen there', async () => {
+  const { dragMovePlacement, dragCanvasPlacement } = await import('../src/canvas-geometry.mjs');
+  const blocks = [block('a', { column: 9, row: 3, columnSpan: 8, rowSpan: 4, gridColumns: 24 })];
+  for (const width of [2000, 3840]) {
+    const all = geometry(width, blocks), g = all.desktop;
+    const resolved = resolveLayouts(blocks, all).a;
+    for (const target of [20, width - resolved.desktop._rect.width - 20]) {
+      const dx = target - resolved.desktop._rect.left;
+      const preview = dragMovePlacement(resolved.desktop, 'desktop', dx, 0, { columnSpan: 1, rowSpan: 1 });
+      close(preview._rect.left, target);
+      close(preview._rect.width, resolved.desktop._rect.width);
+      const committed = dragCanvasPlacement(resolved.desktop, 'desktop', 'move', dx, 0, { columnSpan: 1, rowSpan: 1 });
+      const saved = savePlacement(blocks[0].attributes.canvas, resolved, 'desktop', committed);
+      const reopened = resolveLayouts([{ ...blocks[0], attributes: { canvas: saved } }], all).a.desktop;
+      for (const key of ['left', 'top', 'width', 'height']) close(reopened._rect[key], committed._rect[key], .01);
+      if (target === 20) assert.ok(reopened._rect.left < g.wideStart);
+      else assert.ok(reopened._rect.left + reopened._rect.width > g.wideEnd);
+    }
+    for (const rect of [
+      { left: 0, top: 20, width, height: 200 },
+      { left: 20, top: 20, width: 150, height: 200 },
+      { left: width - 170, top: 20, width: 150, height: 200 },
+    ]) {
+      const free = freeFrameFromRect(rect, g);
+      const placement = { column: 1, row: 1, columnSpan: 2, rowSpan: 2, gridColumns: 24, free };
+      const reopened = mapCanvasPlacement(placement, 'desktop', g);
+      for (const key of ['left', 'top', 'width', 'height']) close(reopened._rect[key], rect[key]);
+    }
+  }
 });

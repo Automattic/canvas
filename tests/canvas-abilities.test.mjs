@@ -17,9 +17,13 @@ test('placement validation accepts wide anchors and rejects grid overflow and in
  ['mobile'=>['column'=>1,'columnSpan'=>12]], ['mobile'=>['column'=>1,'columnSpan'=>13]],
  ['desktop'=>['anchors'=>['top'=>'wide']]], ['desktop'=>['row'=>499,'rowSpan'=>3]],
  ['desktop'=>['frameRatio'=>-1]], ['desktop'=>['free'=>['x'=>0.9,'y'=>0,'width'=>0.5,'ratio'=>1]]],
- ['desktop'=>['column'=>1.5]], ['desktop'=>['anchors'=>['bottom'=>'after:2']]]
+ ['desktop'=>['column'=>1.5]], ['desktop'=>['anchors'=>['bottom'=>'after:2']]],
+ ['desktop'=>['free'=>['x'=>-0.5,'y'=>0,'width'=>2,'ratio'=>1]]],
+ ['desktop'=>['free'=>['x'=>-2049,'y'=>0,'width'=>1,'ratio'=>1]]],
+ ['desktop'=>['free'=>['x'=>2048,'y'=>0,'width'=>1,'ratio'=>1]]],
+ ['desktop'=>['free'=>['x'=>0,'y'=>0,'width'=>2049,'ratio'=>1]]]
 ]));`);
- assert.deepEqual(results,[true,false,true,false,false,false,false,false,false,false]);
+ assert.deepEqual(results,[true,false,true,false,false,false,false,true,false,false,true,false,false,false]);
 });
 
 test('authoring validates only the new nested schema and independent finite layer values', () => {

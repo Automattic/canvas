@@ -12,23 +12,36 @@ export function normalizeFreeFrame( frame ) {
 	) {
 		return undefined;
 	}
-	const width = clamp( frame.width, 0.000001, 1 );
+	// Fractions describe the reference canvas, not the physical viewport.
+	// Outer tracks can therefore require negative x or widths greater than one.
+	const width = clamp( frame.width, 0.000001, 2048 );
 	return {
-		x: clamp( frame.x, 0, 1 - width ),
+		x: clamp( frame.x, -2048, 2048 - width ),
 		y: clamp( frame.y, -500, 500 ),
 		width,
 		ratio: clamp( frame.ratio, 0.000001, 1000000 ),
 	};
 }
 
+// Desktop artwork stops growing with its reference canvas. Extra viewport
+// width surrounds that canvas; the physical grid still reaches the edges.
+export function freeFrameBounds( geometry ) {
+	const width =
+		geometry.viewport === 'desktop' && geometry.referenceWidth > 0
+			? Math.min( geometry.width, geometry.referenceWidth )
+			: geometry.width;
+	return { left: ( geometry.width - width ) / 2, width };
+}
+
 // Precise vertical positions use row units, independent of section height.
 export function freeFrameFromRect( rect, geometry ) {
+	const bounds = freeFrameBounds( geometry );
 	return {
-		x: rect.left / geometry.width,
+		x: ( rect.left - bounds.left ) / bounds.width,
 		y:
 			( rect.top - geometry.padding.top ) /
 			( geometry.rowHeight + geometry.gap ),
-		width: rect.width / geometry.width,
+		width: rect.width / bounds.width,
 		ratio: rect.width / Math.max( 0.001, rect.height ),
 	};
 }

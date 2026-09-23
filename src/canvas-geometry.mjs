@@ -11,6 +11,7 @@ import {
 import { columnTracks } from './columns.mjs';
 import {
 	freeFrameFromRect,
+	freeFrameBounds,
 	resizeAspectRect,
 	resizeRect,
 } from './aspect-ratio.mjs';
@@ -280,15 +281,16 @@ export function mapCanvasPlacement(
 		geometry.gridColumns
 	);
 	const free = base.free;
+	const freeBounds = freeFrameBounds( geometry );
 	const rect = free
 		? {
-				left: free.x * geometry.width,
+				left: freeBounds.left + free.x * freeBounds.width,
 				top: Math.max(
 					0,
 					geometry.padding.top + free.y * rowPitch( geometry )
 				),
-				width: free.width * geometry.width,
-				height: ( free.width * geometry.width ) / free.ratio,
+				width: free.width * freeBounds.width,
+				height: ( free.width * freeBounds.width ) / free.ratio,
 			}
 		: null;
 	if (

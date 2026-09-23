@@ -146,9 +146,9 @@ function normalize_free_frame( $value ) {
 	if ( $value['width'] <= 0 || $value['ratio'] <= 0 ) {
 		return null;
 	}
-	$width = max( 0.000001, min( 1, $value['width'] ) );
+	$width = max( 0.000001, min( 2048, $value['width'] ) );
 	return array(
-		'x'     => max( 0, min( 1 - $width, $value['x'] ) ),
+		'x'     => max( -2048, min( 2048 - $width, $value['x'] ) ),
 		'y'     => max( -500, min( 500, $value['y'] ) ),
 		'width' => $width,
 		'ratio' => max( 0.000001, min( 1000000, $value['ratio'] ) ),

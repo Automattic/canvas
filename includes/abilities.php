@@ -414,7 +414,7 @@ function validate_layout( $layout ) {
 					return failure( "$mode.free.$key must be a number." );
 				}
 			}
-			if ( $f['width'] <= 0 || $f['width'] > 1 || $f['ratio'] <= 0 || $f['x'] < 0 || $f['x'] + $f['width'] > 1 || abs( $f['y'] ) > 500 ) {
+			if ( $f['width'] <= 0 || $f['width'] > 2048 || $f['ratio'] <= 0 || $f['x'] < -2048 || $f['x'] + $f['width'] > 2048 || abs( $f['y'] ) > 500 ) {
 				return failure( "$mode.free exceeds the supported frame bounds." );
 			}
 		}
