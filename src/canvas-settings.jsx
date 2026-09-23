@@ -1,9 +1,7 @@
 import { useDispatch } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import {
-	Button,
 	PanelBody,
-	PanelRow,
 	ToggleControl,
 	__experimentalVStack as VStack,
 	__experimentalToggleGroupControl as ToggleGroupControl,
@@ -16,9 +14,6 @@ export function CanvasSettings( {
 	clientId,
 	attributes,
 	disabled,
-	canResetMobile,
-	canResetTablet,
-	resetLayout,
 	previewGrid,
 	...props
 } ) {
@@ -83,17 +78,6 @@ export function CanvasSettings( {
 				attributes={ attributes }
 				{ ...props }
 			/>
-			<PanelRow>
-				<Button
-					variant="secondary"
-					disabled={
-						disabled || ( ! canResetMobile && ! canResetTablet )
-					}
-					onClick={ resetLayout }
-				>
-					Reset responsive layouts
-				</Button>
-			</PanelRow>
 		</PanelBody>
 	);
 }

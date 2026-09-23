@@ -1339,9 +1339,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 					clientId={ clientId }
 					attributes={ attributes }
 					disabled={ canvasLocked }
-					canResetMobile={ canResetMobile }
-					canResetTablet={ canResetTablet }
-					resetLayout={ resetLayout }
 					previewGrid={ previewGrid }
 					gap={ gap }
 					geometry={ geometry[ mode ] }
@@ -1401,6 +1398,11 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 					<CanvasContextMenu
 						menu={ contextMenu }
 						allowed={ insertion.allowed }
+						canReset={
+							! canvasLocked &&
+							( canResetMobile || canResetTablet )
+						}
+						resetLayout={ resetLayout }
 						insertAt={ ( name, point ) =>
 							selectInsertedBlock(
 								insertion.insertAt( name, point )

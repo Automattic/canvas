@@ -207,7 +207,14 @@ function CanvasInsertionMenu( { allowed, onSelect } ) {
 	);
 }
 
-export function CanvasContextMenu( { menu, allowed, insertAt, onClose } ) {
+export function CanvasContextMenu( {
+	menu,
+	allowed,
+	insertAt,
+	canReset,
+	resetLayout,
+	onClose,
+} ) {
 	return (
 		<CanvasMenu menu={ menu } label="Canvas options" onClose={ onClose }>
 			<CanvasInsertionMenu
@@ -217,6 +224,15 @@ export function CanvasContextMenu( { menu, allowed, insertAt, onClose } ) {
 					insertAt( name, menu.point );
 				} }
 			/>
+			<Menu.Item
+				disabled={ ! canReset }
+				onClick={ () => {
+					resetLayout();
+					onClose();
+				} }
+			>
+				<Menu.ItemLabel>Reset responsive styles</Menu.ItemLabel>
+			</Menu.Item>
 		</CanvasMenu>
 	);
 }
