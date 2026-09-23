@@ -1,6 +1,6 @@
 # Canvas
 
-A WordPress block for moving, resizing, rotating, and layering core blocks in responsive layouts. The [Automattic/canvas repository](https://github.com/Automattic/canvas) contains the plugin source, tests, and development tools. Playground provides a persistent local WordPress environment.
+A WordPress block for moving, resizing, rotating, and layering core blocks in responsive layouts.
 
 **[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground)**
 
