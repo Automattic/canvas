@@ -30,7 +30,8 @@ update_option( 'blog_public', 0 );
 $preferences = array(
 	'_modified'      => gmdate( 'c' ),
 	'core'           => array(
-		'renderingModes' => array(
+		'showBlockBreadcrumbs' => false,
+		'renderingModes'       => array(
 			get_stylesheet() => array( 'page' => 'template-locked' ),
 		),
 	),

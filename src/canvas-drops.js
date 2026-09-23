@@ -10,7 +10,7 @@ import { ALLOWED_BLOCKS, ATTRIBUTE } from './geometry.mjs';
 import { droppedLayouts, placementRectangle } from './drop-layout.mjs';
 import { gridMetrics } from './canvas-metrics.mjs';
 import { occupiedRows } from './canvas-geometry.mjs';
-import { isContainer } from './grouping.mjs';
+import { canDropBlocks } from './drop-permissions.mjs';
 import { withInsertionDefaults } from './insertion-defaults.mjs';
 function transferBlocks( transfer ) {
 	try {
@@ -188,54 +188,8 @@ export function useCanvasDrops( {
 			}
 			return null;
 		};
-		const allowed = ( payload ) => {
-			if (
-				! payload?.blocks.length ||
-				store.getBlockEditingMode( clientId ) === 'disabled'
-			) {
-				return false;
-			}
-			const { blocks, move } = payload;
-			if (
-				blocks.some(
-					( block ) =>
-						! ALLOWED_BLOCKS.includes( block.name ) &&
-						! (
-							move &&
-							isContainer( block ) &&
-							store.getBlockRootClientId( block.clientId ) ===
-								clientId
-						)
-				)
-			) {
-				return false;
-			}
-			if ( move ) {
-				const ids = blocks.map( ( block ) => block.clientId );
-				if (
-					ids.includes( clientId ) ||
-					store
-						.getBlockParents( clientId )
-						.some( ( id ) => ids.includes( id ) ) ||
-					! store.canMoveBlocks( ids )
-				) {
-					return false;
-				}
-				if (
-					blocks.every(
-						( block ) =>
-							store.getBlockRootClientId( block.clientId ) ===
-							clientId
-					)
-				) {
-					return true;
-				}
-				return store.canInsertBlocks( ids, clientId );
-			}
-			return blocks.every( ( block ) =>
-				store.canInsertBlockType( block.name, clientId )
-			);
-		};
+		const allowed = ( payload ) =>
+			canDropBlocks( payload, clientId, store );
 		const placement = ( event, blocks ) => {
 			const metrics = gridMetrics( grid );
 			const bounds = grid.getBoundingClientRect();

@@ -308,18 +308,17 @@ function validate_layout( $layout ) {
 	if ( ! is_array( $layout ) ) {
 		return failure( 'canvas must be an object.' );
 	}
-	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fitArea', 'shape', 'shapeStretch', 'fit', 'verticalAlign', 'mobileTextAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
+	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fitArea', 'shape', 'shapeStretch', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
 	foreach ( $layout as $key => $value ) {
 		if ( ! in_array( $key, $known, true ) ) {
 			return failure( "Unknown canvas field: $key" );
 		}
 	}
 	$enums = array(
-		'shape'           => array_column( \PlaygroundPlugin\Canvas\image_shapes(), 'value' ),
-		'fit'             => array( 'cover', 'contain' ),
-		'verticalAlign'   => array( 'top', 'center', 'bottom' ),
-		'mobileTextAlign' => array( 'left', 'center', 'right', 'justify' ),
-		'group'           => array( 1 ),
+		'shape'         => array_column( \PlaygroundPlugin\Canvas\image_shapes(), 'value' ),
+		'fit'           => array( 'cover', 'contain' ),
+		'verticalAlign' => array( 'top', 'center', 'bottom' ),
+		'group'         => array( 1 ),
 	);
 	foreach ( $enums as $key => $values ) {
 		if ( array_key_exists( $key, $layout ) && ! in_array( $layout[ $key ], $values, true ) ) {

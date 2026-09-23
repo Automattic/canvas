@@ -3,14 +3,6 @@ export function alignmentAttributes( name, attributes = {} ) {
 	const text = [ 'core/heading', 'core/paragraph' ].includes( name );
 	if ( text ) {
 		return {
-			...( [ 'left', 'center', 'right', 'justify' ].includes(
-				attributes.canvas?.mobileTextAlign
-			)
-				? {
-						'data-canvas-mobile-text-align':
-							attributes.canvas.mobileTextAlign,
-					}
-				: {} ),
 			'data-canvas-text-align-y': [ 'center', 'bottom' ].includes(
 				attributes.canvas?.verticalAlign
 			)
@@ -44,13 +36,35 @@ export function alignmentAttributes( name, attributes = {} ) {
 	};
 }
 
-// The native control sees the mobile value; only that value belongs in Canvas.
-export function mobileAlignmentUpdates( attributes, shown, updates ) {
-	if ( ! updates.style ) {
+// Project only alignment into the native toolbar when responsive editing is off.
+// Core still owns the saved style states and their editor/frontend CSS.
+export function responsiveAlignmentAttributes( attributes, mode ) {
+	if ( ! [ 'tablet', 'mobile' ].includes( mode ) ) {
+		return attributes;
+	}
+	const alignment = attributes.style?.[ `@${ mode }` ]?.typography?.textAlign;
+	if ( alignment === undefined ) {
+		return attributes;
+	}
+	return {
+		...attributes,
+		style: {
+			...attributes.style,
+			typography: {
+				...attributes.style?.typography,
+				textAlign: alignment,
+			},
+		},
+	};
+}
+
+export function responsiveAlignmentUpdates( attributes, shown, updates, mode ) {
+	if ( ! [ 'tablet', 'mobile' ].includes( mode ) || ! updates.style ) {
 		return updates;
 	}
 	const alignment = updates.style.typography?.textAlign;
 	const changed = alignment !== shown.style?.typography?.textAlign;
+	const viewport = `@${ mode }`;
 	return {
 		...updates,
 		style: {
@@ -59,15 +73,17 @@ export function mobileAlignmentUpdates( attributes, shown, updates ) {
 				...updates.style.typography,
 				textAlign: attributes.style?.typography?.textAlign,
 			},
+			...( changed
+				? {
+						[ viewport ]: {
+							...updates.style[ viewport ],
+							typography: {
+								...updates.style[ viewport ]?.typography,
+								textAlign: alignment,
+							},
+						},
+					}
+				: {} ),
 		},
-		...( changed
-			? {
-					canvas: {
-						...attributes.canvas,
-						...updates.canvas,
-						mobileTextAlign: alignment,
-					},
-				}
-			: {} ),
 	};
 }

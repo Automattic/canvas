@@ -187,9 +187,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						const saved = block.attributes[ ATTRIBUTE ];
 						return (
 							( saved?.[ viewport ] ||
-								saved?.offset?.[ viewport ] ||
-								( viewport === 'mobile' &&
-									saved?.mobileTextAlign ) ) &&
+								saved?.offset?.[ viewport ] ) &&
 							! block.attributes.lock?.move &&
 							store.getBlockEditingMode( block.clientId ) ===
 								'default'
@@ -782,7 +780,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				...block.attributes[ ATTRIBUTE ],
 			};
 			if (
-				! saved.mobileTextAlign &&
 				! saved.mobile &&
 				! saved.tablet &&
 				! saved.offset?.mobile &&
@@ -790,7 +787,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			) {
 				continue;
 			}
-			delete saved.mobileTextAlign;
 			for ( const viewport of [ 'mobile', 'tablet' ] ) {
 				delete saved[ viewport ];
 				if ( saved.offset ) {

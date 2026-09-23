@@ -20,7 +20,11 @@ import {
 	layoutVariables,
 	savePlacement,
 } from './geometry.mjs';
-import { alignmentAttributes, mobileAlignmentUpdates } from './alignment.mjs';
+import {
+	alignmentAttributes,
+	responsiveAlignmentAttributes,
+	responsiveAlignmentUpdates,
+} from './alignment.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext } from './editor-context';
 import { Menu } from './core-menu';
@@ -621,19 +625,13 @@ export function registerItemControls() {
 				} else {
 					attributes = props.attributes;
 				}
-				const mobileText = text && canvas.mode === 'mobile';
-				if ( mobileText && props.attributes.canvas?.mobileTextAlign ) {
-					attributes = {
-						...attributes,
-						style: {
-							...attributes.style,
-							typography: {
-								...attributes.style?.typography,
-								textAlign:
-									props.attributes.canvas.mobileTextAlign,
-							},
-						},
-					};
+				const responsiveText =
+					text && [ 'tablet', 'mobile' ].includes( canvas.mode );
+				if ( responsiveText ) {
+					attributes = responsiveAlignmentAttributes(
+						attributes,
+						canvas.mode
+					);
 				}
 				// Keep the native Typography controls in sync with Canvas options. Choosing
 				// core Fit text or an explicit font size also leaves our area-fitting mode.
@@ -660,11 +658,12 @@ export function registerItemControls() {
 								},
 							};
 						}
-						if ( mobileText ) {
-							updates = mobileAlignmentUpdates(
+						if ( responsiveText ) {
+							updates = responsiveAlignmentUpdates(
 								props.attributes,
 								attributes,
-								updates
+								updates,
+								canvas.mode
 							);
 						}
 						const fontSizeChanged =
@@ -699,7 +698,7 @@ export function registerItemControls() {
 						container,
 						canvas,
 						props,
-						mobileText,
+						responsiveText,
 						attributes,
 					]
 				);
