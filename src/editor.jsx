@@ -1344,6 +1344,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				/>
 			</InspectorControls>
 			{ ! preview &&
+				mode !== 'mobile' &&
 				!! insertion.allowed.length &&
 				( isSelected || !! selectedId ) && (
 					<CanvasInserter
