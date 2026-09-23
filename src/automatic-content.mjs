@@ -40,6 +40,37 @@ export function measureBox( element, width, buttons = false ) {
 		clone.remove();
 	}
 }
+
+// Use the same natural content measurement for layout and live resizing.
+export function readableContentHeight( element, width ) {
+	const height = element.classList.contains( 'canvas__container' )
+		? null
+		: measureText(
+				element,
+				width,
+				( measureAtSize, { fontSize } ) =>
+					measureAtSize( fontSize ).height,
+				true
+			);
+	return (
+		height ??
+		measureBox(
+			element,
+			`${ width }px`,
+			element.matches( '.wp-block-buttons' ) ||
+				element.firstElementChild?.matches( '.wp-block-buttons' )
+		).height
+	);
+}
+
+export function canResizeReadableContent( element ) {
+	return (
+		!! element &&
+		! element.classList.contains( 'canvas__image' ) &&
+		element.getAttribute( 'data-canvas-text-fit' ) !== 'true' &&
+		! textElement( element )?.classList.contains( 'has-fit-text' )
+	);
+}
 export function resolveAutomaticContent(
 	items,
 	mode,
@@ -133,21 +164,7 @@ export function resolveAutomaticContent(
 				true
 			);
 		}
-		const height =
-			item.kind === 'container'
-				? null
-				: measureText(
-						item.element,
-						width,
-						( measureAtSize, { fontSize } ) =>
-							measureAtSize( fontSize ).height,
-						true
-					);
-		return (
-			height ??
-			measureBox( item.element, `${ width }px`, item.kind === 'buttons' )
-				.height
-		);
+		return readableContentHeight( item.element, width );
 	};
 	return readablePlacements( data, mode, geometry, placements, measure );
 }

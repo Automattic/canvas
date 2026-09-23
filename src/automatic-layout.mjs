@@ -1,4 +1,4 @@
-import { MAX_ROWS } from './placement.mjs';
+import { MAX_ROWS, rowPitch } from './placement.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 
@@ -12,7 +12,8 @@ export function automaticCanvasRows( occupied, minimum = 1 ) {
 // Automatic placements may widen and grow. Explicit placements marked
 // `explicitReadable` keep their authored column, width, and top, and only grow
 // downward when their content no longer fits (for example, at a narrower
-// width within the same viewport).
+// width within the same viewport). Explicit growth ends at a cell bottom and
+// collision clearance starts at a cell top; automatic frames stay proportional.
 const adjustable = ( item ) => item.automatic || item.explicitReadable;
 
 export function readablePlacements(
@@ -24,6 +25,10 @@ export function readablePlacements(
 ) {
 	const start = geometry.contentColumns[ 0 ].start;
 	const end = geometry.contentColumns.at( -1 ).end;
+	const pitch = rowPitch( geometry );
+	const top = geometry.padding.top;
+	const nextRowStart = ( position ) =>
+		top + Math.ceil( ( position - top ) / pitch - 1e-7 ) * pitch;
 	const overlaps = ( a, b ) =>
 		a.left < b.left + b.width - 0.01 &&
 		a.left + a.width > b.left + 0.01 &&
@@ -65,6 +70,12 @@ export function readablePlacements(
 					original.height,
 					measure( item, rect.width )
 				);
+				if ( item.explicitReadable && rect.height > original.height ) {
+					rect.height =
+						nextRowStart( rect.top + rect.height + geometry.gap ) -
+						geometry.gap -
+						rect.top;
+				}
 			}
 			return { item, index, original, rect };
 		} )
@@ -100,6 +111,9 @@ export function readablePlacements(
 							other.original.top -
 							other.original.height
 					);
+				if ( box.item.explicitReadable ) {
+					box.rect.top = nextRowStart( box.rect.top );
+				}
 				moved = true;
 			}
 			if ( ! moved ) {

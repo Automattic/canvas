@@ -5,10 +5,9 @@ import { readablePlacements, automaticCanvasRows } from '../src/automatic-layout
 const close = (a,b) => assert.ok(Math.abs(a-b)<.001, `${a} != ${b}`);
 function geometry() { const padding={left:30,right:30,top:0,bottom:0}; return {mobile:{...canvasColumns(390,padding,30,360,6,'mobile'),...canvasRows(0,0,20,6,8),gap:6}}; }
 
-function readableFixture(specs) {
-  const g=geometry(390,[]).mobile;
+function readableFixture(specs, g=geometry().mobile) {
   const placements=specs.map(spec=>mapCanvasPlacement({gridColumns:8,column:1,columnSpan:8,row:1,rowSpan:1,
-    free:{x:spec.left/390,y:spec.top/(g.rowHeight+g.gap),width:spec.width/390,ratio:spec.width/spec.height}},'mobile',g));
+    free:{x:spec.left/390,y:(spec.top-g.padding.top)/(g.rowHeight+g.gap),width:spec.width/390,ratio:spec.width/spec.height}},'mobile',g));
   const items=specs.map((spec,index)=>({index,kind:spec.kind||'paragraph',automatic:spec.automatic!==false,source:{},
     sourceLeft:(spec.left-30)/330,sourceRight:(spec.left+spec.width-30)/330,minWidth:spec.minWidth||0,...spec}));
   const changes=readablePlacements(items,'mobile',g,placements,item=>item.measured||item.height);
@@ -68,9 +67,9 @@ test('explicit readable placements grow downward in place and clear content they
     {left:210,top:0,width:140,height:20,automatic:false,explicitReadable:true},
   ]);
   // Authored column, width, and top are kept; only the height grows.
-  close(rects[0].left,30); close(rects[0].width,140); close(rects[0].top,0); close(rects[0].height,90);
+  close(rects[0].left,30); close(rects[0].width,140); close(rects[0].top,0); close(rects[0].height,92);
   // The item below moves just past the grown frame, keeping its authored spacing.
-  close(rects[1].top,110);
+  close(rects[1].top,112);
   // Another column is untouched.
   close(rects[2].top,0);
 });
@@ -88,7 +87,7 @@ test('explicit readable growth preserves authored overlaps', () => {
     {left:30,top:0,width:300,height:100,kind:'image',automatic:false,explicitReadable:true},
     {left:60,top:20,width:140,height:30,automatic:false,explicitReadable:true,measured:60},
   ]);
-  close(rects[0].top,0); close(rects[0].height,100); close(rects[1].top,20); close(rects[1].height,60);
+  close(rects[0].top,0); close(rects[0].height,100); close(rects[1].top,20); close(rects[1].height,72);
 });
 
 test('explicit fitted text keeps its authored frame', () => {
@@ -97,4 +96,37 @@ test('explicit fitted text keeps its authored frame', () => {
     {left:30,top:70,width:300,height:20,automatic:false,explicitReadable:true},
   ]);
   assert.deepEqual(changes,{});
+});
+
+
+test('explicit grid frames grow by cells and cascade clearance in whole rows', () => {
+  const {rects}=readableFixture([
+    {left:30,top:0,width:140,height:36,automatic:false,explicitReadable:true,measured:90},
+    {left:30,top:56,width:140,height:22,kind:'image',automatic:false,explicitReadable:true},
+    {left:30,top:98,width:140,height:22,kind:'buttons',automatic:false,explicitReadable:true},
+  ]);
+  close(rects[0].height,92);
+  close(rects[1].top,112); close(rects[1].height,22);
+  close(rects[2].top,154);
+  close(rects[1].top-rects[0].height,20);
+  close(rects[2].top-rects[1].top-rects[1].height,20);
+});
+
+test('explicit snapping follows padded fractional tracks without adding an extra row at an exact edge', () => {
+  const g={...geometry().mobile,...canvasRows(17,0,20,3.5,8.25),gap:3.5};
+  g.padding={...g.padding,top:17};
+  const {rects}=readableFixture([
+    {left:30,top:17,width:140,height:8.25,automatic:false,explicitReadable:true,measured:20},
+    {left:30,top:40.5,width:140,height:8.25,kind:'image',automatic:false,explicitReadable:true},
+  ],g);
+  close(rects[0].top,17); close(rects[0].height,20);
+  close(rects[1].top,40.5);
+});
+
+test('explicit clearance snaps after fractional automatic growth', () => {
+  const {rects}=readableFixture([
+    {left:30,top:0,width:140,height:36,measured:91.2},
+    {left:30,top:56,width:140,height:22,automatic:false,explicitReadable:true},
+  ]);
+  close(rects[0].height,91.2); close(rects[1].top,112);
 });

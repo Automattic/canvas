@@ -1,3 +1,8 @@
+import { constrainReadableResize } from './readable-resize.mjs';
+import {
+	canResizeReadableContent,
+	readableContentHeight,
+} from './automatic-content.mjs';
 import { canMoveSelection, moveSelection } from './selection-movement.mjs';
 import { preserveRowsOnResize, resizeCanvasRows } from './row-resize.mjs';
 import { minimumSpans } from './placement.mjs';
@@ -146,6 +151,22 @@ export function useCanvasGestures( {
 			let scroll;
 			let selectionEnabled;
 			const fitArea = layouts[ id ]?.fitArea;
+			const resizeElement = grid.querySelector(
+				`[data-canvas-item="${ id }"]`
+			);
+			const readableResize =
+				/[ns]/.test( kind ) &&
+				canResizeReadableContent( resizeElement );
+			const measuredHeights = new Map();
+			const measureResize = ( width ) => {
+				if ( ! measuredHeights.has( width ) ) {
+					measuredHeights.set(
+						width,
+						readableContentHeight( resizeElement, width )
+					);
+				}
+				return measuredHeights.get( width );
+			};
 			const position = ( e ) => {
 				scroll?.restore();
 				const rect = grid.getBoundingClientRect();
@@ -180,7 +201,10 @@ export function useCanvasGestures( {
 			// Guidelines and the completed edit must use the same snapped destination.
 			// Only a plain move retains the original span, not a pinch/twist.
 			const dropPlacement = () =>
-				! layouts[ id ]?.group && kind !== 'rotate' && finalValue?.free
+				finalValue !== start &&
+				! layouts[ id ]?.group &&
+				kind !== 'rotate' &&
+				finalValue?.free
 					? snapCanvasPlacement(
 							finalValue,
 							mode,
@@ -334,21 +358,40 @@ export function useCanvasGestures( {
 							localY
 						);
 					} else if ( kind !== 'move' ) {
-						finalValue = dragResizePlacement(
-							start,
-							mode,
-							kind,
-							localX,
-							localY,
-							minimum,
-							imageResizeRatio(
-								layouts[ id ],
-								start,
-								e.shiftKey &&
-									store.getBlockName( id ) === 'core/image'
-							),
-							fromCenter
-						);
+						const resize = ( progress ) =>
+							progress === 0
+								? start
+								: dragResizePlacement(
+										start,
+										mode,
+										kind,
+										localX * progress,
+										localY * progress,
+										minimum,
+										imageResizeRatio(
+											layouts[ id ],
+											start,
+											e.shiftKey &&
+												store.getBlockName( id ) ===
+													'core/image'
+										),
+										fromCenter
+									);
+						finalValue = readableResize
+							? constrainReadableResize(
+									resize,
+									( value ) =>
+										snapCanvasPlacement(
+											value,
+											mode,
+											minimum,
+											undefined,
+											6 * ( metrics.scale || 1 ),
+											fromCenter ? start._rect : undefined
+										),
+									measureResize
+								)
+							: resize( 1 );
 					} else {
 						finalValue = dragMovePlacement(
 							start,
