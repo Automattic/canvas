@@ -41,7 +41,7 @@ jobs:
           body="$marker
           **[Open this pull request in WordPress Playground]($link)**
 
-          Rich's demo homepage built from \`${HEAD_SHA:0:7}\` ([build]($RUN_URL)). Compare with the [trunk demo](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%2520Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground). The link always opens the latest successful build of this pull request; artifacts expire after 90 days."
+          The demo homepage built from \`${HEAD_SHA:0:7}\` ([build]($RUN_URL)). Compare with the [trunk demo](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%2520Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground). The link always opens the latest successful build of this pull request; artifacts expire after 90 days."
           body=$(printf '%s\n' "$body" | sed 's/^          //')
           existing=$(gh api "repos/$REPO/issues/$pr/comments" --paginate --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -n1)
           if [ -n "$existing" ]; then
