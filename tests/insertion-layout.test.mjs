@@ -21,7 +21,7 @@ test('full-width canvas insertion anchors all block types to wide width without 
       const incoming = block('new', {}, name);
       const layout = insertionLayout([], incoming, 'desktop', measured);
       assert.equal(layout.desktop.anchors?.left, 'wide');
-      assert.equal(layout.desktop.columnSpan, name === 'core/buttons' ? 4 : 8);
+      assert.equal(layout.desktop.columnSpan, name === 'core/buttons' ? 4 : name === 'core/paragraph' ? 10 : 8);
       const reopened = resolveLayouts([block('new', JSON.parse(JSON.stringify(layout)), name)], measured.geometry).new.desktop;
       assert.equal(reopened._rect.left, wideStart);
       assert.ok(reopened._rect.width < 996);
@@ -107,7 +107,7 @@ test('new Buttons use their 4 by 2 minimum across insertion paths and viewports'
 for (const [name, content, fitArea] of [
   ['core/heading', 'This is a heading', true],
   ['core/paragraph', 'A thoughtful composition keeps its character across different screens. This longer paragraph should stay alongside the heading while there is enough room, then widen only as much as it needs.', false],
-]) test(`new ${name} blocks share text, fitting, and 8 by 2 sizing across insertion paths`, () => {
+]) test(`new ${name} blocks share text, fitting, and default sizing across insertion paths`, () => {
   const incoming = block('new', {}, name);
   const initialized = withInsertionDefaults(incoming, 'desktop', metrics);
   assert.equal(initialized.attributes.content, content);
@@ -118,8 +118,8 @@ for (const [name, content, fitArea] of [
     droppedLayouts([], [incoming], 'desktop', { x: 84, y: 144 }, metrics).new,
   ]) {
     assert.equal(layout.fitArea, fitArea || undefined);
-    assert.equal(layout.desktop.columnSpan, 8);
-    assert.equal(layout.desktop.rowSpan, 2);
+    assert.equal(layout.desktop.columnSpan, name === 'core/paragraph' ? 10 : 8);
+    assert.equal(layout.desktop.rowSpan, name === 'core/paragraph' ? 3 : 2);
     assert.equal(layout.mobile, undefined);
     assert.equal(layout.tablet, undefined);
   }
@@ -151,12 +151,12 @@ test('mobile defaults fit the current grid and keep a complete desktop fallback 
     const layout = insertionLayout(existing, incoming, 'mobile', mobileMetrics);
     assert.equal(layout.desktop.row, 16);
     assert.equal(layout.mobile.row, 4);
-    assert.equal(layout.mobile.columnSpan, name === 'core/image' ? 6 : 8);
+    assert.equal(layout.mobile.columnSpan, name === 'core/image' ? 6 : name === 'core/paragraph' ? 10 : 8);
     assert.equal(layout.tablet, undefined);
     const reopened = resolveLayouts([...existing, block('new', JSON.parse(JSON.stringify(layout)), name)], mobileMetrics.geometry).new;
     assert.equal(reopened.desktop.row, 16);
     assert.equal(reopened.mobile.row, 4);
-    if (name !== 'core/image') assert.equal(layout.mobile.rowSpan, 2);
+    if (name !== 'core/image') assert.equal(layout.mobile.rowSpan, name === 'core/paragraph' ? 3 : 2);
     else {
       assert.ok(Math.abs(reopened.mobile._rect.width - reopened.mobile._rect.height) <= 18);
       const desktop = resolveLayouts([block('new', layout, name)], { desktop: canvas }).new.desktop._rect;

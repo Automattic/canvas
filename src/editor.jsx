@@ -1106,7 +1106,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const {
 		editingId,
 		exitEditing,
-		editInsertedBlock,
+		selectInsertedBlock,
 		contextMenu,
 		closeContextMenu,
 		openTouchMenu,
@@ -1360,7 +1360,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						}
 						onSelect={ ( block ) => {
 							insertion.onSelect( block );
-							editInsertedBlock( block );
+							selectInsertedBlock( block );
 						} }
 					/>
 				) }
@@ -1402,7 +1402,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						menu={ contextMenu }
 						allowed={ insertion.allowed }
 						insertAt={ ( name, point ) =>
-							editInsertedBlock(
+							selectInsertedBlock(
 								insertion.insertAt( name, point )
 							)
 						}

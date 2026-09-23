@@ -167,7 +167,7 @@ export function useCanvasInteractions( {
 		editing.current = null;
 		setEditingId( null );
 	}, [] );
-	const editInsertedBlock = useCallback(
+	const selectInsertedBlock = useCallback(
 		( block ) => {
 			if ( ! block?.clientId ) {
 				return;
@@ -183,13 +183,8 @@ export function useCanvasInteractions( {
 				) {
 					return;
 				}
-				const id = [
-					'core/heading',
-					'core/paragraph',
-					'core/buttons',
-				].includes( block.name )
-					? block.clientId
-					: null;
+				const id =
+					block.name === 'core/buttons' ? block.clientId : null;
 				editing.current = id;
 				setEditingId( id );
 				const selected =
@@ -197,14 +192,19 @@ export function useCanvasInteractions( {
 						? store.getBlockOrder( block.clientId )[ 0 ] ||
 							block.clientId
 						: block.clientId;
-				selectBlock( selected, 0 );
+				selection.current = [ block.clientId ];
+				setCanvasSelection( [ block.clientId ] );
+				selectBlock( selected, id ? 0 : null );
 				const item = gridRef.current.querySelector(
 					`[data-canvas-item="${ block.clientId }"]`
 				);
 				const editable = item?.matches( '[contenteditable="true"]' )
 					? item
 					: item?.querySelector( '[contenteditable="true"]' );
-				( editable || item )?.focus();
+				( id ? editable || item : item )?.focus();
+				if ( ! id ) {
+					view.getSelection()?.removeAllRanges();
+				}
 			} );
 		},
 		[ gridRef, registry, clientId, selectBlock ]
@@ -987,7 +987,7 @@ export function useCanvasInteractions( {
 	return {
 		editingId,
 		exitEditing,
-		editInsertedBlock,
+		selectInsertedBlock,
 		contextMenu,
 		closeContextMenu,
 		openTouchMenu,

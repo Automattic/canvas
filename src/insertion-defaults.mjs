@@ -62,10 +62,11 @@ export function withInsertionDefaults( block, mode, metrics ) {
 				...anchor,
 			};
 		}
-		const columnSpan = Math.min(
-			gridColumns,
-			! text && viewport === 'mobile' ? 6 : 8
-		);
+		let defaultColumns = paragraph ? 10 : 8;
+		if ( ! text && viewport === 'mobile' ) {
+			defaultColumns = 6;
+		}
+		const columnSpan = Math.min( gridColumns, defaultColumns );
 		// A mobile editor also measures its desktop tracks at phone width. Use the
 		// theme's reference width for the new block's desktop fallback instead.
 		const useReference =
@@ -91,7 +92,7 @@ export function withInsertionDefaults( block, mode, metrics ) {
 		// to the nearest whole row rather than assuming equal cell counts.
 		let rowSpan;
 		if ( text ) {
-			rowSpan = 2;
+			rowSpan = paragraph ? 3 : 2;
 		} else if ( width === null ) {
 			rowSpan = columnSpan;
 		} else {
