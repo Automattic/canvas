@@ -48,7 +48,7 @@ function register_patterns() {
 		'tabor/canvas-pattern-6',
 		array(
 			'title'       => __( 'pattern-6', 'canvas' ),
-			'description' => __( 'A full-width Canvas coaching introduction with a large headline, overlapping images, and a call-to-action button, with desktop, tablet, and mobile layouts.', 'canvas' ),
+			'description' => __( 'A full-width Canvas website introduction with a large headline, overlapping images, and a call-to-action button, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas' ),
 			'content'     => $content,
 		)
@@ -72,7 +72,7 @@ function register_patterns() {
 		'tabor/canvas-pattern-4',
 		array(
 			'title'       => __( 'pattern-4', 'canvas' ),
-			'description' => __( 'A full-width Canvas portfolio introduction with two oversized red headings layered around a soft-square image.', 'canvas' ),
+			'description' => __( 'A full-width Canvas WordPress introduction with two oversized red headings layered around a soft-square image.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
@@ -84,20 +84,11 @@ function register_patterns() {
 		'tabor/canvas-pattern-5',
 		array(
 			'title'       => __( 'pattern-5', 'canvas' ),
-			'description' => __( 'A full-width Canvas introduction with an oversized heading, story text, and two staggered images, with desktop, tablet, and mobile layouts.', 'canvas' ),
+			'description' => __( 'A full-width Canvas introduction with an oversized heading, introductory text, and two staggered images, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas' ),
 			'content'     => $content,
 		)
 	);
-}
-add_action( 'init', __NAMESPACE__ . '\\register_patterns', 20 );
-
-/**
- * Register the bundled energy healing composition.
- *
- * @return void
- */
-function register_energy_healing_pattern() {
 	ob_start();
 	require dirname( __DIR__ ) . '/patterns/pattern-3.php';
 	$content = ob_get_clean();
@@ -105,10 +96,10 @@ function register_energy_healing_pattern() {
 		'tabor/canvas-pattern-3',
 		array(
 			'title'       => __( 'pattern-3', 'canvas' ),
-			'description' => __( 'A full-width Canvas section with a tilted oval image, yellow headings, and a centered booking button, with desktop, tablet, and mobile layouts.', 'canvas' ),
+			'description' => __( 'A full-width Canvas section with a tilted oval image, yellow headings, and a centered call-to-action button, with desktop, tablet, and mobile layouts.', 'canvas' ),
 			'categories'  => array( 'tabor-canvas', 'featured' ),
 			'content'     => $content,
 		)
 	);
 }
-add_action( 'init', __NAMESPACE__ . '\\register_energy_healing_pattern', 20 );
+add_action( 'init', __NAMESPACE__ . '\\register_patterns', 20 );

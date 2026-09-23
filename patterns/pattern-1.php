@@ -14,6 +14,6 @@ $image_url = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 <!-- /wp:image -->
 
 <!-- wp:heading {"canvas":{"desktop":{"column":2,"row":6,"columnSpan":22,"rowSpan":7,"gridColumns":24}},"style":{"typography":{"textAlign":"center"}},"fitText":true} -->
-<h2 class="wp-block-heading has-text-align-center has-fit-text">BUILD IT</h2>
+<h2 class="wp-block-heading has-text-align-center has-fit-text">MAKE IT</h2>
 <!-- /wp:heading -->
 <!-- /wp:tabor/canvas -->

@@ -1,6 +1,6 @@
 <?php
 /**
- * Pattern-3: tilted oval image, headings, and booking button.
+ * Pattern-3: tilted oval image, headings, and a call-to-action button.
  *
  * @package Canvas
  */
@@ -14,16 +14,16 @@ $image_url = plugin_dir_url( __DIR__ ) . 'images/image-2.jpg';
 <!-- /wp:image -->
 
 <!-- wp:heading {"canvas":{"verticalAlign":"center","desktop":{"column":6,"row":2,"columnSpan":14,"rowSpan":5,"gridColumns":24}},"style":{"typography":{"textAlign":"center"}},"fitText":true} -->
-<h2 class="wp-block-heading has-text-align-center has-fit-text">Energy</h2>
+<h2 class="wp-block-heading has-text-align-center has-fit-text">Create</h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"canvas":{"verticalAlign":"center","desktop":{"column":6,"row":12,"columnSpan":14,"rowSpan":5,"gridColumns":24}},"style":{"typography":{"textAlign":"center"}},"fitText":true} -->
-<h2 class="wp-block-heading has-text-align-center has-fit-text">Healing</h2>
+<h2 class="wp-block-heading has-text-align-center has-fit-text">Freely</h2>
 <!-- /wp:heading -->
 
 <!-- wp:buttons {"canvas":{"desktop":{"column":10,"row":8,"columnSpan":6,"rowSpan":4,"gridColumns":24}},"layout":{"type":"flex","verticalAlignment":"center","justifyContent":"center"}} -->
 <div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">Book Experience</a></div>
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">Start your site</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons -->
 <!-- /wp:tabor/canvas -->

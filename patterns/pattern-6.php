@@ -1,6 +1,6 @@
 <?php
 /**
- * Pattern-6: coaching introduction with overlapping images.
+ * Pattern-6: website introduction with overlapping images.
  *
  * @package Canvas
  */
@@ -18,16 +18,16 @@ $image_url = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 <!-- /wp:image -->
 
 <!-- wp:heading {"canvas":{"fitArea":true,"desktop":{"column":1,"row":3,"columnSpan":10,"rowSpan":4,"gridColumns":24},"tablet":{"column":1,"row":2,"columnSpan":9,"rowSpan":5,"gridColumns":12,"anchors":{"left":"padding"}}}} -->
-<h2 class="wp-block-heading">Value Beyond Expectation</h2>
+<h2 class="wp-block-heading">A site that grows with you</h2>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"canvas":{"verticalAlign":"center","desktop":{"column":1,"row":14,"columnSpan":11,"rowSpan":2,"gridColumns":24},"tablet":{"column":1,"row":8,"columnSpan":5,"rowSpan":6,"gridColumns":12,"anchors":{"left":"padding"}},"mobile":{"column":1,"row":7,"columnSpan":11,"rowSpan":5,"gridColumns":12,"anchors":{"left":"wide"}}}} -->
-<p>Guiding high-performers to transform ambition into sustainable success through evidence-based coaching.</p>
+<p>Build on WordPress with the freedom to shape your site, share your ideas, and grow on your own terms.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:buttons {"canvas":{"desktop":{"column":1,"row":16,"columnSpan":6,"rowSpan":2,"gridColumns":24,"anchors":{"left":"wide"}},"tablet":{"column":1,"row":14,"columnSpan":3,"rowSpan":2,"gridColumns":12},"mobile":{"column":1,"row":13,"columnSpan":5,"rowSpan":4,"gridColumns":12,"anchors":{"left":"wide"}}},"layout":{"type":"flex"}} -->
 <div class="wp-block-buttons"><!-- wp:button -->
-<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">Get Started</a></div>
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button">Get started</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons -->
 <!-- /wp:tabor/canvas -->

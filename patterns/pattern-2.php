@@ -19,10 +19,10 @@ $second_image_url = plugin_dir_url( __DIR__ ) . 'images/image-2.jpg';
 <!-- /wp:image -->
 
 <!-- wp:heading {"canvas":{"verticalAlign":"center","desktop":{"column":1,"row":3,"columnSpan":15,"rowSpan":6,"gridColumns":24},"tablet":{"column":1,"row":3,"columnSpan":8,"rowSpan":4,"gridColumns":12,"anchors":{"left":"padding"}},"mobile":{"column":1,"row":3,"columnSpan":8,"rowSpan":3,"gridColumns":8,"anchors":{"left":"wide","right":"wide"}}},"style":{"typography":{"textAlign":"left","textTransform":"uppercase"}},"fitText":true} -->
-<h2 class="wp-block-heading has-text-align-left has-fit-text" style="text-transform:uppercase">Skydiving</h2>
+<h2 class="wp-block-heading has-text-align-left has-fit-text" style="text-transform:uppercase">WordPress</h2>
 <!-- /wp:heading -->
 
 <!-- wp:heading {"canvas":{"verticalAlign":"center","desktop":{"column":12,"row":9,"columnSpan":13,"rowSpan":6,"gridColumns":24},"tablet":{"column":6,"row":6,"columnSpan":7,"rowSpan":4,"gridColumns":12,"anchors":{"right":"padding"}},"mobile":{"column":2,"row":5,"columnSpan":6,"rowSpan":3,"gridColumns":8}},"style":{"typography":{"textTransform":"uppercase","textAlign":"right"}},"fitText":true} -->
-<h2 class="wp-block-heading has-text-align-right has-fit-text" style="text-transform:uppercase">School</h2>
+<h2 class="wp-block-heading has-text-align-right has-fit-text" style="text-transform:uppercase">For you</h2>
 <!-- /wp:heading -->
 <!-- /wp:tabor/canvas -->
