@@ -339,12 +339,6 @@ export function CellGapControls( { clientId, attributes, gap, geometry } ) {
 					}
 				/>
 			</fieldset>
-			{ ! Object.keys( gapAxes( attributes.style?.spacing?.blockGap ) )
-				.length && (
-				<p className="components-base-control__help">
-					Using the default gap.
-				</p>
-			) }
 			{ pendingDefault && (
 				<Notice
 					status={ saveError ? 'error' : 'info' }
