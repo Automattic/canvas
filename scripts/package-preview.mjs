@@ -21,6 +21,7 @@ try {
     steps: [
       { step: 'installTheme', themeData: { resource: 'wordpress.org/themes', slug: 'twentytwentyfive' }, options: { activate: true } },
       { step: 'installPlugin', pluginData: { resource: 'bundled', path: '/canvas.zip' }, options: { activate: true } },
+      { step: 'writeFile', path: '/tmp/canvas-preview.html', data: readFileSync(path.join(root, 'scripts/preview-content.html'), 'utf8') },
       { step: 'runPHP', code: readFileSync(path.join(root, 'scripts/setup-preview.php'), 'utf8') },
     ],
   };

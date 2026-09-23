@@ -3,17 +3,18 @@
 require '/wordpress/wp-load.php';
 wp_set_current_user( 1 );
 
-$pattern = WP_Block_Patterns_Registry::get_instance()->get_registered( 'tabor/canvas-pattern-1' );
-if ( ! $pattern || empty( $pattern['content'] ) ) {
-	throw new Exception( 'The Canvas pattern-1 pattern is unavailable.' );
+$content = file_get_contents( '/tmp/canvas-preview.html' );
+if ( false === $content || '' === trim( $content ) ) {
+	throw new Exception( 'The Canvas demo content is unavailable.' );
 }
+$content = str_replace( '{{CANVAS_PLUGIN_URL}}', esc_url( plugins_url( 'canvas' ) ), $content );
 
 $page_id = wp_insert_post( wp_slash( array(
 	'post_type'    => 'page',
 	'post_status'  => 'publish',
 	'post_title'   => 'Canvas',
 	'post_name'    => 'canvas',
-	'post_content' => $pattern['content'],
+	'post_content' => $content,
 	'post_author'  => 1,
 ) ), true );
 if ( is_wp_error( $page_id ) ) {
