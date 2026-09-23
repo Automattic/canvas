@@ -12,7 +12,6 @@ import {
 	columnsForAlignment,
 	MAX_ROWS,
 	rowHeightForWidth,
-	rowPitch,
 	mapPlacement,
 	resolveLayouts,
 } from './geometry.mjs';
@@ -23,7 +22,7 @@ import {
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
-import { measureBox, resolveAutomaticContent } from './automatic-content.mjs';
+import { resolveAutomaticContent } from './automatic-content.mjs';
 import { automaticCanvasRows } from './automatic-layout.mjs';
 import { measureCanvasSpacing } from './spacing.mjs';
 import { fillScreenRowHeight } from './fill-screen.mjs';
@@ -365,44 +364,10 @@ export function observeCanvasLayout( grid, onChange ) {
 		}
 		const rowGap = geometry[ mode ]?.gap ?? gap;
 		set( grid, '--canvas-gap', `${ rowGap }px` );
-		// Containers use the authored area as a minimum, including explicit layouts.
-		// Measure native flex content without changing the saved cell coordinates.
+		// Every viewport resolves readable content, including containers, which
+		// use their authored area as a minimum. Explicit placements (desktop is
+		// always explicit) only grow downward and clear what they newly cover.
 		if ( geometry[ mode ] ) {
-			placements[ mode ] = placements[ mode ].map(
-				( placement, index ) => {
-					if (
-						! items[ index ].classList.contains(
-							'canvas__container'
-						)
-					) {
-						return placement;
-					}
-					const height = measureBox(
-						items[ index ],
-						`${ placement._rect.width }px`
-					).height;
-					if ( height <= placement._rect.height + 0.5 ) {
-						return placement;
-					}
-					const base = savedCanvasPlacement( placement );
-					const rowSpan = Math.min(
-						MAX_ROWS - base.row + 1,
-						Math.ceil(
-							( height + rowGap ) / rowPitch( geometry[ mode ] )
-						)
-					);
-					return mapPlacement(
-						{
-							...base,
-							rowSpan,
-						},
-						mode,
-						geometry[ mode ]
-					);
-				}
-			);
-		}
-		if ( mode !== 'desktop' && geometry[ mode ] ) {
 			const sources = items.map( ( item, index ) =>
 				mode === 'mobile' &&
 				! item
@@ -424,7 +389,8 @@ export function observeCanvasLayout( grid, onChange ) {
 				geometry[ mode ],
 				placements[ mode ],
 				sources,
-				authored
+				authored,
+				{ explicitReadable: true }
 			);
 			const occupied = Math.max(
 				1,
@@ -461,7 +427,8 @@ export function observeCanvasLayout( grid, onChange ) {
 					geometry[ mode ],
 					placements[ mode ],
 					sources,
-					authored
+					authored,
+					{ explicitReadable: true }
 				);
 			}
 			geometry[ mode ] = {

@@ -60,3 +60,41 @@ test('centered controls retain horizontal alignment and grow downward',()=>{
  const {rects}=readableFixture([{left:145,top:(height-20)/2,width:100,height:20,minWidth:180,measured:56,kind:'buttons'}]);
  close(rects[0].left+rects[0].width/2,195); close(rects[0].top,(height-20)/2);
 });
+
+test('explicit readable placements grow downward in place and clear content they newly cover', () => {
+  const {rects}=readableFixture([
+    {left:30,top:0,width:140,height:40,automatic:false,explicitReadable:true,measured:90,minWidth:300},
+    {left:30,top:60,width:140,height:20,automatic:false,explicitReadable:true},
+    {left:210,top:0,width:140,height:20,automatic:false,explicitReadable:true},
+  ]);
+  // Authored column, width, and top are kept; only the height grows.
+  close(rects[0].left,30); close(rects[0].width,140); close(rects[0].top,0); close(rects[0].height,90);
+  // The item below moves just past the grown frame, keeping its authored spacing.
+  close(rects[1].top,110);
+  // Another column is untouched.
+  close(rects[2].top,0);
+});
+
+test('explicit readable placements that fit keep their exact frames', () => {
+  const {changes}=readableFixture([
+    {left:30,top:0,width:140,height:40,automatic:false,explicitReadable:true,measured:30},
+    {left:30,top:60,width:140,height:20,automatic:false,explicitReadable:true},
+  ]);
+  assert.deepEqual(changes,{});
+});
+
+test('explicit readable growth preserves authored overlaps', () => {
+  const {rects}=readableFixture([
+    {left:30,top:0,width:300,height:100,kind:'image',automatic:false,explicitReadable:true},
+    {left:60,top:20,width:140,height:30,automatic:false,explicitReadable:true,measured:60},
+  ]);
+  close(rects[0].top,0); close(rects[0].height,100); close(rects[1].top,20); close(rects[1].height,60);
+});
+
+test('explicit fitted text keeps its authored frame', () => {
+  const {changes}=readableFixture([
+    {left:30,top:0,width:300,height:60,automatic:false,explicitReadable:true,widthFit:true,measured:120},
+    {left:30,top:70,width:300,height:20,automatic:false,explicitReadable:true},
+  ]);
+  assert.deepEqual(changes,{});
+});

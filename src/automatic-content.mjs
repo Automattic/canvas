@@ -46,7 +46,8 @@ export function resolveAutomaticContent(
 	geometry,
 	placements,
 	sources,
-	authoredSources = []
+	authoredSources = [],
+	{ explicitReadable = false } = {}
 ) {
 	const columns = geometry.contentColumns;
 	const available = columns.at( -1 ).end - columns[ 0 ].start;
@@ -108,6 +109,7 @@ export function resolveAutomaticContent(
 			kind,
 			source,
 			automatic,
+			explicitReadable: explicitReadable && ! automatic,
 			areaFit,
 			widthFit,
 			minWidth: Math.min( available, minWidth ),

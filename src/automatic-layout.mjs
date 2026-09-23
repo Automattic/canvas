@@ -9,6 +9,12 @@ export function automaticCanvasRows( occupied, minimum = 1 ) {
 // Readability is the only automatic exception to proportional placement. Keep
 // the authored frame unless native text needs more room; preserve intentional
 // overlaps and move only content that a newly grown frame would cover.
+// Automatic placements may widen and grow. Explicit placements marked
+// `explicitReadable` keep their authored column, width, and top, and only grow
+// downward when their content no longer fits (for example, at a narrower
+// width within the same viewport).
+const adjustable = ( item ) => item.automatic || item.explicitReadable;
+
 export function readablePlacements(
 	items,
 	mode,
@@ -27,9 +33,14 @@ export function readablePlacements(
 		.map( ( item, index ) => {
 			const original = placements[ index ]._rect;
 			const rect = { ...original };
+			// Fitted text derives its size from the authored frame, so an explicit
+			// frame is never grown for it.
 			const readable =
-				item.automatic && item.kind !== 'image' && ! item.areaFit;
-			if ( readable ) {
+				adjustable( item ) &&
+				item.kind !== 'image' &&
+				! item.areaFit &&
+				! ( item.explicitReadable && item.widthFit );
+			if ( readable && item.automatic ) {
 				rect.width = Math.max(
 					rect.width,
 					Math.min( end - start, item.minWidth )
@@ -48,6 +59,8 @@ export function readablePlacements(
 						)
 					);
 				}
+			}
+			if ( readable ) {
 				rect.height = Math.max(
 					original.height,
 					measure( item, rect.width )
@@ -63,7 +76,7 @@ export function readablePlacements(
 		);
 	for ( let i = 0; i < boxes.length; i++ ) {
 		const box = boxes[ i ];
-		if ( ! box.item.automatic ) {
+		if ( ! adjustable( box.item ) ) {
 			continue;
 		}
 		for ( let pass = 0; pass < boxes.length; pass++ ) {
@@ -72,7 +85,7 @@ export function readablePlacements(
 				const other = boxes[ j ];
 				if (
 					i === j ||
-					( j > i && other.item.automatic ) ||
+					( j > i && adjustable( other.item ) ) ||
 					overlaps( box.original, other.original ) ||
 					! overlaps( box.rect, other.rect )
 				) {
@@ -98,7 +111,7 @@ export function readablePlacements(
 		boxes
 			.filter(
 				( { item, original, rect } ) =>
-					item.automatic &&
+					adjustable( item ) &&
 					Object.keys( rect ).some(
 						( key ) =>
 							Math.abs( rect[ key ] - original[ key ] ) > 0.01
