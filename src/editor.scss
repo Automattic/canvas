@@ -399,6 +399,11 @@
 		z-index: 0;
 		overflow: hidden;
 
+		&:not(.canvas__guidelines--foreground) {
+			// Keep rounded preview rows inside the padding during smooth height drags.
+			clip-path: inset(var(--canvas-pad-top, 0px) 0 var(--canvas-pad-bottom, 0px));
+		}
+
 		&--foreground {
 			z-index: 2;
 		}

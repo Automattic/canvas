@@ -131,19 +131,20 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 			const css = grid.ownerDocument.defaultView.getComputedStyle( grid );
 			// The layout observer retains committed rows during a height drag.
 			// Extend the guides immediately using the preview's rows and cell pitch.
-			const rows = preview?.rows
+			const rowMetrics = preview?.rows
 				? canvasRows(
 						metrics.padding.top,
 						metrics.padding.bottom,
 						preview.rows,
 						metrics.gap,
 						metrics.rowHeight
-					).rows
-				: metrics.rows;
+					)
+				: metrics;
 			setLines( {
 				...metrics,
-				rows,
-				visibleRows: rows.length,
+				rows: rowMetrics.rows,
+				before: rowMetrics.before,
+				visibleRows: rowMetrics.coreRows,
 				rectangles,
 				width: parseFloat( css.width ),
 				height: parseFloat( css.height ),
@@ -178,8 +179,9 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 			( column.start >= lines.wideLeft - 0.001 &&
 				column.end <= lines.width - lines.wideRight + 0.001 )
 	);
+	// Leave vertical padding clear so the cells show the content area's bounds.
 	const cells = lines.rows
-		.slice( 0, lines.visibleRows )
+		.slice( lines.before, lines.before + lines.visibleRows )
 		.flatMap( ( row, rowIndex ) =>
 			columns.map( ( column, columnIndex ) => {
 				if (
