@@ -63,7 +63,7 @@ Choose an image shape in Styles → Shape or the context menu. Hover or focus pr
 
 Select sibling blocks and choose Group in the context menu to move them together. Click again to edit a child; Escape moves back through the group. Ungroup retains the children's layout. Use native background, border, radius, padding, and spacing controls to style the composition.
 
-Gap in Canvas Settings currently adjusts space inside fixed grid areas. Increasing Gap makes blocks smaller within their areas while keeping the grid and section height stable. Blocks inset equally from their top and bottom edges; horizontal boundary alignment is preserved. Text can still require more height to remain readable.
+Use Block spacing under Styles → Dimensions to adjust the space between Canvas grid cells. One control sets both horizontal and vertical spacing. Cells appear while adjusting spacing, and tracks update without changing authored cell coordinates.
 
 = Responsive layouts =
 

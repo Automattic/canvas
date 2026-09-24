@@ -80,7 +80,7 @@
         "top",
         "bottom"
       ],
-      "blockGap": { "sides": [ "horizontal", "vertical" ] },
+      "blockGap": true,
       "__experimentalSkipSerialization": [ "blockGap" ],
       "__experimentalDefaultControls": {
         "padding": true,

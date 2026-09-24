@@ -34,7 +34,6 @@ import {
 	useInnerBlocksProps,
 	BlockControls,
 	BlockSettingsMenuControls,
-	InspectorControls,
 	__unstableBlockSettingsMenuFirstItem as BlockSettingsMenuFirstItem,
 } from '@wordpress/block-editor';
 import {
@@ -91,8 +90,7 @@ import {
 	useCanvasInsertion,
 } from './canvas-inserter';
 import { RadiusHandle } from './radius-control';
-import { useCanvasGap } from './cell-gap-controls';
-import { CanvasSettings } from './canvas-settings';
+import { useCanvasGap } from './use-canvas-gap';
 export default function Edit( { clientId, attributes, isSelected } ) {
 	const gap = useCanvasGap( attributes );
 	const stageRef = useRef( null );
@@ -1335,14 +1333,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 					/>
 				</BlockControls>
 			) }
-			<InspectorControls>
-				<CanvasSettings
-					clientId={ clientId }
-					attributes={ attributes }
-					gap={ gap }
-					geometry={ geometry[ mode ] }
-				/>
-			</InspectorControls>
 			{ ! preview &&
 				mode !== 'mobile' &&
 				!! insertion.allowed.length &&
