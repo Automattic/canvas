@@ -1186,6 +1186,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						mode={ mode }
 						onClose={ onClose }
 						onComplete={ afterGrouping }
+						onDistribute={ commitSelection }
 					/>
 				}
 			/>
@@ -1207,6 +1208,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			clientId,
 			registry,
 			afterGrouping,
+			commitSelection,
 		]
 	);
 	const context = useMemo(
