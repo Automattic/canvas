@@ -947,9 +947,18 @@ export function snapCanvasPlacement(
 		! bottomGuide &&
 		Math.abs( rect.top + rect.height / 2 - g.height / 2 ) <= tolerance
 	) {
+		const symmetric = centeredTracks(
+			g.rows,
+			g.height / 2,
+			rect.height,
+			minimum.rowSpan
+		);
 		const cells = centeredRows( g, bottom - top + 1 );
-		top = cells.top;
-		bottom = cells.bottom;
+		// Match horizontal centering without stretching across asymmetric padding
+		// just to reach a distant symmetric pair of outer cells.
+		const exact = symmetric && symmetric.distance <= rowPitch( g ) + 0.0001;
+		top = exact ? symmetric.left : cells.top;
+		bottom = exact ? symmetric.right - 1 : cells.bottom;
 	}
 
 	if ( resizeCenter ) {
