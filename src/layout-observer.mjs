@@ -25,7 +25,6 @@ import { freeFrameStyles } from './aspect-ratio.mjs';
 import { resolveAutomaticContent } from './automatic-content.mjs';
 import { automaticCanvasRows } from './automatic-layout.mjs';
 import { measureCanvasSpacing } from './spacing.mjs';
-import { fillScreenRowHeight } from './fill-screen.mjs';
 import { responsiveRowMetrics, sectionRows } from './section-layout.mjs';
 
 // The editor and frontend share one measurement and track resolver. Core owns
@@ -62,12 +61,7 @@ export function observeCanvasLayout( grid, onChange ) {
 		] ) ) {
 			styles.observe( node, {
 				attributes: true,
-				attributeFilter: [
-					'class',
-					'style',
-					'data-canvas-spacing',
-					'data-canvas-fill-screen',
-				],
+				attributeFilter: [ 'class', 'style', 'data-canvas-spacing' ],
 			} );
 		}
 		content.observe( grid, {
@@ -86,7 +80,7 @@ export function observeCanvasLayout( grid, onChange ) {
 			],
 		} );
 	};
-	const update = ( expanded ) => {
+	const update = () => {
 		frame = 0;
 		// Our computed CSS variables must not reschedule our own observer.
 		styles?.disconnect();
@@ -171,7 +165,7 @@ export function observeCanvasLayout( grid, onChange ) {
 			] )
 		);
 		for ( const viewport of Object.keys( COLUMNS ) ) {
-			const count = expanded?.[ viewport ]?.count ?? minimums[ viewport ];
+			const count = minimums[ viewport ];
 			// Keep the content grid and row sizing tied to the wide area. Extra
 			// columns continue its pitch through the remaining canvas width.
 			const gridPadding =
@@ -192,13 +186,11 @@ export function observeCanvasLayout( grid, onChange ) {
 				columnsForAlignment( viewport, align ),
 				gridPadding
 			);
-			const rowHeight =
-				expanded?.[ viewport ]?.height ??
-				rowHeightForWidth(
-					columns.contentColumns.at( -1 ).end -
-						columns.contentColumns[ 0 ].start,
-					viewport
-				);
+			const rowHeight = rowHeightForWidth(
+				columns.contentColumns.at( -1 ).end -
+					columns.contentColumns[ 0 ].start,
+				viewport
+			);
 			const rowLayout = canvasRows(
 				padding.top,
 				padding.bottom,
@@ -278,7 +270,7 @@ export function observeCanvasLayout( grid, onChange ) {
 				...canvasRows(
 					padding.top,
 					padding.bottom,
-					expanded?.[ viewport ]?.count ?? authoredRows[ viewport ],
+					authoredRows[ viewport ],
 					g.gap,
 					g.rowHeight
 				),
@@ -290,19 +282,6 @@ export function observeCanvasLayout( grid, onChange ) {
 				viewport,
 				geometry
 			);
-			if ( expanded?.[ viewport ] ) {
-				const g = geometry[ viewport ];
-				geometry[ viewport ] = {
-					...g,
-					...canvasRows(
-						padding.top,
-						padding.bottom,
-						g.coreRows,
-						g.gap,
-						expanded[ viewport ].height
-					),
-				};
-			}
 			set(
 				grid,
 				`--canvas-${ viewport }-row-tracks`,
@@ -400,10 +379,7 @@ export function observeCanvasLayout( grid, onChange ) {
 						: occupiedRows( placement );
 				} )
 			);
-			const rows = Math.max(
-				expanded?.[ mode ]?.count ?? 1,
-				automaticCanvasRows( occupied, authoredRows[ mode ] )
-			);
+			const rows = automaticCanvasRows( occupied, authoredRows[ mode ] );
 			if ( rows !== geometry[ mode ].coreRows ) {
 				geometry[ mode ] = {
 					...geometry[ mode ],
@@ -632,26 +608,6 @@ export function observeCanvasLayout( grid, onChange ) {
 						set( item, `--canvas-${ viewport }-layer`, index + 1 )
 					);
 			}
-		}
-		// Resolve natural content first, then distribute spare screen height across
-		// its rows. The second pass remaps content and editing geometry together.
-		const minimumHeight = canvas.hasAttribute( 'data-canvas-fill-screen' )
-			? parseFloat( canvasCss.minHeight ) || 0
-			: 0;
-		if ( ! expanded && geometry[ mode ]?.height < minimumHeight ) {
-			const g = geometry[ mode ];
-			return update( {
-				[ mode ]: {
-					count: g.coreRows,
-					height: fillScreenRowHeight(
-						minimumHeight,
-						g.coreRows,
-						rowGap,
-						padding,
-						g.rowHeight
-					),
-				},
-			} );
 		}
 		paintImageShapes( grid, set );
 		grid.canvasGeometry = geometry;

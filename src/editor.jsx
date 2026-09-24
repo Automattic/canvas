@@ -93,7 +93,6 @@ import {
 import { RadiusHandle } from './radius-control';
 import { useCanvasGap } from './cell-gap-controls';
 import { CanvasSettings } from './canvas-settings';
-import { fillScreenSize } from './fill-screen.mjs';
 export default function Edit( { clientId, attributes, isSelected } ) {
 	const gap = useCanvasGap( attributes );
 	const stageRef = useRef( null );
@@ -107,7 +106,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const clearShapePreview = useCallback( () => setShapePreview( null ), [] );
 	const [ geometry, setGeometry ] = useState( {} );
 	const mode = useCanvasViewport( gridRef );
-	const [ gridPreview, previewGrid ] = useGridPreview(
+	const gridPreview = useGridPreview(
 		JSON.stringify( [ gap.effective, attributes.style?.spacing?.padding ] ),
 		isSelected,
 		gridRef
@@ -1285,7 +1284,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		);
 	}
 	const blockProps = useBlockProps( {
-		'data-canvas-fill-screen': fillScreenSize( attributes ),
 		'data-canvas-spacing': JSON.stringify( gap.effective ),
 		style: {
 			'--canvas-desktop-columns': columnsForAlignment(
@@ -1334,8 +1332,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				<CanvasSettings
 					clientId={ clientId }
 					attributes={ attributes }
-					disabled={ canvasLocked }
-					previewGrid={ previewGrid }
 					gap={ gap }
 					geometry={ geometry[ mode ] }
 				/>

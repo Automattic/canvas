@@ -574,9 +574,5 @@ function render_canvas( $attributes, $content, $block ) {
 		'style'               => '--canvas-desktop-columns:' . $desktop_columns . ';',
 		'data-canvas-spacing' => wp_json_encode( canvas_gap( $attributes ) ),
 	);
-	if ( ! empty( $attributes['fillScreen'] ) ) {
-		$size                               = $attributes['fillScreenHeight'] ?? 'large';
-		$wrapper['data-canvas-fill-screen'] = in_array( $size, array( 'small', 'medium', 'large' ), true ) ? $size : 'large';
-	}
 	return '<div ' . get_block_wrapper_attributes( $wrapper ) . '><div class="canvas__grid" style="' . esc_attr( $css ) . '"' . $minimums . '>' . $items . '</div></div>';
 }
