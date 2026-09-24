@@ -14,6 +14,18 @@
 	> :first-child {
 		height: auto !important;
 	}
+
+	// Transforms never change layout, but their painted overflow reaches
+	// scrollHeight. An entrance offset would otherwise read as taller content.
+	&,
+	* {
+		transform: none !important;
+		translate: none !important;
+		scale: none !important;
+		rotate: none !important;
+		animation: none !important;
+		transition: none !important;
+	}
 }
 
 .canvas-measure-buttons .wp-block-buttons {
