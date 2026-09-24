@@ -59,6 +59,9 @@ export function serializePlacement( value ) {
 		}
 	}
 	const rotation = normalizeRotation( source.rotation );
+	if ( source.fillHeight === true ) {
+		result.fillHeight = true;
+	}
 	if ( rotation ) {
 		result.rotation = rotation;
 	}

@@ -21,6 +21,7 @@
     "demo": "node scripts/create-demo.mjs",
     "package:plugin": "node scripts/package-plugin.mjs",
     "package:preview": "npm run package:plugin && node scripts/package-preview.mjs",
+    "package:patterns": "node scripts/package-preview.mjs --regular-patterns",
     "package:playground": "node scripts/package-playground.mjs",
     "playground:link": "node scripts/playground-link.mjs",
     "test:abilities": "node scripts/test-abilities.mjs",

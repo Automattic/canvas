@@ -105,6 +105,9 @@ function placement( $value, $mode, $next_row, $layer, $block_name = '' ) {
 		'layer'       => is_numeric( $value['layer'] ?? null ) && is_finite( (float) $value['layer'] ) ? 0 + $value['layer'] : $layer,
 		'gridColumns' => $columns,
 	);
+	if ( true === ( $value['fillHeight'] ?? false ) ) {
+		$position['fillHeight'] = true;
+	}
 	if ( isset( $value['frameRatio'] ) && is_numeric( $value['frameRatio'] ) && is_finite( (float) $value['frameRatio'] ) && $value['frameRatio'] > 0 ) {
 		$position['frameRatio'] = (float) $value['frameRatio'];
 	}
@@ -162,6 +165,9 @@ function normalize_free_frame( $value ) {
  * @return int|float Occupied row count.
  */
 function occupied_rows( $value ) {
+	if ( ! empty( $value['fillHeight'] ) ) {
+		return 1;
+	}
 	return bounded_int( $value['row'] + $value['rowSpan'] - 1, 1, 1, 500 );
 }
 
@@ -443,11 +449,17 @@ function canvas_paint_layers( $blocks ) {
  * @param array     $next Next available row in each viewport, updated by reference.
  * @param int       $desktop_columns Authored desktop column count.
  * @param array     $paint Resolved layer ranks.
+ * @param bool      $nested Whether this child belongs to a Canvas group.
  * @return string Opening wrapper markup.
  */
-function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = array() ) {
-	$saved   = $child->attributes[ ATTRIBUTE ] ?? array();
-	$saved   = is_array( $saved ) ? $saved : array();
+function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = array(), $nested = false ) {
+	$saved = $child->attributes[ ATTRIBUTE ] ?? array();
+	$saved = is_array( $saved ) ? $saved : array();
+	if ( 'core/image' !== $child->name || $nested ) {
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
+			unset( $saved[ $mode ]['fillHeight'] );
+		}
+	}
 	$shape   = 'core/image' === $child->name ? image_shape( $saved['shape'] ?? null ) : 'none';
 	$fit     = 'none' === $shape && 'contain' === ( $saved['fit'] ?? '' ) ? 'contain' : 'cover';
 	$css     = '--canvas-fit:' . $fit . ';';
@@ -471,8 +483,11 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 	) as $mode => $position ) {
 		$position['layer'] = $paint[ spl_object_id( $child ) ][ $mode ] ?? $index + 1;
 		$next[ $mode ]     = max( $next[ $mode ], occupied_rows( $position ) + 1 );
+		if ( ! empty( $position['fillHeight'] ) ) {
+			$css .= "--canvas-$mode-line-top:1;--canvas-$mode-line-bottom:-1;";
+		}
 		foreach ( $position as $key => $value ) {
-			if ( 'anchors' === $key || 'free' === $key ) {
+			if ( in_array( $key, array( 'anchors', 'free', 'fillHeight' ), true ) ) {
 				continue;
 			}
 			$css .= '--canvas-' . $mode . '-' . $key . ':' . $value . ';';
@@ -515,7 +530,7 @@ function prepare_canvas_group( $block, &$next, &$restore, $desktop_columns, $pai
 			continue;
 		}
 		$child     = $block->inner_blocks[ $index ];
-		$content[] = canvas_item_open( $child, $index, $next, $desktop_columns, $paint );
+		$content[] = canvas_item_open( $child, $index, $next, $desktop_columns, $paint, true );
 		$content[] = null;
 		$content[] = '</div>';
 		prepare_canvas_group( $child, $next, $restore, $desktop_columns, $paint );
@@ -574,9 +589,5 @@ function render_canvas( $attributes, $content, $block ) {
 		'style'               => '--canvas-desktop-columns:' . $desktop_columns . ';',
 		'data-canvas-spacing' => wp_json_encode( canvas_gap( $attributes ) ),
 	);
-	if ( ! empty( $attributes['fillScreen'] ) ) {
-		$size                               = $attributes['fillScreenHeight'] ?? 'large';
-		$wrapper['data-canvas-fill-screen'] = in_array( $size, array( 'small', 'medium', 'large' ), true ) ? $size : 'large';
-	}
 	return '<div ' . get_block_wrapper_attributes( $wrapper ) . '><div class="canvas__grid" style="' . esc_attr( $css ) . '"' . $minimums . '>' . $items . '</div></div>';
 }

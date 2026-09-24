@@ -28,11 +28,13 @@ Use core Group for normal flow, Row, or Stack content. Preserve native core save
 
 ## Saved attributes
 
-The only child attribute is `canvas`. Each authored `desktop`, `tablet`, or `mobile` placement supports `column`, `row`, `columnSpan`, `rowSpan`, `gridColumns`, optional `rotation`, `frameRatio`, `anchors`, and `free` frames. Do not write measured or automatic placements.
+The only child attribute is `canvas`. Each authored `desktop`, `tablet`, or `mobile` placement supports `column`, `row`, `columnSpan`, `rowSpan`, `gridColumns`, optional `rotation`, `frameRatio`, `fillHeight`, `anchors`, and `free` frames. Do not write measured or automatic placements.
 
 The internal `anchors` field overrides horizontal boundaries only. `left` and `right` accept numeric column coordinates or `wide`, `wide-start`, `wide-end`, `center`, `padding`, and `canvas`. Omit numeric values when they match the normal placement boundaries, except when a precise frame needs the numeric counterpart of a named horizontal boundary. Keep named horizontal references even when they currently coincide with a cell.
 
 Vertical placement uses `row` and `rowSpan`. Center vertically keeps an explicit block's row span and chooses the nearest valid starting row; equal-distance choices use the earlier row. Edge snapping saves a position once. Numeric and named `anchors.top`/`anchors.bottom`, `anchorOffsets`, and `free.anchorY` are unsupported and rejected by the authoring API. Do not migrate old experimental metadata or rewrite existing content on open.
+
+An image directly inside Canvas can use `fillHeight: true` on an authored viewport placement. Moving or resizing its frame to both outer vertical Canvas edges enables this automatically; padding edges alone do not. Full height inherits with the placement on smaller viewports, while an explicit placement without the flag uses ordinary sizing. The image follows the section's final height, including padding and readable-content growth, without contributing a minimum height itself. It overrides `frameRatio` and the vertical part of `free` while preserving horizontal placement, crop, fit, shape, and rotation. Moving or resizing either vertical edge away releases it and saves the new ordinary frame. Horizontal moves and section-height edits retain it. Omit false `fillHeight`; never save the derived full-height frame or add vertical anchors. Existing edge-to-edge images are unchanged until edited. Nested Group images do not support this behavior.
 
 Adding rows leaves blocks in place with unchanged dimensions, including partial padding cells. Shift-resizing adds equal space above and below and translates grouped children once. Group and multiple-selection moves use one snapped destination and a shared translation, preserving internal spacing. Editing an individual child resolves that child to cells.
 

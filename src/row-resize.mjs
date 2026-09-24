@@ -33,7 +33,7 @@ export function resizeCanvasRows(
 	);
 	for ( const layout of Object.values( layouts ) ) {
 		const placement = layout[ mode ];
-		if ( ! placement?._canvas ) {
+		if ( ! placement?._canvas || placement.fillHeight ) {
 			continue;
 		}
 		const { _rect: rect, _canvas: g } = placement;
@@ -62,7 +62,7 @@ export function preserveRowsOnResize( layouts, mode, offset = 0, rows ) {
 			if ( layout.group ) {
 				return [];
 			}
-			if ( offset && placement?._canvas ) {
+			if ( ( offset || placement?.fillHeight ) && placement?._canvas ) {
 				const g = placement._canvas;
 				const geometry = {
 					...g,
@@ -75,6 +75,21 @@ export function preserveRowsOnResize( layouts, mode, offset = 0, rows ) {
 					),
 				};
 				const base = savedCanvasPlacement( placement );
+				if ( placement.fillHeight ) {
+					return [
+						[
+							id,
+							mapCanvasPlacement(
+								base,
+								mode,
+								geometry,
+								undefined,
+								true,
+								true
+							),
+						],
+					];
+				}
 				const rect = {
 					...placement._rect,
 					top: placement._rect.top + offset * rowPitch( g ),

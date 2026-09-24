@@ -49,9 +49,12 @@ jobs:
       - name: Package the plugin and Playground
         run: |
           npm run package:preview
+          npm run package:patterns
           unzip -t dist/canvas.zip
           unzip -t dist/canvas-preview.zip
           unzip -q dist/canvas-preview.zip -d dist/playground
+          unzip -t dist/regular-patterns-preview.zip
+          unzip -q dist/regular-patterns-preview.zip -d dist/regular-patterns
 
       - name: Upload installable plugin
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -68,6 +71,15 @@ jobs:
         with:
           name: canvas-playground
           path: dist/playground/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+      - name: Upload regular patterns Playground bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: regular-patterns-playground
+          path: dist/regular-patterns/
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

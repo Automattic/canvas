@@ -4,7 +4,9 @@ A WordPress block for moving, resizing, rotating, and layering core blocks in re
 
 **[Try Canvas in WordPress Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dcanvas-playground)**
 
-The playground link uses the latest successful build from `trunk`.
+For reference, [here’s the current editing experience with regular WordPress patterns](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dregular-patterns-playground).
+
+Both Playground links use the latest successful build from `trunk`.
 
 **Install:** download the **canvas** artifact from a successful [build](https://github.com/Automattic/canvas/actions/workflows/playground.yml), extract its `canvas.zip`, then upload that ZIP in WordPress. Versioned downloads can also be published as [release](https://github.com/Automattic/canvas/releases) assets.
 
@@ -160,6 +162,14 @@ The resulting `dist/canvas-preview.zip` contains a Blueprint and the compiled `c
 The workflow uploads the bundle's **contents** as the `canvas-playground` artifact so `blueprint.json` sits at the ZIP root. [Playground's GitHub proxy](https://github.com/WordPress/wordpress-playground/blob/trunk/packages/playground/website/public/plugin-proxy.php) serves this artifact directly to the README link. Keep the workflow name `Build Playground`, branch `trunk`, and artifact name `canvas-playground` in sync with that link. No release or manual upload is needed.
 
 Artifacts last 90 days. Monthly builds refresh them while scheduled workflows remain enabled; GitHub can disable schedules on inactive public repositories. If the link expires, run **Actions → Build Playground → Run workflow** on `trunk`. Each fresh launch loads the current available build; a site already saved in a visitor's browser keeps its own plugin copy and edits.
+
+### Regular patterns comparison
+
+A second Playground uses the same Twenty Twenty-Five theme, Page No Title template, automatic login, and Site Editor preferences, with no Canvas plugin installed. Its content lives in [scripts/regular-patterns-content.html](scripts/regular-patterns-content.html). Update its six sections with serialized core WordPress blocks from the editor's Code editor. Use `{{THEME_URL}}` for bundled Twenty Twenty-Five images, or public HTTPS image URLs; Canvas plugin assets are unavailable in this demo.
+
+Run `npm run package:patterns` to create `dist/regular-patterns-preview.zip`; this needs no plugin build or local WordPress database. The same **Build Playground** workflow publishes its contents as `regular-patterns-playground` and refreshes both demos on the same schedule.
+
+After the updated workflow succeeds on `trunk`, share [the regular patterns Playground](https://playground.wordpress.net/?blueprint-url=https%3A%2F%2Fplayground.wordpress.net%2Fplugin-proxy.php%3Forg%3DAutomattic%26repo%3Dcanvas%26workflow%3DBuild%20Playground%26branch%3Dtrunk%26artifact%3Dregular-patterns-playground). This separate link opens an independent site; edits in either Playground do not change the other demo.
 
 ### Optional saved-site demo
 

@@ -65,15 +65,6 @@ addFilter(
 	}
 );
 
-// Keep native storage and Global Styles support; the individual inspector owns
-// its more prominent Cell gap control in Settings.
-addFilter(
-	'blockEditor.useSetting.before',
-	'tabor/canvas-cell-gap',
-	( value, path, clientId, name ) =>
-		name === metadata.name && path === 'spacing.blockGap' ? false : value
-);
-
 registerBlockType( metadata.name, {
 	...metadata,
 	icon: CANVAS_ICON,

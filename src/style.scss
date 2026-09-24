@@ -5,22 +5,6 @@
 	position: relative;
 	box-sizing: border-box;
 
-	// The shared geometry resolver expands grid rows to the screen minimum.
-	// Content can always make the section taller.
-	&[data-canvas-fill-screen] {
-		display: grid;
-		align-content: start;
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	@each $size, $height in (small: 33, medium: 66, large: 100) {
-		&[data-canvas-fill-screen="#{$size}"] {
-			min-height: #{$height}vh;
-			// Keep the section stable while mobile browser chrome opens and closes.
-			min-height: #{$height}svh;
-		}
-	}
-
 	// Rotation may paint outside a full-width grid, but must not widen the page.
 	// Keep editor handles and vertical overlaps available.
 	&.alignfull:not([data-block]) {

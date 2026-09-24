@@ -1,3 +1,5 @@
+import { distributeHorizontally } from './selection-distribution.mjs';
+import { canMoveSelection } from './selection-movement.mjs';
 import { compactCanvasBlock } from './serialization.mjs';
 import { useLayoutEffect } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
@@ -143,6 +145,7 @@ export function ContainerActions( {
 	mode,
 	onClose,
 	onComplete,
+	onDistribute,
 } ) {
 	const status = useSelect( () => {
 		const store = registry.select( blockEditorStore );
@@ -195,6 +198,8 @@ export function ContainerActions( {
 		);
 		const conflict = groupingConflict( siblings, ids, layouts );
 		return {
+			distributable:
+				canvasParent && canMoveSelection( store, ids, canvasId ),
 			ids,
 			parent,
 			siblings,
@@ -383,6 +388,9 @@ export function ContainerActions( {
 		status.eligible &&
 		status.selected.length > 1 &&
 		status.selected.length === status.ids.length;
+	const distribution = status.distributable
+		? distributeHorizontally( status.selected, status.layouts, mode )
+		: null;
 	const showUngroup =
 		status.selected.length === 1 && isContainer( status.selected[ 0 ] );
 	if ( ! showGroup && ! showUngroup ) {
@@ -402,6 +410,19 @@ export function ContainerActions( {
 								{ status.conflict }
 							</Menu.ItemHelpText>
 						) }
+					</Menu.Item>
+				) }
+				{ showGroup && (
+					<Menu.Item
+						disabled={ ! distribution }
+						onClick={ () => {
+							if ( distribution ) {
+								onDistribute( distribution );
+								onClose();
+							}
+						} }
+					>
+						<Menu.ItemLabel>Distribute horizontally</Menu.ItemLabel>
 					</Menu.Item>
 				) }
 				{ showUngroup && (

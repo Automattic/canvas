@@ -33,6 +33,9 @@ function serialize_placement( $value, $mode ) {
 		$result['free'] = (object) $free;
 	}
 	$p = placement( $value, $mode, 1, 1 );
+	if ( ! empty( $p['fillHeight'] ) ) {
+		$result['fillHeight'] = true;
+	}
 	if ( ! empty( $p['rotation'] ) ) {
 		$result['rotation'] = $p['rotation'];
 	}

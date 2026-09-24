@@ -34,7 +34,6 @@ import {
 	useInnerBlocksProps,
 	BlockControls,
 	BlockSettingsMenuControls,
-	InspectorControls,
 	__unstableBlockSettingsMenuFirstItem as BlockSettingsMenuFirstItem,
 } from '@wordpress/block-editor';
 import {
@@ -91,9 +90,7 @@ import {
 	useCanvasInsertion,
 } from './canvas-inserter';
 import { RadiusHandle } from './radius-control';
-import { useCanvasGap } from './cell-gap-controls';
-import { CanvasSettings } from './canvas-settings';
-import { fillScreenSize } from './fill-screen.mjs';
+import { useCanvasGap } from './use-canvas-gap';
 export default function Edit( { clientId, attributes, isSelected } ) {
 	const gap = useCanvasGap( attributes );
 	const stageRef = useRef( null );
@@ -107,7 +104,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const clearShapePreview = useCallback( () => setShapePreview( null ), [] );
 	const [ geometry, setGeometry ] = useState( {} );
 	const mode = useCanvasViewport( gridRef );
-	const [ gridPreview, previewGrid ] = useGridPreview(
+	const gridPreview = useGridPreview(
 		JSON.stringify( [ gap.effective, attributes.style?.spacing?.padding ] ),
 		isSelected,
 		gridRef
@@ -506,6 +503,10 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			for ( const [ id, placement ] of Object.entries(
 				preserveRowsOnResize( layouts, mode, offset, next )
 			) ) {
+				// Full-height previews follow rows without rewriting image metadata.
+				if ( placement.fillHeight ) {
+					continue;
+				}
 				const block = blocks.find(
 					( blockValue ) => blockValue.clientId === id
 				);
@@ -520,7 +521,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 								mode,
 								layouts[ id ][ mode ]
 							),
-							minimumSpans( block.name )
+							minimumSpans( block.name ),
+							false
 						),
 					};
 				}
@@ -1182,6 +1184,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						mode={ mode }
 						onClose={ onClose }
 						onComplete={ afterGrouping }
+						onDistribute={ commitSelection }
 					/>
 				}
 			/>
@@ -1203,6 +1206,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			clientId,
 			registry,
 			afterGrouping,
+			commitSelection,
 		]
 	);
 	const context = useMemo(
@@ -1285,7 +1289,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		);
 	}
 	const blockProps = useBlockProps( {
-		'data-canvas-fill-screen': fillScreenSize( attributes ),
 		'data-canvas-spacing': JSON.stringify( gap.effective ),
 		style: {
 			'--canvas-desktop-columns': columnsForAlignment(
@@ -1330,16 +1333,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 					/>
 				</BlockControls>
 			) }
-			<InspectorControls>
-				<CanvasSettings
-					clientId={ clientId }
-					attributes={ attributes }
-					disabled={ canvasLocked }
-					previewGrid={ previewGrid }
-					gap={ gap }
-					geometry={ geometry[ mode ] }
-				/>
-			</InspectorControls>
 			{ ! preview &&
 				mode !== 'mobile' &&
 				!! insertion.allowed.length &&
@@ -1413,6 +1406,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						className="canvas__grid"
 						ref={ gridRef }
 						style={ gridStyle }
+						data-canvas-preview-rows={ preview?.rows ?? undefined }
 						data-canvas-desktop-minimum={
 							attributes.desktopRows || 12
 						}

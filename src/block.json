@@ -25,15 +25,6 @@
     }
   ],
   "attributes": {
-    "fillScreen": {
-      "type": "boolean",
-      "default": false
-    },
-    "fillScreenHeight": {
-      "type": "string",
-      "enum": [ "small", "medium", "large" ],
-      "default": "large"
-    },
     "desktopRows": {
       "type": "number",
       "default": 12
@@ -89,7 +80,7 @@
         "top",
         "bottom"
       ],
-      "blockGap": { "sides": [ "horizontal", "vertical" ] },
+      "blockGap": true,
       "__experimentalSkipSerialization": [ "blockGap" ],
       "__experimentalDefaultControls": {
         "padding": true,

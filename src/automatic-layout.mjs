@@ -79,6 +79,9 @@ export function readablePlacements(
 			}
 			return { item, index, original, rect };
 		} )
+		// A full-height image is fitted after content growth and never pushes
+		// readable content down or gets displaced by it.
+		.filter( ( { index } ) => ! placements[ index ].fillHeight )
 		.sort(
 			( a, b ) =>
 				a.original.top - b.original.top ||

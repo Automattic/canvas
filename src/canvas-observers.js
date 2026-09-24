@@ -1,5 +1,4 @@
 import {
-	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useRef,
@@ -8,21 +7,13 @@ import {
 import { __ } from '@wordpress/i18n';
 import { COLUMNS } from './geometry.mjs';
 
-// Briefly preview the grid for native spacing and explicit settings changes.
+// Briefly preview the grid for native spacing changes.
 // Track spacing settings, since measured gaps also change with viewport size.
 export function useGridPreview( spacing, isSelected, gridRef ) {
 	const previousSpacing = useRef( spacing );
 	const timeout = useRef( null );
 	const [ visible, setVisible ] = useState( false );
 	const [ interacting, setInteracting ] = useState( false );
-	const previewGrid = useCallback( () => {
-		if ( ! isSelected ) {
-			return;
-		}
-		clearTimeout( timeout.current );
-		setVisible( true );
-		timeout.current = setTimeout( () => setVisible( false ), 1600 );
-	}, [ isSelected ] );
 	useEffect( () => {
 		if ( ! isSelected ) {
 			setInteracting( false );
@@ -89,11 +80,13 @@ export function useGridPreview( spacing, isSelected, gridRef ) {
 			clearTimeout( timeout.current );
 			setVisible( false );
 		} else if ( changed ) {
-			previewGrid();
+			clearTimeout( timeout.current );
+			setVisible( true );
+			timeout.current = setTimeout( () => setVisible( false ), 1600 );
 		}
-	}, [ spacing, isSelected, previewGrid ] );
+	}, [ spacing, isSelected ] );
 	useEffect( () => () => clearTimeout( timeout.current ), [] );
-	return [ isSelected && ( interacting || visible ), previewGrid ];
+	return isSelected && ( interacting || visible );
 }
 
 export function useCanvasViewport( gridRef ) {

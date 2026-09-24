@@ -29,7 +29,9 @@ export function sectionRows( blocks, minimums ) {
 		result[ mode ] = Math.min(
 			MAX_ROWS,
 			Math.max(
-				minimums[ mode ] > 1 ? minimums[ mode ] : inherited,
+				mode === 'desktop' || minimums[ mode ] > 1
+					? ( minimums[ mode ] ?? inherited )
+					: inherited,
 				requiredRows( authored, mode )
 			)
 		);

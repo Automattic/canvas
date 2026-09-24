@@ -98,6 +98,7 @@ export function normalizePlacement(
 		row: integer( value.row ?? fallback.row, 1, 1, MAX_ROWS - rowSpan + 1 ),
 		columnSpan,
 		rowSpan,
+		...( value.fillHeight === true ? { fillHeight: true } : {} ),
 		layer: Number.isFinite( value.layer ?? fallback.layer )
 			? ( value.layer ?? fallback.layer )
 			: 1,

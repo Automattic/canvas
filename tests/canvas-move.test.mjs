@@ -116,7 +116,7 @@ test('wide-guide snapping uses the same screen-pixel tolerance as highlighting',
   close(zoomed._rect.left, start._canvas.wideStart);
 });
 
-test('vertical centering saves the nearest cell position and unchanged span', () => {
+test('vertical center snaps meet the horizontal guide and reopen on the same cells', () => {
   const minimum = { columnSpan: 1, rowSpan: 1 };
   for (const mode of ['desktop', 'tablet', 'mobile']) for (const count of [19, 20]) for (const rowSpan of [3, 4]) {
     const g = { ...geometry(mode), padding: { ...geometry(mode).padding, top: 24, bottom: 24 }, ...canvasRows(24, 24, count, 12) };
@@ -127,8 +127,20 @@ test('vertical centering saves the nearest cell position and unchanged span', ()
       const snapped = snapCanvasPlacement(preview, mode, minimum, start);
       assertNearestRowCenter(snapped);
       close(snapped._rect.width,start._rect.width);
-      close(snapped._rect.height,start._rect.height);
+      close(snapped._rect.top + snapped._rect.height / 2, g.height / 2);
+      assert.equal(snapped.rowSpan, rowSpan + ((count - rowSpan) % 2 ? 1 : 0));
       assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(snapped), mode, g, minimum)._rect, snapped._rect);
     }
   }
+});
+
+test('vertical center snapping does not stretch a block across asymmetric padding', () => {
+  const minimum = { columnSpan: 1, rowSpan: 1 };
+  const g = geometry('desktop');
+  const start = mapCanvasPlacement({ column: 3, columnSpan: 4, row: 2, rowSpan: 3 }, 'desktop', g, minimum);
+  const preview = dragMovePlacement(start, 'desktop', 0, g.height / 2 - start._rect.top - start._rect.height / 2, minimum);
+  const snapped = snapCanvasPlacement(preview, 'desktop', minimum, start);
+  assertNearestRowCenter(snapped);
+  close(snapped._rect.height, start._rect.height);
+  assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(snapped), 'desktop', g, minimum)._rect, snapped._rect);
 });
