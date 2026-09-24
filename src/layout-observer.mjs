@@ -77,6 +77,7 @@ export function observeCanvasLayout( grid, onChange ) {
 				'data-canvas-desktop-minimum',
 				'data-canvas-tablet-minimum',
 				'data-canvas-mobile-minimum',
+				'data-canvas-preview-rows',
 			],
 		} );
 	};
@@ -156,6 +157,10 @@ export function observeCanvasLayout( grid, onChange ) {
 		set( grid, '--canvas-gap', `${ gap }px` );
 		set( grid, '--canvas-column-gap', `${ columnGap }px` );
 		const geometry = {};
+		const mode = view
+			.getComputedStyle( grid )
+			.getPropertyValue( '--canvas-viewport' )
+			.trim();
 		const minimums = Object.fromEntries(
 			Object.keys( COLUMNS ).map( ( viewport ) => [
 				viewport,
@@ -263,6 +268,14 @@ export function observeCanvasLayout( grid, onChange ) {
 		const leaves = layoutLeaves( blocks );
 		const items = leaves.map( ( block ) => elements.get( block.clientId ) );
 		const authoredRows = sectionRows( leaves, minimums );
+		// Section drags use transient rows. Share them with the painter so it
+		// cannot overwrite a filling image's preview with the saved section size.
+		const previewRows = Number(
+			grid.getAttribute( 'data-canvas-preview-rows' )
+		);
+		if ( previewRows > 0 && geometry[ mode ] ) {
+			authoredRows[ mode ] = Math.min( MAX_ROWS, previewRows );
+		}
 		for ( const viewport of Object.keys( COLUMNS ) ) {
 			const g = geometry[ viewport ];
 			geometry[ viewport ] = {
@@ -334,10 +347,6 @@ export function observeCanvasLayout( grid, onChange ) {
 				items.map( ( _, index ) => layouts[ index ][ viewport ] ),
 			] )
 		);
-		const mode = view
-			.getComputedStyle( grid )
-			.getPropertyValue( '--canvas-viewport' )
-			.trim();
 		const rowGap = geometry[ mode ]?.gap ?? gap;
 		set( grid, '--canvas-gap', `${ rowGap }px` );
 		// Every viewport resolves readable content, including containers, which
@@ -459,6 +468,14 @@ export function observeCanvasLayout( grid, onChange ) {
 				);
 			}
 			values.forEach( ( placement, index ) => {
+				if ( placement.fillHeight ) {
+					placement = mapPlacement(
+						placement._base,
+						viewport,
+						geometry[ viewport ]
+					);
+					values[ index ] = placement;
+				}
 				for ( const [ key, value ] of Object.entries(
 					placement._grid
 				) ) {
@@ -516,6 +533,45 @@ export function observeCanvasLayout( grid, onChange ) {
 				] )
 			);
 			const resolved = resolveCanvasLayouts( blocks, geometry, flat );
+			// Absolutely placed groups still contribute to the canvas height.
+			if ( geometry[ mode ] ) {
+				const rows = Math.min(
+					MAX_ROWS,
+					Math.max(
+						geometry[ mode ].coreRows,
+						...blocks.map( ( block ) =>
+							occupiedRows( resolved[ block.clientId ][ mode ] )
+						)
+					)
+				);
+				geometry[ mode ] = {
+					...geometry[ mode ],
+					...canvasRows(
+						padding.top,
+						padding.bottom,
+						rows,
+						rowGap,
+						geometry[ mode ].rowHeight
+					),
+				};
+				set(
+					grid,
+					'--canvas-' + mode + '-row-tracks',
+					geometry[ mode ].rowTemplate
+				);
+			}
+			// Resolve full-height siblings after translated groups establish the
+			// final section extent, before painting their absolute frames.
+			for ( const block of blocks ) {
+				const layout = resolved[ block.clientId ];
+				if ( layout?.image && layout[ mode ]?.fillHeight ) {
+					layout[ mode ] = mapPlacement(
+						layout[ mode ]._base,
+						mode,
+						geometry[ mode ]
+					);
+				}
+			}
 			const layers = geometry[ mode ]
 				? paintLayers( blocks, resolved, mode )
 				: {};
@@ -564,33 +620,6 @@ export function observeCanvasLayout( grid, onChange ) {
 					item,
 					'--canvas-frame-rotation',
 					( p.rotation || 0 ) + 'deg'
-				);
-			}
-			// Absolutely placed groups still contribute to the canvas height.
-			if ( geometry[ mode ] ) {
-				const rows = Math.min(
-					MAX_ROWS,
-					Math.max(
-						geometry[ mode ].coreRows,
-						...blocks.map( ( block ) =>
-							occupiedRows( resolved[ block.clientId ][ mode ] )
-						)
-					)
-				);
-				geometry[ mode ] = {
-					...geometry[ mode ],
-					...canvasRows(
-						padding.top,
-						padding.bottom,
-						rows,
-						rowGap,
-						geometry[ mode ].rowHeight
-					),
-				};
-				set(
-					grid,
-					'--canvas-' + mode + '-row-tracks',
-					geometry[ mode ].rowTemplate
 				);
 			}
 		} else {

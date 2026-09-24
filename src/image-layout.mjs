@@ -88,8 +88,20 @@ export function mapImagePlacement(
 	minimum,
 	center = {}
 ) {
-	let placement = mapCanvasPlacement( value, mode, geometry, minimum );
-	if ( ! Number.isFinite( ratio ) || ratio <= 0 || placement.free ) {
+	let placement = mapCanvasPlacement(
+		value,
+		mode,
+		geometry,
+		minimum,
+		true,
+		true
+	);
+	if (
+		placement.fillHeight ||
+		! Number.isFinite( ratio ) ||
+		ratio <= 0 ||
+		placement.free
+	) {
 		return placement;
 	}
 	if ( center.x && ! geometry.proportional ) {

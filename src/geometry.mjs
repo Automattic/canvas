@@ -38,7 +38,7 @@ export function mapPlacement(
 	minimum = DEFAULT_MINIMUM
 ) {
 	return geometry?.canvas
-		? mapCanvasPlacement( value, mode, geometry, minimum )
+		? mapCanvasPlacement( value, mode, geometry, minimum, true, true )
 		: normalizePlacement( value, mode, {}, minimum );
 }
 
@@ -58,7 +58,20 @@ export function resolveLayouts( blocks, geometry = {} ) {
 	};
 	const layouts = Object.fromEntries(
 		blocks.map( ( block, index ) => {
-			const saved = block.attributes?.[ ATTRIBUTE ] || {};
+			let saved = block.attributes?.[ ATTRIBUTE ] || {};
+			if ( block.name !== 'core/image' || block.canvasNested ) {
+				saved = {
+					...saved,
+					...Object.fromEntries(
+						Object.keys( COLUMNS )
+							.filter( ( mode ) => saved[ mode ]?.fillHeight )
+							.map( ( mode ) => [
+								mode,
+								{ ...saved[ mode ], fillHeight: undefined },
+							] )
+					),
+				};
+			}
 			const minimum = minimumSpans( block.name );
 			const source = normalizePlacement(
 				saved.desktop ?? {
@@ -326,22 +339,44 @@ export function savePlacement(
 	resolved,
 	mode,
 	placement,
-	minimum = DEFAULT_MINIMUM
+	minimum = DEFAULT_MINIMUM,
+	inferFillHeight = true
 ) {
 	const next = savedCanvasPlacement(
 		changeViewport( resolved, mode, placement, minimum )[ mode ]
 	);
 	if ( resolved.image && placement._rect?.height > 0 ) {
 		const before = resolved[ mode ]._rect;
+		const edited =
+			before &&
+			[ 'left', 'top', 'width', 'height' ].some(
+				( key ) =>
+					Math.abs( before[ key ] - placement._rect[ key ] ) > 0.001
+			);
+		if ( inferFillHeight && edited && ! resolved.parents?.length ) {
+			const { top, height } = placement._rect;
+			if (
+				Math.abs( top ) < 0.001 &&
+				Math.abs( top + height - placement._canvas.height ) < 0.001
+			) {
+				next.fillHeight = true;
+			} else {
+				delete next.fillHeight;
+			}
+		}
 		const resized =
 			! before ||
 			Math.abs( before.width - placement._rect.width ) > 0.001 ||
 			Math.abs( before.height - placement._rect.height ) > 0.001;
-		next.frameRatio =
-			resized || placement.frameRatio !== resolved[ mode ].frameRatio
-				? placement._rect.width / placement._rect.height
-				: ( resolved[ mode ].frameRatio ??
-					placement._rect.width / placement._rect.height );
+		if ( ! next.fillHeight || edited ) {
+			next.frameRatio =
+				resized ||
+				( resolved[ mode ].fillHeight && ! next.fillHeight ) ||
+				placement.frameRatio !== resolved[ mode ].frameRatio
+					? placement._rect.width / placement._rect.height
+					: ( resolved[ mode ].frameRatio ??
+						placement._rect.width / placement._rect.height );
+		}
 	}
 	return compactCanvas( {
 		...saved,
@@ -474,7 +509,7 @@ export function layoutVariables( layout ) {
 		for ( const [ key, value ] of Object.entries(
 			savedCanvasPlacement( layout[ mode ] )
 		) ) {
-			if ( key === 'free' || key === 'anchors' ) {
+			if ( [ 'free', 'anchors', 'fillHeight' ].includes( key ) ) {
 				continue;
 			}
 			vars[ `--canvas-${ mode }-${ key }` ] = value;

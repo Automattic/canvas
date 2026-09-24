@@ -91,6 +91,7 @@ export function proportionalPlacement(
 		mode,
 		target,
 		minimum,
-		false
+		false,
+		true
 	);
 }

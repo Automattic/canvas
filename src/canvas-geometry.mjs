@@ -196,6 +196,10 @@ export function savedCanvasPlacement( value ) {
 	};
 }
 export function occupiedRows( value ) {
+	// A filling image follows the section; it cannot set its minimum height.
+	if ( ( value._base || value ).fillHeight ) {
+		return 1;
+	}
 	if ( value.free && value._rect && value._canvas ) {
 		return clamp(
 			Math.ceil(
@@ -271,7 +275,8 @@ export function mapCanvasPlacement(
 		columnSpan: 1,
 		rowSpan: 1,
 	},
-	resolveHorizontal = true
+	resolveHorizontal = true,
+	resolveFillHeight = false
 ) {
 	const base = projectPlacement(
 		savedCanvasPlacement( value ),
@@ -281,6 +286,9 @@ export function mapCanvasPlacement(
 		geometry.gridColumns
 	);
 	const free = base.free;
+	// Rendering opts in. Gesture math remains unconstrained so either edge can
+	// leave the canvas before the committed edit releases full height.
+	const fillHeight = resolveFillHeight && base.fillHeight;
 	const freeBounds = freeFrameBounds( geometry );
 	const rect = free
 		? {
@@ -315,8 +323,14 @@ export function mapCanvasPlacement(
 		}
 		rect.height = rect.width / free.ratio;
 	}
+	if ( rect && fillHeight ) {
+		rect.top = 0;
+		rect.height = geometry.height;
+	}
 	let needed;
-	if ( rect ) {
+	if ( fillHeight ) {
+		needed = geometry.coreRows;
+	} else if ( rect ) {
 		needed = clamp(
 			Math.ceil(
 				( rect.top +
@@ -333,7 +347,7 @@ export function mapCanvasPlacement(
 			MAX_ROWS
 		);
 	} else {
-		needed = occupiedRows( base );
+		needed = occupiedRows( { ...base, fillHeight: undefined } );
 	}
 	if ( needed > geometry.coreRows ) {
 		geometry = {
@@ -444,6 +458,10 @@ export function mapCanvasPlacement(
 		geometry,
 		base.row + base.rowSpan - 2
 	);
+	if ( fillHeight ) {
+		top = 0;
+		bottom = geometry.rows.length - 1;
+	}
 	if ( bottom - top + 1 < minimum.rowSpan ) {
 		top = Math.min(
 			top,

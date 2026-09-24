@@ -505,6 +505,10 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			for ( const [ id, placement ] of Object.entries(
 				preserveRowsOnResize( layouts, mode, offset, next )
 			) ) {
+				// Full-height previews follow rows without rewriting image metadata.
+				if ( placement.fillHeight ) {
+					continue;
+				}
 				const block = blocks.find(
 					( blockValue ) => blockValue.clientId === id
 				);
@@ -519,7 +523,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 								mode,
 								layouts[ id ][ mode ]
 							),
-							minimumSpans( block.name )
+							minimumSpans( block.name ),
+							false
 						),
 					};
 				}
@@ -1409,6 +1414,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						className="canvas__grid"
 						ref={ gridRef }
 						style={ gridStyle }
+						data-canvas-preview-rows={ preview?.rows ?? undefined }
 						data-canvas-desktop-minimum={
 							attributes.desktopRows || 12
 						}

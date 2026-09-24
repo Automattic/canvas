@@ -383,7 +383,7 @@ function validate_layout( $layout ) {
 			return failure( "$mode placement must be an object." );
 		}
 		foreach ( $p as $key => $value ) {
-			if ( ! in_array( $key, array( 'column', 'columnSpan', 'row', 'rowSpan', 'gridColumns', 'rotation', 'frameRatio', 'free', 'anchors' ), true ) ) {
+			if ( ! in_array( $key, array( 'column', 'columnSpan', 'row', 'rowSpan', 'gridColumns', 'rotation', 'frameRatio', 'fillHeight', 'free', 'anchors' ), true ) ) {
 				return failure( "Unknown canvas.$mode field: $key" );
 			}
 		}
@@ -394,6 +394,9 @@ function validate_layout( $layout ) {
 			'rowSpan'     => array( 1, 500 ),
 			'gridColumns' => array( 1, 2048 ),
 		);
+		if ( array_key_exists( 'fillHeight', $p ) && ! is_bool( $p['fillHeight'] ) ) {
+			return failure( "$mode.fillHeight must be a boolean." );
+		}
 		foreach ( $limits as $key => $range ) {
 			if ( isset( $p[ $key ] ) && ( ! is_int( $p[ $key ] ) || $p[ $key ] < $range[0] || $p[ $key ] > $range[1] ) ) {
 				return failure( "$mode.$key is out of range." );
@@ -502,6 +505,11 @@ function validate_block( $block, $parent_name = null, $depth = 0 ) {
 		$valid = validate_layout( $attrs['canvas'] );
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
+		}
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
+			if ( ! empty( $attrs['canvas'][ $mode ]['fillHeight'] ) && ( 'core/image' !== $name || 'tabor/canvas' !== $parent_name ) ) {
+				return failure( 'Fill height requires an image directly inside Canvas.' );
+			}
 		}
 		if ( ! empty( $attrs['fitText'] ) && ! empty( $attrs['canvas']['fitArea'] ) ) {
 			return failure( 'Choose either fitText or canvas.fitArea.' );

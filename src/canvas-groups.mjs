@@ -23,12 +23,12 @@ export const canvasBlocks = ( blocks ) =>
 // Source coordinates stay in the canvas's coordinate system. Only the rendered
 // frames are local to their parent. This makes grouping lossless, including
 // automatic breakpoints, and avoids repeatedly rounding nested coordinates.
-export function layoutLeaves( blocks ) {
+export function layoutLeaves( blocks, nested = false ) {
 	return blocks
 		.flatMap( ( block ) =>
 			isCanvasGroup( block )
-				? layoutLeaves( block.innerBlocks )
-				: [ block ]
+				? layoutLeaves( block.innerBlocks, true )
+				: [ nested ? { ...block, canvasNested: true } : block ]
 		)
 		.sort(
 			( a, b ) =>

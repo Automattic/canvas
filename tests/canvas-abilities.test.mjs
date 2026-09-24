@@ -75,3 +75,11 @@ test('authoring rejects numeric as well as named vertical boundary overrides',()
  ]));`);
  assert.deepEqual(results,[false,false,false,false,false,false,false,true]);
 });
+
+test('full-height placements accept only boolean values and retain horizontal-only anchors', () => {
+ const results = php(`echo json_encode(array_map(function($p) {
+   return true === PlaygroundPlugin\\Abilities\\validate_layout(['desktop'=>$p]);
+ }, [['fillHeight'=>true],['fillHeight'=>false],['fillHeight'=>'true'],['fillHeight'=>1],['fillHeight'=>null],
+     ['fillHeight'=>true,'anchors'=>['top'=>'canvas','bottom'=>'canvas']],['fillHeight'=>true,'anchors'=>['left'=>'canvas']]]));`);
+ assert.deepEqual(results, [true,true,false,false,false,false,true]);
+});
