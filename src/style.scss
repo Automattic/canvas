@@ -79,6 +79,14 @@
 		min-height: 100%;
 		box-sizing: border-box;
 	}
+	// Core's fit text bounds the font by the text element's own height. In the
+	// editor the text element is the grid item, so its frame bounds the fit; on
+	// the frontend it sits inside the item wrapper and would otherwise fit width
+	// only and overflow the frame. Fill the frame so both fit the same box.
+	.canvas__item:not(.canvas__container) > .has-fit-text {
+		height: 100%;
+	}
+
 	// Fitted text must keep words intact during measurement and rendering.
 	[data-canvas-text-fit="true"],
 	[data-canvas-text-fit="true"] > :is(h1,h2,h3,h4,h5,h6,p) {
