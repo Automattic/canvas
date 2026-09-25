@@ -83,3 +83,56 @@ test('cached reads restore live fitting flags and remove probes when callbacks t
   }, false, cache), /callback failure/);
   assert.equal(document.querySelector('.canvas-measure-text'), null);
 });
+
+test('area fitting reuses unchanged searches but responds to height, content, and loaded fonts', async t => {
+  const { observeTextFit } = await import('../src/text-fit.mjs');
+  const { item, document, probes } = fixture(t);
+  const view = document.defaultView;
+  const grid = document.createElement('div');
+  grid.className = 'canvas__grid';
+  document.body.append(grid);
+  grid.append(item);
+  item.textContent = 'Hi';
+  item.setAttribute('data-canvas-text-fit', 'true');
+  let height = 100;
+  Object.defineProperty(item, 'clientWidth', { get: () => 200 });
+  Object.defineProperty(item, 'clientHeight', { get: () => height });
+  Object.defineProperty(view.HTMLElement.prototype, 'offsetHeight', {
+    get() { return this.classList.contains('canvas-measure-text') ? parseFloat(this.style.fontSize) * 1.2 : 0; },
+  });
+  const frames = new Map();
+  let frameId = 0;
+  view.requestAnimationFrame = cb => { frames.set(++frameId, cb); return frameId; };
+  view.cancelAnimationFrame = id => frames.delete(id);
+  let resize;
+  view.ResizeObserver = class {
+    constructor(cb) { resize = cb; }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+  Object.defineProperty(document, 'fonts', { value: Object.assign(new view.EventTarget(), { ready: Promise.resolve() }) });
+  const flush = async () => {
+    await Promise.resolve();
+    const pending = [...frames.values()]; frames.clear();
+    pending.forEach(cb => cb());
+  };
+  const dispose = observeTextFit(grid);
+  t.after(dispose);
+  await flush();
+  const initialSize = parseFloat(item.style.getPropertyValue('--canvas-text-size'));
+  const initialProbes = probes();
+  item.style.setProperty('--canvas-free-top', '10px');
+  await flush();
+  assert.equal(probes(), initialProbes, 'movement reuses the fitted-font search');
+  assert.equal(parseFloat(item.style.getPropertyValue('--canvas-text-size')), initialSize);
+  height = 50;
+  resize(); await flush();
+  assert.ok(parseFloat(item.style.getPropertyValue('--canvas-text-size')) < initialSize);
+  item.textContent = 'Different words';
+  const beforeContent = probes(); await flush();
+  assert.ok(probes() > beforeContent);
+  const beforeFonts = probes();
+  document.fonts.dispatchEvent(new view.Event('loadingdone')); await flush();
+  assert.ok(probes() > beforeFonts, 'font metrics must be remeasured even if CSS is unchanged');
+});

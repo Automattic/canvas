@@ -205,7 +205,7 @@ function clearFit( item ) {
 	VARIABLES.forEach( ( name ) => item.style.removeProperty( name ) );
 }
 
-function fitItem( item, view ) {
+function fitItem( item, view, measurements ) {
 	const text = textElement( item );
 	if ( ! text || ! text.textContent.trim() ) {
 		clearFit( item );
@@ -232,8 +232,19 @@ function fitItem( item, view ) {
 
 	const height =
 		item.clientHeight - paddingY - ( text === item ? 0 : borderY );
-	const size = measureText( item, width, ( measure ) =>
-		fittingFontSize( measure, width, height, MIN_TEXT_SIZE, MAX_TEXT_SIZE )
+	const size = measureText(
+		item,
+		width,
+		( measure ) =>
+			fittingFontSize(
+				measure,
+				width,
+				height,
+				MIN_TEXT_SIZE,
+				MAX_TEXT_SIZE
+			),
+		false,
+		measurements
 	);
 	if (
 		item.style.getPropertyValue( '--canvas-text-size' ) !== `${ size }px`
@@ -253,12 +264,17 @@ function fitItem( item, view ) {
 export function observeTextFit( grid ) {
 	const view = grid.ownerDocument.defaultView;
 	const tracked = new Set();
+	let measurements = new WeakMap();
 	let frame;
 	let disposed = false;
 	const schedule = () => {
 		if ( ! disposed && ! frame ) {
 			frame = view.requestAnimationFrame( refresh );
 		}
+	};
+	const invalidate = () => {
+		measurements = new WeakMap();
+		schedule();
 	};
 	const resize = new view.ResizeObserver( schedule );
 	const changes = new view.MutationObserver( schedule );
@@ -291,7 +307,7 @@ export function observeTextFit( grid ) {
 					tracked.add( item );
 					resize.observe( item );
 				}
-				fitItem( item, view );
+				fitItem( item, view, measurements );
 			}
 		} finally {
 			if ( ! disposed ) {
@@ -300,19 +316,19 @@ export function observeTextFit( grid ) {
 		}
 	}
 	resize.observe( grid );
-	view.addEventListener( 'resize', schedule );
-	grid.ownerDocument.fonts?.addEventListener( 'loadingdone', schedule );
-	grid.ownerDocument.fonts?.ready.then( schedule );
+	view.addEventListener( 'resize', invalidate );
+	grid.ownerDocument.fonts?.addEventListener( 'loadingdone', invalidate );
+	grid.ownerDocument.fonts?.ready.then( invalidate );
 	refresh();
 	return () => {
 		disposed = true;
 		view.cancelAnimationFrame( frame );
 		resize.disconnect();
 		changes.disconnect();
-		view.removeEventListener( 'resize', schedule );
+		view.removeEventListener( 'resize', invalidate );
 		grid.ownerDocument.fonts?.removeEventListener(
 			'loadingdone',
-			schedule
+			invalidate
 		);
 		tracked.forEach( clearFit );
 	};
