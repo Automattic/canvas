@@ -85,6 +85,8 @@
 	// only and overflow the frame. Fill the frame so both fit the same box.
 	.canvas__item:not(.canvas__container) > .has-fit-text {
 		height: 100%;
+		// Keep authored vertical alignment inside the filled frame.
+		align-content: inherit;
 	}
 
 	// Fitted text must keep words intact during measurement and rendering.
