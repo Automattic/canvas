@@ -55,7 +55,7 @@ On touch screens, tap to select, drag with one finger to move, or pinch and twis
 
 = Images and text =
 
-In the right-click menu, Fill area scales and wraps text within the frame or crops media to cover it. Turn it off to use normal text sizing or show the whole image. Text also offers Fit text: it keeps one line and scales to the width. Enabling either text fitting option disables the other. Use the block toolbar to align text vertically or justify and align buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
+In the right-click menu, Fill area scales and wraps text within the frame or crops media to cover it. Turn it off to use normal text sizing or show the whole image. Text also offers Fit text: it keeps one line, scales to the width, and lets height follow automatically. Width fitting uses left/right handles; area fitting keeps all eight. Enabling either text fitting option disables the other. Use the block toolbar to align text vertically or justify and align buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
 Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. With a shape selected, Fill area stretches the shape to its frame; turn it off to preserve the shape's proportions. The photo always fills the shape without distortion. Removing the shape restores the image's previous fill preference. Image → Lock aspect ratio controls proportional resizing. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
 

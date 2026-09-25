@@ -968,6 +968,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		} );
 		announce( `Rotation ${ rotation } degrees.` );
 	};
+	const widthFitSelected = !! layouts[ selectedId ]?.widthFit;
+	const keyboardResizeDirection = widthFitSelected ? 'e' : 'se';
 	const resizeWithKey = ( event ) => {
 		const offsets = {
 			ArrowLeft: [ -1, 0 ],
@@ -991,6 +993,9 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		event.stopPropagation();
 		const start = layouts[ selectedId ][ mode ];
 		const [ x, y ] = offsets[ event.key ];
+		if ( widthFitSelected && ! x ) {
+			return;
+		}
 		const next = resizeCanvasWithKey(
 			start,
 			mode,
@@ -1421,8 +1426,13 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 										/>
 									) }
 								{ ! layouts[ selectedId ]?.group &&
-									Object.entries( RESIZE_HANDLES ).map(
-										( [ direction, label ] ) => (
+									Object.entries( RESIZE_HANDLES )
+										.filter(
+											( [ direction ] ) =>
+												! widthFitSelected ||
+												/^[ew]$/.test( direction )
+										)
+										.map( ( [ direction, label ] ) => (
 											<GridHandle
 												key={ direction }
 												type="button"
@@ -1430,12 +1440,17 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 												aria-label={ `Resize ${ label }` }
 												data-canvas-resize={ direction }
 												data-canvas-keyboard={
-													direction === 'se'
+													direction ===
+													keyboardResizeDirection
 														? 'resize'
 														: undefined
 												}
-												aria-description={ `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows. Left and right change width; up and down change height. Hold Shift + Command/Ctrl while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.` }
-												title={ `Resize ${ label } · Shift + Command/Ctrl-drag resizes from center${ direction.length === 2 ? ' · Command/Ctrl-drag to rotate' : '' }` }
+												aria-description={ `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows. ${ widthFitSelected ? 'Left and right change width; height follows the text.' : 'Left and right change width; up and down change height.' } Hold Shift + Command/Ctrl while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.` }
+												title={
+													widthFitSelected
+														? 'Resize width · Height follows text'
+														: `Resize ${ label } · Shift + Command/Ctrl-drag resizes from center${ direction.length === 2 ? ' · Command/Ctrl-drag to rotate' : '' }`
+												}
 												onPointerDown={ ( event ) =>
 													resizeWithPointer(
 														event,
@@ -1443,7 +1458,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 													)
 												}
 												onKeyDown={
-													direction === 'se'
+													direction ===
+													keyboardResizeDirection
 														? ( event ) => {
 																rotateWithKey(
 																	event
@@ -1455,11 +1471,13 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 														: undefined
 												}
 												tabIndex={
-													direction === 'se' ? 0 : -1
+													direction ===
+													keyboardResizeDirection
+														? 0
+														: -1
 												}
 											/>
-										)
-									) }
+										) ) }
 								{ preview?.placement &&
 									( preview.resizing ||
 										preview.rotating ||

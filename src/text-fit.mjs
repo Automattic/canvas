@@ -1,12 +1,12 @@
 export const MIN_TEXT_SIZE = 12;
-const MAX_TEXT_SIZE = 512;
+const MAX_TEXT_SIZE = 2400;
 
 // A small bounded search works with real browser line wrapping, including <br>.
 export function fittingFontSize(
 	measure,
 	width,
 	height,
-	min = MIN_TEXT_SIZE,
+	min = 1,
 	max = MAX_TEXT_SIZE
 ) {
 	const fits = ( size ) => {
@@ -60,14 +60,22 @@ export const textElement = ( item ) =>
 
 // Measure original typography independently of the current fitted size. Both
 // responsive layout and area fitting use the same browser line-breaking rules.
-export function measureText( item, width, callback, includeBox = false ) {
+export function measureText(
+	item,
+	width,
+	callback,
+	includeBox = false,
+	preserveFitted = false
+) {
 	const text = textElement( item );
 	if ( ! text ) {
 		return null;
 	}
 	const fitted = item.hasAttribute( 'data-canvas-text-fitted' );
 	const automatic = item.getAttribute( 'data-canvas-auto-active' );
-	item.removeAttribute( 'data-canvas-text-fitted' );
+	if ( ! preserveFitted ) {
+		item.removeAttribute( 'data-canvas-text-fitted' );
+	}
 	item.removeAttribute( 'data-canvas-auto-active' );
 	const css = text.ownerDocument.defaultView.getComputedStyle( text );
 	const fontSize = parseFloat( css.fontSize ) || 16;
@@ -137,11 +145,31 @@ export function measureText( item, width, callback, includeBox = false ) {
 				);
 				// scrollWidth rounds to an integer and can accept a word a fraction too
 				// wide. Range keeps subpixel precision at the exact wrap boundary.
+				let measuredWidth = range.getBoundingClientRect().width;
+				const frameWidth = parseFloat( probe.style.width );
+				const height = Math.max(
+					probe.offsetHeight,
+					probe.scrollHeight
+				);
+				if (
+					Number.isFinite( frameWidth ) &&
+					measuredWidth > frameWidth &&
+					probe.scrollWidth <= Math.ceil( frameWidth )
+				) {
+					// Ranges include spaces hanging off soft-wrapped lines. Check the
+					// longest unbreakable content before treating those as overflow;
+					// retain fractional precision for a genuinely overwide word.
+					const previousWidth = probe.style.width;
+					probe.style.width = 'min-content';
+					measuredWidth = Math.max(
+						frameWidth,
+						range.getBoundingClientRect().width
+					);
+					probe.style.width = previousWidth;
+				}
 				return {
-					width: range.getBoundingClientRect().width + insetX,
-					height:
-						Math.max( probe.offsetHeight, probe.scrollHeight ) +
-						insetY,
+					width: measuredWidth + insetX,
+					height: height + insetY,
 				};
 			},
 			{ fontSize, leading }
@@ -154,6 +182,59 @@ export function measureText( item, width, callback, includeBox = false ) {
 function clearFit( item ) {
 	item.removeAttribute( 'data-canvas-text-fitted' );
 	VARIABLES.forEach( ( name ) => item.style.removeProperty( name ) );
+}
+
+// Width owns the fitted size. Two measurements account for fixed spacing and
+// box insets; a bounded correction handles optical font sizing.
+export function measureWidthFit( item, width ) {
+	return measureText(
+		item,
+		width,
+		( measure, { fontSize, leading } ) => {
+			const base = Math.max( 1, fontSize );
+			const first = measure( base ).width;
+			const slope = ( measure( base * 2 ).width - first ) / base;
+			let size =
+				textElement( item ).textContent.trim() && slope > 0
+					? Math.max(
+							1,
+							Math.min(
+								MAX_TEXT_SIZE,
+								Math.floor(
+									( base + ( width - first ) / slope ) * 10
+								) / 10
+							)
+						)
+					: base;
+			let box = measure( size );
+			for (
+				let pass = 0;
+				pass < 3 && slope > 0 && Math.abs( width - box.width ) > 0.25;
+				pass++
+			) {
+				const next = Math.max(
+					1,
+					Math.min(
+						MAX_TEXT_SIZE,
+						Math.floor(
+							( size + ( width - box.width ) / slope ) * 10
+						) / 10
+					)
+				);
+				if (
+					next === size ||
+					! textElement( item ).textContent.trim()
+				) {
+					break;
+				}
+				size = next;
+				box = measure( size );
+			}
+			return { size, leading, height: box.height };
+		},
+		true,
+		true
+	);
 }
 
 function fitItem( item, view ) {
@@ -184,7 +265,7 @@ function fitItem( item, view ) {
 	const height =
 		item.clientHeight - paddingY - ( text === item ? 0 : borderY );
 	const size = measureText( item, width, ( measure ) =>
-		fittingFontSize( measure, width, height, MIN_TEXT_SIZE, MAX_TEXT_SIZE )
+		fittingFontSize( measure, width, height, 1, MAX_TEXT_SIZE )
 	);
 	if (
 		item.style.getPropertyValue( '--canvas-text-size' ) !== `${ size }px`

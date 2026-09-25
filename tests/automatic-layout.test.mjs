@@ -90,12 +90,12 @@ test('explicit readable growth preserves authored overlaps', () => {
   close(rects[0].top,0); close(rects[0].height,100); close(rects[1].top,20); close(rects[1].height,72);
 });
 
-test('explicit fitted text keeps its authored frame', () => {
-  const {changes}=readableFixture([
+test('explicit width-fitted text derives height and clears following content', () => {
+  const {rects}=readableFixture([
     {left:30,top:0,width:300,height:60,automatic:false,explicitReadable:true,widthFit:true,measured:120},
     {left:30,top:70,width:300,height:20,automatic:false,explicitReadable:true},
   ]);
-  assert.deepEqual(changes,{});
+  close(rects[0].height,120); assert.ok(rects[1].top>=120);
 });
 
 
@@ -129,4 +129,23 @@ test('explicit clearance snaps after fractional automatic growth', () => {
     {left:30,top:56,width:140,height:22,automatic:false,explicitReadable:true},
   ]);
   close(rects[0].height,91.2); close(rects[1].top,112);
+});
+
+test('Fill area preserves both authored dimensions',()=>{
+ for (const measured of [25,140]) {
+  const {rects}=readableFixture([{left:30,top:14,width:140,height:80,automatic:false,explicitReadable:true,areaFit:true,measured}]);
+  close(rects[0].height,80); close(rects[0].width,140); close(rects[0].top,14);
+ }
+});
+test('width-fitted text still clears a paragraph that grows above it',()=>{
+ const {rects}=readableFixture([
+  {left:30,top:0,width:140,height:25,measured:90},
+  {left:30,top:40,width:140,height:25,widthFit:true,measured:30},
+ ]);
+ assert.ok(rects[1].top>=rects[0].top+rects[0].height);
+});
+
+test('width fitting shrinks excess height without changing horizontal placement',()=>{
+ const {rects}=readableFixture([{left:30,top:14,width:140,height:200,automatic:false,explicitReadable:true,widthFit:true,measured:25,minWidth:300}]);
+ close(rects[0].height,25);close(rects[0].width,140);close(rects[0].top,14);close(rects[0].left,30);
 });
