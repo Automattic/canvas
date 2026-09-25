@@ -11,7 +11,7 @@ import {
 	BlockControls,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { MenuItem, ToolbarButton } from '@wordpress/components';
+import { MenuItem, ToolbarButton, ToolbarGroup } from '@wordpress/components';
 import { addFilter } from '@wordpress/hooks';
 import {
 	ALLOWED_BLOCKS,
@@ -439,12 +439,14 @@ function ItemImageRepositionControl( { clientId } ) {
 	return (
 		editingId === clientId && (
 			<BlockControls group="other">
-				<ToolbarButton
-					data-canvas-image-done
-					onClick={ finishImageReposition }
-				>
-					Done
-				</ToolbarButton>
+				<ToolbarGroup className="canvas__media-done">
+					<ToolbarButton
+						data-canvas-image-done
+						onClick={ finishImageReposition }
+					>
+						Done
+					</ToolbarButton>
+				</ToolbarGroup>
 			</BlockControls>
 		)
 	);

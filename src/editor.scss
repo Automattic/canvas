@@ -765,3 +765,8 @@ body[data-canvas-drop-owner] .components-drop-zone {
 		gap: 12px;
 	}
 }
+
+// Separate Done from Replace when the shared slot retains the media controls.
+.block-editor-block-toolbar__slot:not(:has([data-canvas-image-done])) .components-toolbar-group.canvas__media-done {
+	border-inline-start: 1px solid #1e1e1e;
+}
