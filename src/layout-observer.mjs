@@ -42,6 +42,7 @@ export function observeCanvasLayout( grid, onChange ) {
 	let frame = 0;
 	let disposed = false;
 	let signature = '';
+	let textMeasurements = new WeakMap();
 	const set = ( node, key, value ) => {
 		if ( node.style.getPropertyValue( key ) !== String( value ) ) {
 			node.style.setProperty( key, value );
@@ -375,7 +376,7 @@ export function observeCanvasLayout( grid, onChange ) {
 				placements[ mode ],
 				sources,
 				authored,
-				{ explicitReadable: true }
+				{ explicitReadable: true, textMeasurements }
 			);
 			const occupied = Math.max(
 				1,
@@ -410,7 +411,7 @@ export function observeCanvasLayout( grid, onChange ) {
 					placements[ mode ],
 					sources,
 					authored,
-					{ explicitReadable: true }
+					{ explicitReadable: true, textMeasurements }
 				);
 			}
 			geometry[ mode ] = {
@@ -535,13 +536,10 @@ export function observeCanvasLayout( grid, onChange ) {
 			const resolved = resolveCanvasLayouts( blocks, geometry, flat );
 			// Absolutely placed groups still contribute to the canvas height.
 			if ( geometry[ mode ] ) {
-				const rows = Math.min(
-					MAX_ROWS,
-					Math.max(
-						geometry[ mode ].coreRows,
-						...blocks.map( ( block ) =>
-							occupiedRows( resolved[ block.clientId ][ mode ] )
-						)
+				const rows = Math.max(
+					geometry[ mode ].coreRows,
+					...blocks.map( ( block ) =>
+						occupiedRows( resolved[ block.clientId ][ mode ] )
 					)
 				);
 				geometry[ mode ] = {
@@ -657,7 +655,11 @@ export function observeCanvasLayout( grid, onChange ) {
 			frame = view.requestAnimationFrame( () => update() );
 		}
 	};
-	const styles = new view.MutationObserver( schedule );
+	const invalidate = () => {
+		textMeasurements = new WeakMap();
+		schedule();
+	};
+	const styles = new view.MutationObserver( invalidate );
 	const content = new view.MutationObserver( ( records ) => {
 		if ( records.length ) {
 			schedule();
@@ -668,18 +670,18 @@ export function observeCanvasLayout( grid, onChange ) {
 	resize.observe( canvas );
 	resize.observe( grid );
 	update();
-	view.addEventListener( 'resize', schedule );
-	grid.addEventListener( 'load', schedule, true );
-	doc.fonts?.addEventListener( 'loadingdone', schedule );
-	doc.fonts?.ready.then( schedule );
+	view.addEventListener( 'resize', invalidate );
+	grid.addEventListener( 'load', invalidate, true );
+	doc.fonts?.addEventListener( 'loadingdone', invalidate );
+	doc.fonts?.ready.then( invalidate );
 	return () => {
 		disposed = true;
 		resize.disconnect();
 		styles.disconnect();
 		content.disconnect();
-		view.removeEventListener( 'resize', schedule );
-		grid.removeEventListener( 'load', schedule, true );
-		doc.fonts?.removeEventListener( 'loadingdone', schedule );
+		view.removeEventListener( 'resize', invalidate );
+		grid.removeEventListener( 'load', invalidate, true );
+		doc.fonts?.removeEventListener( 'loadingdone', invalidate );
 		view.cancelAnimationFrame( frame );
 		canvas.removeAttribute( 'data-canvas-canvas' );
 		for ( const key of [

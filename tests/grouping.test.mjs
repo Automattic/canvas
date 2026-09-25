@@ -32,7 +32,7 @@ test('noncontiguous wrapping preserves siblings and uses document order', () => 
 });
 
 test('releasing native flow children clears their grid metadata without altering content', () => {
-  const child = block('text', { content: 'Price', style: { color: { text: '#333' } }, [ATTRIBUTE]: { fitArea: true, desktop: { rotation: 30 } } });
+  const child = block('text', { content: 'Price', style: { color: { text: '#333' } }, [ATTRIBUTE]: { fill: true, desktop: { rotation: 30 } } });
   const parent = block('container', { layout: { type: 'flex', orientation: 'vertical' }, [ATTRIBUTE]: { desktop: {} } }, 'core/group', [child]);
   const group = block('group', { layout: { type: 'flex' } }, 'core/group', [parent]);
   const [clean] = group.innerBlocks.map(withoutGrid);

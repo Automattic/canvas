@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { IMAGE_SHAPES, imageShape, imageFit, shapeMask, shapeInsets } from '../src/image-shapes.mjs';
+import { IMAGE_SHAPES, imageShape, imageFill, shapeMask, shapeInsets } from '../src/image-shapes.mjs';
 import { resolveLayouts, ATTRIBUTE, duplicateLayout } from '../src/geometry.mjs';
 import { coverImage, moveImagePosition } from '../src/image-position.mjs';
 import { readRadiusTargets } from '../src/radius-targets.mjs';
@@ -12,24 +12,24 @@ const resolve = saved => resolveLayouts([{ clientId: 'image', name: 'core/image'
 test('supported shapes resolve unchanged and produce masks', () => {
   for (const { value } of IMAGE_SHAPES.slice(1)) {
     assert.equal(imageShape(value), value);
-    assert.equal(resolve({ shape: value, fit: 'contain' }).shape, value);
+    assert.equal(resolve({ shape: value, fill: false }).shape, value);
     assert.ok(shapeMask(value).startsWith('url('));
   }
 });
 
 test('shapes require cover without mutating fit, position, placement or aspect-ratio preferences', () => {
-  for (const fit of [undefined, 'cover', 'contain']) {
-    const saved = { fit, imagePosition: { x: .2, y: .7 }, aspectRatio: 1.7, desktop: { column: 2, row: 3, columnSpan: 5, rowSpan: 6 } };
+  for (const fill of [undefined, true, false]) {
+    const saved = { fill, imagePosition: { x: .2, y: .7 }, aspectRatio: 1.7, desktop: { column: 2, row: 3, columnSpan: 5, rowSpan: 6 } };
     const original = structuredClone(saved);
     for (const { value } of IMAGE_SHAPES.slice(1)) {
       const shaped = { ...saved, shape: value };
       const layout = resolve(shaped);
-      assert.equal(layout.fit, 'cover');
+      assert.equal(layout.fill, true);
       assert.equal(layout.aspectRatio, 1.7);
       assert.deepEqual(layout.imagePosition, saved.imagePosition);
       assert.deepEqual(layout.desktop, resolve(saved).desktop);
       assert.equal(duplicateLayout(layout, shaped).shape, value);
-      assert.equal(resolve({ ...shaped, shape: undefined }).fit, fit === 'contain' ? 'contain' : 'cover');
+      assert.equal(resolve({ ...shaped, shape: undefined }).fill, fill !== false);
     }
     assert.deepEqual(saved, original);
   }
@@ -37,7 +37,7 @@ test('shapes require cover without mutating fit, position, placement or aspect-r
 
 test('applying, switching and reopening any shape preserves the optional resize lock', () => {
   for (const { value: shape } of IMAGE_SHAPES.slice(1)) for (const aspectRatio of [undefined, 1.7]) {
-    const saved = { shape, aspectRatio, fit: 'contain', desktop: { column: 2, row: 3, columnSpan: 5, rowSpan: 6 } };
+    const saved = { shape, aspectRatio, fill: false, desktop: { column: 2, row: 3, columnSpan: 5, rowSpan: 6 } };
     const original = structuredClone(saved);
     assert.equal(resolve(saved).aspectRatio, aspectRatio);
     assert.equal(resolve(JSON.parse(JSON.stringify(saved))).aspectRatio, aspectRatio);
@@ -46,14 +46,14 @@ test('applying, switching and reopening any shape preserves the optional resize 
       assert.equal(resolve({ ...saved, shape: replacement }).aspectRatio, aspectRatio);
     }
     assert.equal(resolve({ ...saved, shape: 'none' }).aspectRatio, undefined);
-    assert.equal(resolve({ ...saved, shape: 'none', fit: 'cover' }).aspectRatio, aspectRatio);
+    assert.equal(resolve({ ...saved, shape: 'none', fill: true }).aspectRatio, aspectRatio);
   }
 });
 
 test('unsupported values are inert, including malformed serialized data', () => {
   for (const value of [undefined, null, '', 'pentagon', {}, [], '<script>', 'toString']) {
     assert.equal(imageShape(value), 'none');
-    assert.equal(imageFit({ shape: value, fit: 'contain' }), 'contain');
+    assert.equal(imageFill({ shape: value, fill: false }), false);
     assert.equal(shapeMask(value), undefined);
   }
 });
@@ -98,7 +98,7 @@ test('PHP and editor agree on shapes, masks and effective fit, with safe unshape
     $result=[];
     foreach(json_decode(stream_get_contents(STDIN),true) as $value) {
       $shape=PlaygroundPlugin\Canvas\image_shape($value);
-      $block=(object)['name'=>'core/image','attributes'=>['canvas'=>['shape'=>$value,'fit'=>'contain','imagePosition'=>['x'=>.2,'y'=>.7]]]];
+      $block=(object)['name'=>'core/image','attributes'=>['canvas'=>['shape'=>$value,'fill'=>false,'imagePosition'=>['x'=>.2,'y'=>.7]]]];
       $next=['desktop'=>1,'tablet'=>1,'mobile'=>1];
       $result[]=['shape'=>$shape,'mask'=>PlaygroundPlugin\Canvas\image_mask($shape),'html'=>PlaygroundPlugin\Canvas\canvas_item_open($block,0,$next,24)];
     }
@@ -110,7 +110,7 @@ test('PHP and editor agree on shapes, masks and effective fit, with safe unshape
     const shape = imageShape(cases[i]);
     assert.equal(actual.shape, shape);
     assert.equal(decodeURIComponent(actual.mask), decodeURIComponent(shapeMask(shape) || 'none'));
-    assert.ok(actual.html.includes('--canvas-fit:' + imageFit({ shape, fit: 'contain' }) + ';'));
+    assert.ok(actual.html.includes('--canvas-fit:' + (imageFill({ shape, fill: false }) ? 'cover' : 'contain') + ';'));
     assert.equal(actual.html.includes('data-canvas-shape='), shape !== 'none');
     assert.ok(actual.html.includes(shape === 'none' ? '--canvas-image-position:50% 50%' : '--canvas-image-position:20% 70%'));
   });

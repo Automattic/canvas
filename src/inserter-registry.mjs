@@ -8,6 +8,7 @@ import {
 const INSERTER_BLOCKS = [
 	'core/heading',
 	'core/image',
+	'core/video',
 	'core/paragraph',
 	'core/buttons',
 ];

@@ -14,7 +14,6 @@ const placementKeys = [
 ];
 const settingsKeys = [
 	'shape',
-	'fit',
 	'verticalAlign',
 	'imagePosition',
 	'aspectRatio',
@@ -108,15 +107,14 @@ export function compactCanvas( value = {} ) {
 	}
 	for ( const [ key, fallback ] of Object.entries( {
 		shape: 'none',
-		fit: 'cover',
 		verticalAlign: 'top',
 	} ) ) {
 		if ( result[ key ] === fallback ) {
 			delete result[ key ];
 		}
 	}
-	if ( value.fitArea === true ) {
-		result.fitArea = true;
+	if ( typeof value.fill === 'boolean' ) {
+		result.fill = value.fill;
 	}
 	const layers = Object.fromEntries(
 		Object.keys( COLUMNS )

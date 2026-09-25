@@ -89,7 +89,7 @@
 		align-content: inherit;
 	}
 
-	// Fitted text must keep words intact during measurement and rendering.
+	// Area fitting wraps text within the authored frame.
 	[data-canvas-text-fit="true"],
 	[data-canvas-text-fit="true"] > :is(h1,h2,h3,h4,h5,h6,p) {
 		overflow-wrap: normal;
@@ -194,6 +194,8 @@
 	}
 
 	.canvas__image,
+	.canvas__video,
+	.canvas__video > .wp-block-video,
 	.canvas__image > .wp-block-image {
 		min-height: 0;
 		height: 100%;
@@ -201,11 +203,13 @@
 		flex-direction: column;
 	}
 
+	.canvas__video > .wp-block-video,
 	.canvas__image > .wp-block-image {
 		width: 100%;
 		margin: 0;
 	}
 
+	.canvas__grid .canvas__video,
 	.canvas__grid .canvas__image {
 		width: var(--canvas-free-width, auto);
 		height: var(--canvas-free-height, 100%);
@@ -213,6 +217,7 @@
 		top: var(--canvas-free-top, 0px);
 	}
 
+	.canvas__video video,
 	.canvas__image img {
 		display: block;
 		width: 100%;
@@ -230,6 +235,7 @@
 		min-height: 0;
 	}
 
+	.canvas__video figcaption,
 	.canvas__image figcaption {
 		flex: none;
 	}

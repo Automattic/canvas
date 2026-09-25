@@ -120,6 +120,7 @@ export function useSelectionBox(
 	attributes
 ) {
 	const [ box, setBox ] = useState( null );
+	const updateRef = useRef( null );
 	useLayoutEffect( () => {
 		const stage = stageRef.current;
 		const grid = gridRef.current;
@@ -175,6 +176,7 @@ export function useSelectionBox(
 					: next
 			);
 		};
+		updateRef.current = update;
 		update();
 		const observer = new view.ResizeObserver( update );
 		observer.observe( grid );
@@ -183,12 +185,18 @@ export function useSelectionBox(
 		view.addEventListener( 'scroll', update, true );
 		grid.addEventListener( 'canvas-layout-change', update );
 		return () => {
+			updateRef.current = null;
 			observer.disconnect();
 			view.removeEventListener( 'resize', update );
 			view.removeEventListener( 'scroll', update, true );
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
-	}, [ stageRef, gridRef, selectedId, preview, layouts, mode, attributes ] );
+	}, [ stageRef, gridRef, selectedId, layouts, mode, attributes ] );
+	// Measure the new placement without reconnecting observers and scheduling
+	// another initial ResizeObserver notification for every pointer movement.
+	useLayoutEffect( () => {
+		updateRef.current?.();
+	}, [ preview ] );
 	return box;
 }
 
@@ -197,7 +205,9 @@ export function useItemToolbar(
 	selectedName,
 	directSelected,
 	selectedBlockName,
-	hasCanvasParent
+	hasCanvasParent,
+	selectedImageHasSource,
+	editingId
 ) {
 	useLayoutEffect( () => {
 		if ( ! selectedId ) {
@@ -220,8 +230,8 @@ export function useItemToolbar(
 			labels.push( __( 'Align' ), __( 'Align block' ) );
 		}
 		// Core shares Buttons layout controls with its inner Button blocks.
-		// Show them only when the Buttons grid item itself is selected.
-		if ( selectedName === 'core/buttons' && ! directSelected ) {
+		// Canvas supplies controls with its own fill defaults for the grid item.
+		if ( selectedName === 'core/buttons' ) {
 			labels.push(
 				__( 'Change items justification' ),
 				__( 'Change vertical alignment' ),
@@ -231,14 +241,20 @@ export function useItemToolbar(
 		if ( directSelected && selectedName === 'core/image' ) {
 			labels.push( __( 'Crop' ), __( 'Edit image' ) );
 		}
-		if ( selectedBlockName === 'core/image' ) {
+		if ( selectedBlockName === 'core/image' && ! selectedImageHasSource ) {
+			labels.push( __( 'Link' ) );
+		}
+		if ( [ 'core/image', 'core/video' ].includes( selectedBlockName ) ) {
 			labels.push( __( 'Add caption' ), __( 'Remove caption' ) );
+		}
+		if ( selectedBlockName === 'core/video' ) {
+			labels.push( __( 'Text tracks' ) );
 		}
 		if ( ! labels.length ) {
 			return;
 		}
 		// Hide redundant block alignment, inherited Buttons, and image controls.
-		// Images at any depth also omit caption controls. Duotone uses Core settings.
+		// Images and videos at any depth omit caption controls. Duotone uses Core settings.
 		const hidden = new Set();
 		const update = () => {
 			for ( const node of hidden ) {
@@ -246,9 +262,15 @@ export function useItemToolbar(
 			}
 			hidden.clear();
 			for ( const node of document.querySelectorAll(
-				'.block-editor-block-toolbar button[aria-label]'
+				'.block-editor-block-toolbar button'
 			) ) {
-				if ( labels.includes( node.getAttribute( 'aria-label' ) ) ) {
+				if (
+					labels.includes(
+						node.getAttribute( 'aria-label' ) ||
+							node.textContent.trim()
+					) &&
+					! node.closest( '[data-canvas-alignment-controls]' )
+				) {
 					node.setAttribute( 'data-canvas-hidden-control', '' );
 					hidden.add( node );
 				}
@@ -268,5 +290,13 @@ export function useItemToolbar(
 				node.removeAttribute( 'data-canvas-hidden-control' );
 			}
 		};
-	}, [ selectedName, directSelected, selectedBlockName, hasCanvasParent ] );
+	}, [
+		selectedName,
+		directSelected,
+		selectedBlockName,
+		selectedImageHasSource,
+		hasCanvasParent,
+		editingId,
+		selectedId,
+	] );
 }

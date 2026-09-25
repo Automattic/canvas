@@ -1,12 +1,12 @@
 export const MIN_TEXT_SIZE = 12;
-const MAX_TEXT_SIZE = 512;
+const MAX_TEXT_SIZE = 2400;
 
 // A small bounded search works with real browser line wrapping, including <br>.
 export function fittingFontSize(
 	measure,
 	width,
 	height,
-	min = MIN_TEXT_SIZE,
+	min = 1,
 	max = MAX_TEXT_SIZE
 ) {
 	const fits = ( size ) => {
@@ -60,14 +60,23 @@ export const textElement = ( item ) =>
 
 // Measure original typography independently of the current fitted size. Both
 // responsive layout and area fitting use the same browser line-breaking rules.
-export function measureText( item, width, callback, includeBox = false ) {
+export function measureText(
+	item,
+	width,
+	callback,
+	includeBox = false,
+	preserveFitted = false,
+	cache
+) {
 	const text = textElement( item );
 	if ( ! text ) {
 		return null;
 	}
 	const fitted = item.hasAttribute( 'data-canvas-text-fitted' );
 	const automatic = item.getAttribute( 'data-canvas-auto-active' );
-	item.removeAttribute( 'data-canvas-text-fitted' );
+	if ( ! preserveFitted ) {
+		item.removeAttribute( 'data-canvas-text-fitted' );
+	}
 	item.removeAttribute( 'data-canvas-auto-active' );
 	const css = text.ownerDocument.defaultView.getComputedStyle( text );
 	const fontSize = parseFloat( css.fontSize ) || 16;
@@ -88,48 +97,86 @@ export function measureText( item, width, callback, includeBox = false ) {
 			px( 'borderTopWidth' ) +
 			px( 'borderBottomWidth' )
 		: 0;
-	const probe = text.cloneNode( true );
-	for ( const element of [ probe, ...probe.querySelectorAll( '*' ) ] ) {
-		element.removeAttribute( 'id' );
-		element.removeAttribute( 'contenteditable' );
-	}
-	probe
-		.querySelectorAll( '[data-rich-text-placeholder]' )
-		.forEach( ( element ) => element.remove() );
-	probe.className = 'canvas-measure-text';
-	probe.setAttribute( 'aria-hidden', 'true' );
-	probe.inert = true;
-	probe.lang =
-		text.closest( '[lang]' )?.lang ||
-		text.ownerDocument.documentElement.lang;
-	probe.removeAttribute( 'style' );
-	for ( const property of TYPOGRAPHY ) {
-		probe.style[ property ] = css[ property ];
-	}
+	// Snapshot computed typography before restoring the live fitted styles.
+	const styles = Object.fromEntries(
+		TYPOGRAPHY.map( ( property ) => [ property, css[ property ] ] )
+	);
 	// Emergency character wrapping must not count as a successful text fit.
-	probe.style.overflowWrap =
+	styles.overflowWrap =
 		item.hasAttribute( 'data-canvas-text-fit' ) || width === 'min-content'
 			? 'normal'
 			: css.overflowWrap;
-	probe.style.removeProperty( 'word-break' );
-	probe.style.removeProperty( 'hyphens' );
-	probe.style.width =
+	delete styles.wordBreak;
+	delete styles.hyphens;
+	styles.width =
 		width === 'min-content'
 			? 'min-content'
 			: `${ Math.max( 1, width - insetX ) }px`;
-	probe.style.lineHeight = String( leading );
+	styles.lineHeight = String( leading );
+	const language =
+		text.closest( '[lang]' )?.lang ||
+		text.ownerDocument.documentElement.lang;
 	if ( fitted ) {
 		item.setAttribute( 'data-canvas-text-fitted', '' );
 	}
 	if ( automatic ) {
 		item.setAttribute( 'data-canvas-auto-active', automatic );
 	}
-	text.ownerDocument.body.append( probe );
-	const range = text.ownerDocument.createRange();
-	range.selectNodeContents( probe );
+	let measurements;
+	// Plain text has no descendant styling or replaced content to invalidate.
+	// Keep a few widths for responsive min-content/height passes, bounded during
+	// continuous resizing. The owner clears the cache when fonts/styles change.
+	if ( cache && ! text.childElementCount ) {
+		let entries = cache.get( text );
+		if ( ! entries ) {
+			entries = new Map();
+			cache.set( text, entries );
+		}
+		const key = JSON.stringify( [
+			text.textContent,
+			language,
+			styles,
+			insetX,
+			insetY,
+		] );
+		measurements = entries.get( key );
+		if ( ! measurements ) {
+			if ( entries.size >= 8 ) {
+				entries.delete( entries.keys().next().value );
+			}
+			measurements = new Map();
+			entries.set( key, measurements );
+		}
+	}
+	let probe, range;
+	const prepare = () => {
+		probe = text.cloneNode( true );
+		for ( const element of [ probe, ...probe.querySelectorAll( '*' ) ] ) {
+			element.removeAttribute( 'id' );
+			element.removeAttribute( 'contenteditable' );
+		}
+		probe
+			.querySelectorAll( '[data-rich-text-placeholder]' )
+			.forEach( ( element ) => element.remove() );
+		probe.className = 'canvas-measure-text';
+		probe.setAttribute( 'aria-hidden', 'true' );
+		probe.inert = true;
+		probe.lang = language;
+		probe.removeAttribute( 'style' );
+		Object.assign( probe.style, styles );
+		text.ownerDocument.body.append( probe );
+		range = text.ownerDocument.createRange();
+		range.selectNodeContents( probe );
+	};
 	try {
 		return callback(
 			( size ) => {
+				if ( measurements?.has( size ) ) {
+					return { ...measurements.get( size ) };
+				}
+				if ( ! probe ) {
+					prepare();
+				}
 				probe.style.setProperty(
 					'font-size',
 					`${ size }px`,
@@ -137,17 +184,42 @@ export function measureText( item, width, callback, includeBox = false ) {
 				);
 				// scrollWidth rounds to an integer and can accept a word a fraction too
 				// wide. Range keeps subpixel precision at the exact wrap boundary.
-				return {
-					width: range.getBoundingClientRect().width + insetX,
-					height:
-						Math.max( probe.offsetHeight, probe.scrollHeight ) +
-						insetY,
+				let measuredWidth = range.getBoundingClientRect().width;
+				const frameWidth = parseFloat( probe.style.width );
+				const height = Math.max(
+					probe.offsetHeight,
+					probe.scrollHeight
+				);
+				if (
+					Number.isFinite( frameWidth ) &&
+					measuredWidth > frameWidth &&
+					probe.scrollWidth <= Math.ceil( frameWidth )
+				) {
+					// Ranges include spaces hanging off soft-wrapped lines. Check the
+					// longest unbreakable content before treating those as overflow;
+					// retain fractional precision for a genuinely overwide word.
+					const previousWidth = probe.style.width;
+					probe.style.width = 'min-content';
+					measuredWidth = Math.max(
+						frameWidth,
+						range.getBoundingClientRect().width
+					);
+					probe.style.width = previousWidth;
+				}
+				const result = {
+					width: measuredWidth + insetX,
+					height: height + insetY,
 				};
+				if ( measurements?.size >= 32 ) {
+					measurements.clear();
+				}
+				measurements?.set( size, result );
+				return { ...result };
 			},
 			{ fontSize, leading }
 		);
 	} finally {
-		probe.remove();
+		probe?.remove();
 	}
 }
 
@@ -156,7 +228,61 @@ function clearFit( item ) {
 	VARIABLES.forEach( ( name ) => item.style.removeProperty( name ) );
 }
 
-function fitItem( item, view ) {
+// Width owns the fitted size. Two measurements account for fixed spacing and
+// box insets; a bounded correction handles optical font sizing.
+export function measureWidthFit( item, width, measurements ) {
+	return measureText(
+		item,
+		width,
+		( measure, { fontSize, leading } ) => {
+			const base = Math.max( 1, fontSize );
+			const first = measure( base ).width;
+			const slope = ( measure( base * 2 ).width - first ) / base;
+			let size =
+				textElement( item ).textContent.trim() && slope > 0
+					? Math.max(
+							1,
+							Math.min(
+								MAX_TEXT_SIZE,
+								Math.floor(
+									( base + ( width - first ) / slope ) * 10
+								) / 10
+							)
+						)
+					: base;
+			let box = measure( size );
+			for (
+				let pass = 0;
+				pass < 3 && slope > 0 && Math.abs( width - box.width ) > 0.25;
+				pass++
+			) {
+				const next = Math.max(
+					1,
+					Math.min(
+						MAX_TEXT_SIZE,
+						Math.floor(
+							( size + ( width - box.width ) / slope ) * 10
+						) / 10
+					)
+				);
+				if (
+					next === size ||
+					! textElement( item ).textContent.trim()
+				) {
+					break;
+				}
+				size = next;
+				box = measure( size );
+			}
+			return { size, leading, height: box.height };
+		},
+		true,
+		true,
+		measurements
+	);
+}
+
+function fitItem( item, view, measurements ) {
 	const text = textElement( item );
 	if ( ! text || ! text.textContent.trim() ) {
 		clearFit( item );
@@ -183,8 +309,14 @@ function fitItem( item, view ) {
 
 	const height =
 		item.clientHeight - paddingY - ( text === item ? 0 : borderY );
-	const size = measureText( item, width, ( measure ) =>
-		fittingFontSize( measure, width, height, MIN_TEXT_SIZE, MAX_TEXT_SIZE )
+	const size = measureText(
+		item,
+		width,
+		( measure ) =>
+			fittingFontSize( measure, width, height, 1, MAX_TEXT_SIZE ),
+		false,
+		false,
+		measurements
 	);
 	if (
 		item.style.getPropertyValue( '--canvas-text-size' ) !== `${ size }px`
@@ -204,12 +336,17 @@ function fitItem( item, view ) {
 export function observeTextFit( grid ) {
 	const view = grid.ownerDocument.defaultView;
 	const tracked = new Set();
+	let measurements = new WeakMap();
 	let frame;
 	let disposed = false;
 	const schedule = () => {
 		if ( ! disposed && ! frame ) {
 			frame = view.requestAnimationFrame( refresh );
 		}
+	};
+	const invalidate = () => {
+		measurements = new WeakMap();
+		schedule();
 	};
 	const resize = new view.ResizeObserver( schedule );
 	const changes = new view.MutationObserver( schedule );
@@ -242,7 +379,7 @@ export function observeTextFit( grid ) {
 					tracked.add( item );
 					resize.observe( item );
 				}
-				fitItem( item, view );
+				fitItem( item, view, measurements );
 			}
 		} finally {
 			if ( ! disposed ) {
@@ -251,19 +388,19 @@ export function observeTextFit( grid ) {
 		}
 	}
 	resize.observe( grid );
-	view.addEventListener( 'resize', schedule );
-	grid.ownerDocument.fonts?.addEventListener( 'loadingdone', schedule );
-	grid.ownerDocument.fonts?.ready.then( schedule );
+	view.addEventListener( 'resize', invalidate );
+	grid.ownerDocument.fonts?.addEventListener( 'loadingdone', invalidate );
+	grid.ownerDocument.fonts?.ready.then( invalidate );
 	refresh();
 	return () => {
 		disposed = true;
 		view.cancelAnimationFrame( frame );
 		resize.disconnect();
 		changes.disconnect();
-		view.removeEventListener( 'resize', schedule );
+		view.removeEventListener( 'resize', invalidate );
 		grid.ownerDocument.fonts?.removeEventListener(
 			'loadingdone',
-			schedule
+			invalidate
 		);
 		tracked.forEach( clearFit );
 	};

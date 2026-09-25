@@ -1,3 +1,6 @@
+import { measureWidthFit } from './text-fit.mjs';
+import { freeFrameFromRect } from './aspect-ratio.mjs';
+import { isFrameMedia } from './content-fill.mjs';
 import { constrainReadableResize } from './readable-resize.mjs';
 import {
 	canResizeReadableContent,
@@ -12,6 +15,8 @@ import { store as blockEditorStore } from '@wordpress/block-editor';
 import { rowPitch } from './geometry.mjs';
 import {
 	dragResizePlacement,
+	mapCanvasPlacement,
+	savedCanvasPlacement,
 	dragMovePlacement,
 	snapCanvasPlacement,
 	transformCanvasPlacement,
@@ -76,6 +81,13 @@ export function useCanvasGestures( {
 			} = {}
 		) => {
 			const touch = event.pointerType === 'touch';
+			if ( layouts[ id ]?.widthFit && /^[nsew]+$/.test( kind ) ) {
+				kind = kind.replace( /[ns]/g, '' );
+				if ( ! kind ) {
+					return;
+				}
+			}
+
 			if (
 				layouts[ id ]?.group &&
 				! [ 'move', 'canvas' ].includes( kind )
@@ -148,9 +160,18 @@ export function useCanvasGestures( {
 			) {
 				return;
 			}
+			const siblings = Object.entries( layouts )
+				.filter(
+					( [ key, layout ] ) =>
+						! ids.includes( key ) &&
+						store.getBlockRootClientId( key ) ===
+							store.getBlockRootClientId( id ) &&
+						! layout[ mode ]?.rotation &&
+						layout[ mode ]?._rect
+				)
+				.map( ( [ , layout ] ) => layout[ mode ]._rect );
 			let scroll;
 			let selectionEnabled;
-			const fitArea = layouts[ id ]?.fitArea;
 			const resizeElement = grid.querySelector(
 				`[data-canvas-item="${ id }"]`
 			);
@@ -162,7 +183,9 @@ export function useCanvasGestures( {
 				if ( ! measuredHeights.has( width ) ) {
 					measuredHeights.set(
 						width,
-						readableContentHeight( resizeElement, width )
+						layouts[ id ]?.widthFit
+							? measureWidthFit( resizeElement, width ).height
+							: readableContentHeight( resizeElement, width )
 					);
 				}
 				return measuredHeights.get( width );
@@ -320,6 +343,7 @@ export function useCanvasGestures( {
 						placements,
 						dropPlacement: dropPlacements[ id ],
 						dropPlacements,
+						siblings,
 					} );
 				} else if ( kind === 'rotate' && center ) {
 					finalValue = {
@@ -335,7 +359,6 @@ export function useCanvasGestures( {
 					setPreview( {
 						id,
 						placement: finalValue,
-						fitArea,
 						rotating: true,
 					} );
 				} else {
@@ -372,8 +395,9 @@ export function useCanvasGestures( {
 											layouts[ id ],
 											start,
 											e.shiftKey &&
-												store.getBlockName( id ) ===
-													'core/image'
+												isFrameMedia(
+													store.getBlockName( id )
+												)
 										),
 										fromCenter
 									);
@@ -392,6 +416,24 @@ export function useCanvasGestures( {
 									measureResize
 								)
 							: resize( 1 );
+						if ( layouts[ id ]?.widthFit ) {
+							finalValue = mapCanvasPlacement(
+								{
+									...savedCanvasPlacement( finalValue ),
+									free: freeFrameFromRect(
+										{
+											...finalValue._rect,
+											height: measureResize(
+												finalValue._rect.width
+											),
+										},
+										finalValue._canvas
+									),
+								},
+								mode,
+								finalValue._canvas
+							);
+						}
 					} else {
 						finalValue = dragMovePlacement(
 							start,
@@ -406,7 +448,7 @@ export function useCanvasGestures( {
 						id,
 						placement: finalValue,
 						dropPlacement: dropPlacement(),
-						fitArea,
+						siblings,
 						resizing: kind !== 'move',
 					} );
 				}
@@ -479,10 +521,9 @@ export function useCanvasGestures( {
 						announce( `Canvas height ${ finalRows } rows.` );
 					}
 				} else if (
-					JSON.stringify( finalValue ) !== JSON.stringify( start ) ||
-					fitArea !== layouts[ id ].fitArea
+					JSON.stringify( finalValue ) !== JSON.stringify( start )
 				) {
-					commit( id, finalValue, fitArea );
+					commit( id, finalValue );
 					let announcement;
 					if ( pairStart ) {
 						announcement = `Width ${ finalValue.columnSpan } columns, height ${ finalValue.rowSpan } rows. Rotation ${ finalValue.rotation || 0 } degrees.`;
@@ -561,7 +602,7 @@ export function useCanvasGestures( {
 								id,
 								placement: finalValue,
 								dropPlacement: dropPlacement(),
-								fitArea,
+								siblings,
 								transforming: true,
 							} );
 						},

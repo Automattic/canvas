@@ -69,21 +69,20 @@ function serialize_placement( $value, $mode ) {
  */
 function compact_canvas( $value ) {
 	$value  = (array) $value;
-	$result = array_intersect_key( $value, array_flip( array( 'shape', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' ) ) );
+	$result = array_intersect_key( $value, array_flip( array( 'shape', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' ) ) );
 	if ( isset( $value['shapeStretch'] ) && is_bool( $value['shapeStretch'] ) ) {
 		$result['shapeStretch'] = $value['shapeStretch'];
 	}
 	foreach ( array(
 		'shape'         => 'none',
-		'fit'           => 'cover',
 		'verticalAlign' => 'top',
 	) as $key => $default ) {
 		if ( ( $result[ $key ] ?? null ) === $default ) {
 			unset( $result[ $key ] );
 		}
 	}
-	if ( true === ( $value['fitArea'] ?? false ) ) {
-		$result['fitArea'] = true;
+	if ( isset( $value['fill'] ) && is_bool( $value['fill'] ) ) {
+		$result['fill'] = $value['fill'];
 	}
 	$layers = array();
 	foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {

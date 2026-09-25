@@ -129,9 +129,7 @@ export function resolveCanvasLayouts(
 				visit( child, [ ...parents, block.clientId ], translations )
 			);
 		}
-		const layout = group
-			? { fit: 'cover', fitArea: false }
-			: { ...flat[ block.clientId ] };
+		const layout = group ? { fill: false } : { ...flat[ block.clientId ] };
 		layout.group = group;
 		layout.parents = parents;
 		for ( const mode of Object.keys( COLUMNS ) ) {

@@ -17,7 +17,7 @@ test('incomplete saved mobile overrides retain the default append position and l
 });
 
 test('tablet inherits desktop; saving tablet changes only tablet and flows to uncustomized mobile', () => {
-  const saved = { desktop, fit: 'contain', fitArea: true };
+  const saved = { desktop, fill: true };
   const original = structuredClone(saved);
   const before = resolve(saved);
   assert.equal(before.tablet.gridColumns, 12);
@@ -37,7 +37,7 @@ test('tablet inherits desktop; saving tablet changes only tablet and flows to un
 
 test('existing mobile overrides survive tablet edits, serialization and duplication', () => {
   const mobile = { column: 2, row: 22, columnSpan: 3, rowSpan: 2 };
-  const saved = { desktop, mobile, fit: 'contain' };
+  const saved = { desktop, mobile, fill: false };
   const edited = savePlacement(saved, resolve(saved), 'tablet', { ...desktop, row: 40 });
   const reopened = JSON.parse(JSON.stringify(edited));
   assert.deepEqual(reopened.mobile, mobile);
@@ -48,7 +48,7 @@ test('existing mobile overrides survive tablet edits, serialization and duplicat
   assert.equal(duplicate.tablet.row, 41);
   assert.equal(duplicate.mobile.row, 23);
   assert.equal(duplicate.mobile.column, 3);
-  assert.equal(duplicate.fit, 'contain');
+  assert.equal(duplicate.fill, false);
   assert.deepEqual(saved.mobile, mobile);
 });
 

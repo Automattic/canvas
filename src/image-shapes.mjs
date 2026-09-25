@@ -2,10 +2,8 @@ import shapes from '../includes/image-shapes.json' with { type: 'json' };
 export const IMAGE_SHAPES = shapes;
 export const imageShape = ( value ) =>
 	shapes.find( ( shape ) => shape.value === value )?.value || 'none';
-export const imageFit = ( saved = {} ) =>
-	imageShape( saved?.shape ) !== 'none' || saved?.fit !== 'contain'
-		? 'cover'
-		: 'contain';
+export const imageFill = ( saved = {} ) =>
+	imageShape( saved?.shape ) !== 'none' || saved?.fill !== false;
 export const shapePath = ( value ) =>
 	shapes.find( ( shape ) => shape.value === imageShape( value ) ).path;
 export const preferredShapeRatio = ( value ) => {
@@ -32,7 +30,7 @@ export const lockedShapeRatio = ( value, shapeStretch ) =>
 
 // Frame locking is independent of the silhouette proportions.
 export function imageAspectRatio( saved = {} ) {
-	return imageFit( saved ) === 'cover' &&
+	return imageFill( saved ) &&
 		Number.isFinite( saved?.aspectRatio ) &&
 		saved.aspectRatio > 0
 		? saved.aspectRatio

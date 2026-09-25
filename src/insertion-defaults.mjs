@@ -21,6 +21,7 @@ export function withInsertionDefaults( block, mode, metrics ) {
 			'core/heading',
 			'core/paragraph',
 			'core/image',
+			'core/video',
 			'core/buttons',
 		].includes( block.name )
 	) {
@@ -41,6 +42,7 @@ export function withInsertionDefaults( block, mode, metrics ) {
 	const heading = block.name === 'core/heading';
 	const paragraph = block.name === 'core/paragraph';
 	const text = heading || paragraph;
+	const frameRatio = block.name === 'core/video' ? 16 / 9 : 1;
 	const buttons = block.name === 'core/buttons';
 	const placementFor = ( viewport ) => {
 		const geometry =
@@ -101,7 +103,7 @@ export function withInsertionDefaults( block, mode, metrics ) {
 				Math.min(
 					MAX_ROWS,
 					Math.round(
-						( width + geometry.gap ) /
+						( width / frameRatio + geometry.gap ) /
 							rowPitch(
 								useReference
 									? {
@@ -123,7 +125,7 @@ export function withInsertionDefaults( block, mode, metrics ) {
 			...anchor,
 			...( ! text
 				? {
-						frameRatio: 1,
+						frameRatio,
 					}
 				: {} ),
 		};
@@ -147,6 +149,8 @@ export function withInsertionDefaults( block, mode, metrics ) {
 				type: 'flex',
 			},
 		};
+	} else if ( block.name === 'core/video' ) {
+		contentAttributes = {};
 	} else {
 		contentAttributes = {
 			sizeSlug: attributes.sizeSlug || 'large',
@@ -155,11 +159,9 @@ export function withInsertionDefaults( block, mode, metrics ) {
 	let sizingAttributes;
 	if ( text ) {
 		sizingAttributes = {
-			fitArea: saved.fitArea ?? ( heading && ! attributes.fitText ),
-		};
-	} else if ( buttons ) {
-		sizingAttributes = {
-			fitArea: false,
+			fill:
+				saved.fill ??
+				( heading && ! attributes.fitText ? true : undefined ),
 		};
 	} else {
 		sizingAttributes = {};

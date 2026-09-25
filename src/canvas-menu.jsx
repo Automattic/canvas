@@ -44,6 +44,28 @@ export function CanvasSubmenu( props ) {
 	);
 }
 
+// Keep toggle state in the native suffix so checks do not widen the shared
+// prefix column and indent every label in the menu.
+export function CanvasMenuToggle( { checked, onChange, ...props } ) {
+	return (
+		<Menu.Item
+			{ ...props }
+			role="menuitemcheckbox"
+			aria-checked={ checked }
+			onClick={ onChange }
+			suffix={
+				<span className="canvas__menu-toggle-state" aria-hidden="true">
+					{ checked && (
+						<svg viewBox="0 0 24 24" focusable="false">
+							<path d="M7 12L10 15L17 8" />
+						</svg>
+					) }
+				</span>
+			}
+		/>
+	);
+}
+
 function CanvasMenuPopover( { menu, label, onClose, children } ) {
 	const { store } = useContext( Menu.Context );
 	useLayoutEffect( () => {

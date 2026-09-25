@@ -43,7 +43,7 @@ test('only a committed edit to both outer edges activates full height', () => {
 
 test('grid and precise full-height images follow growing and shrinking sections without saving geometry', () => {
   for (const free of [undefined, { x: .2, y: -1, width: .3, ratio: .1 }]) {
-    const saved = { desktop: { ...source, fillHeight: true, ...(free ? { free } : {}) }, imagePosition: { x: .2, y: .8 }, fit: 'contain', shape: 'arch', shapeStretch: false };
+    const saved = { desktop: { ...source, fillHeight: true, ...(free ? { free } : {}) }, imagePosition: { x: .2, y: .8 }, fill: false, shape: 'arch', shapeStretch: false };
     const snapshot = JSON.stringify(saved);
     for (const rows of [12, 25, 3, 1, 12]) {
       const layouts = resolveLayouts([image(saved)], { desktop: geometry(rows) });

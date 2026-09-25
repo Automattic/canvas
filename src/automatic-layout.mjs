@@ -1,9 +1,12 @@
-import { MAX_ROWS, rowPitch } from './placement.mjs';
+import { rowPitch } from './placement.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 
+// Rendered rows follow content. MAX_ROWS bounds authored placements; rows are
+// fluid, so a fixed count would cap narrow canvases at a few thousand pixels
+// and let readable growth spill past the canvas.
 export function automaticCanvasRows( occupied, minimum = 1 ) {
-	return Math.min( MAX_ROWS, Math.max( minimum, occupied ) );
+	return Math.max( minimum, occupied );
 }
 
 // Readability is the only automatic exception to proportional placement. Keep
@@ -14,7 +17,8 @@ export function automaticCanvasRows( occupied, minimum = 1 ) {
 // downward when their content no longer fits (for example, at a narrower
 // width within the same viewport). Explicit growth ends at a cell bottom and
 // collision clearance starts at a cell top; automatic frames stay proportional.
-const adjustable = ( item ) => item.automatic || item.explicitReadable;
+const adjustable = ( item ) =>
+	item.widthFit || item.automatic || item.explicitReadable;
 
 export function readablePlacements(
 	items,
@@ -44,7 +48,7 @@ export function readablePlacements(
 				adjustable( item ) &&
 				item.kind !== 'image' &&
 				! item.areaFit &&
-				! ( item.explicitReadable && item.widthFit );
+				! item.widthFit;
 			if ( readable && item.automatic ) {
 				rect.width = Math.max(
 					rect.width,
@@ -65,7 +69,9 @@ export function readablePlacements(
 					);
 				}
 			}
-			if ( readable ) {
+			if ( item.widthFit && ! item.areaFit ) {
+				rect.height = measure( item, rect.width );
+			} else if ( readable ) {
 				rect.height = Math.max(
 					original.height,
 					measure( item, rect.width )

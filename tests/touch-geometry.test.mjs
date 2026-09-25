@@ -48,7 +48,7 @@ const geometry = mode => ({
 
 test('transforms grow rows, snap on release and save only the active responsive override', () => {
   const desktop = normalizePlacement({ column: 3, columnSpan: 6, row: 2, rowSpan: 3, rotation: 10 });
-  const saved = { desktop, fitArea: true, aspectRatio: 1.5 };
+  const saved = { desktop, fill: true, aspectRatio: 1.5 };
   const block = { clientId: 'a', name: 'core/image', attributes: { canvas: saved } };
   const layout = resolveLayouts([block], { desktop: geometry('desktop'), mobile: geometry('mobile') }).a;
   const start = layout.mobile;
@@ -60,7 +60,7 @@ test('transforms grow rows, snap on release and save only the active responsive 
   const result = savePlacement(saved, layout, 'mobile', snapped);
   assert.deepEqual(result.desktop, serializePlacement(desktop, 'desktop'));
   assert.equal(result.mobile.rotation, 40);
-  assert.equal(result.fitArea, true);
+  assert.equal(result.fill, true);
   assert.equal(result.aspectRatio, 1.5);
   assert.equal(result.mobile.free, undefined);
   assert.ok(Object.keys(result.mobile).every(key => !key.startsWith('_')));
