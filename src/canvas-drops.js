@@ -7,7 +7,11 @@ import {
 } from '@wordpress/blocks';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { ALLOWED_BLOCKS, ATTRIBUTE } from './geometry.mjs';
-import { droppedLayouts, placementRectangle } from './drop-layout.mjs';
+import {
+	droppedLayouts,
+	placementRectangle,
+	dropGuidePreview,
+} from './drop-layout.mjs';
 import { gridMetrics } from './canvas-metrics.mjs';
 import { occupiedRows } from './canvas-geometry.mjs';
 import { canDropBlocks } from './drop-permissions.mjs';
@@ -285,6 +289,12 @@ export function useCanvasDrops( {
 			const { layouts, metrics } = placement( event, payload.blocks );
 			const next = layouts
 				? {
+						...dropGuidePreview(
+							layouts,
+							store.getBlocks( clientId ),
+							mode,
+							metrics
+						),
 						rectangles: Object.values( layouts ).map( ( layout ) =>
 							placementRectangle( layout[ mode ], metrics )
 						),

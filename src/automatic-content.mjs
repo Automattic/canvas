@@ -1,10 +1,5 @@
 import { normalizePlacement } from './placement.mjs';
-import {
-	fittingFontSize,
-	measureText,
-	textElement,
-	MIN_TEXT_SIZE,
-} from './text-fit.mjs';
+import { measureWidthFit, measureText, textElement } from './text-fit.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 import { readablePlacements } from './automatic-layout.mjs';
 
@@ -51,6 +46,7 @@ export function readableContentHeight( element, width, textMeasurements ) {
 				( measureAtSize, { fontSize } ) =>
 					measureAtSize( fontSize ).height,
 				true,
+				false,
 				textMeasurements
 			);
 	return (
@@ -68,6 +64,7 @@ export function canResizeReadableContent( element ) {
 	return (
 		!! element &&
 		! element.classList.contains( 'canvas__image' ) &&
+		! element.classList.contains( 'canvas__video' ) &&
 		element.getAttribute( 'data-canvas-text-fit' ) !== 'true' &&
 		! textElement( element )?.classList.contains( 'has-fit-text' )
 	);
@@ -99,7 +96,10 @@ export function resolveAutomaticContent(
 		let kind;
 		if ( container ) {
 			kind = 'container';
-		} else if ( element.classList.contains( 'canvas__image' ) ) {
+		} else if (
+			element.classList.contains( 'canvas__image' ) ||
+			element.classList.contains( 'canvas__video' )
+		) {
 			kind = 'image';
 		} else if ( text?.matches( 'h1,h2,h3,h4,h5,h6' ) ) {
 			kind = 'heading';
@@ -118,7 +118,7 @@ export function resolveAutomaticContent(
 			element.getAttribute( 'data-canvas-text-fit' ) === 'true';
 		const widthFit = text?.classList.contains( 'has-fit-text' );
 		let minWidth = 0;
-		if ( automatic && kind !== 'image' && ! areaFit ) {
+		if ( automatic && kind !== 'image' && ! areaFit && ! widthFit ) {
 			if ( container ) {
 				minWidth = measureBox( element, 'min-content' ).width;
 			} else if ( buttons ) {
@@ -128,10 +128,9 @@ export function resolveAutomaticContent(
 					measureText(
 						element,
 						'min-content',
-						( measure, { fontSize } ) =>
-							measure( widthFit ? MIN_TEXT_SIZE : fontSize )
-								.width,
+						( measure, { fontSize } ) => measure( fontSize ).width,
 						true,
+						false,
 						textMeasurements
 					) ?? measureBox( element, 'min-content' ).width;
 			}
@@ -156,16 +155,8 @@ export function resolveAutomaticContent(
 	} );
 	const measure = ( item, width ) => {
 		if ( item.widthFit ) {
-			return measureText(
-				item.element,
-				width,
-				( measureAtSize ) =>
-					measureAtSize(
-						fittingFontSize( measureAtSize, width, Infinity )
-					).height,
-				true,
-				textMeasurements
-			);
+			return measureWidthFit( item.element, width, textMeasurements )
+				.height;
 		}
 		return readableContentHeight( item.element, width, textMeasurements );
 	};

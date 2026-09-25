@@ -1,6 +1,6 @@
+import { contentFill, isFrameMedia } from './content-fill.mjs';
 import {
 	imageShape,
-	imageFit,
 	imageAspectRatio,
 	imageShapeStretch,
 	shapeMask,
@@ -156,18 +156,11 @@ export function resolveLayouts( blocks, geometry = {} ) {
 					occupiedRows( placement ) + 1
 				);
 			}
-			let fit;
-			if ( block.name === 'core/image' ) {
-				fit = imageFit( saved );
-			} else if ( saved.fit === 'contain' ) {
-				fit = 'contain';
-			} else {
-				fit = 'cover';
-			}
 			return [
 				block.clientId,
 				{
 					image: block.name === 'core/image',
+					video: block.name === 'core/video',
 					shape:
 						block.name === 'core/image'
 							? imageShape( saved.shape )
@@ -175,8 +168,11 @@ export function resolveLayouts( blocks, geometry = {} ) {
 					shapeStretch:
 						block.name === 'core/image' &&
 						imageShapeStretch( saved ),
-					fit,
-					fitArea: saved.fitArea === true,
+					fill: contentFill( block.name, block.attributes ),
+					widthFit:
+						[ 'core/heading', 'core/paragraph' ].includes(
+							block.name
+						) && !! block.attributes.fitText,
 					imagePosition: imagePosition( saved.imagePosition ),
 					aspectRatio:
 						block.name === 'core/image'
@@ -215,12 +211,12 @@ export function resolveLayouts( blocks, geometry = {} ) {
 											fromTablet ? 'tablet' : 'desktop'
 										],
 										minimum,
-										block.name === 'core/image'
+										isFrameMedia( block.name )
 									),
 								];
 							}
 							if (
-								block.name === 'core/image' &&
+								isFrameMedia( block.name ) &&
 								geometry[ mode ]?.canvas &&
 								! (
 									mode !== 'desktop' &&
@@ -345,7 +341,7 @@ export function savePlacement(
 	const next = savedCanvasPlacement(
 		changeViewport( resolved, mode, placement, minimum )[ mode ]
 	);
-	if ( resolved.image && placement._rect?.height > 0 ) {
+	if ( ( resolved.image || resolved.video ) && placement._rect?.height > 0 ) {
 		const before = resolved[ mode ]._rect;
 		const edited =
 			before &&
@@ -353,7 +349,12 @@ export function savePlacement(
 				( key ) =>
 					Math.abs( before[ key ] - placement._rect[ key ] ) > 0.001
 			);
-		if ( inferFillHeight && edited && ! resolved.parents?.length ) {
+		if (
+			resolved.image &&
+			inferFillHeight &&
+			edited &&
+			! resolved.parents?.length
+		) {
 			const { top, height } = placement._rect;
 			if (
 				Math.abs( top ) < 0.001 &&
@@ -490,12 +491,10 @@ export function reorderLayer( layouts, id, mode, direction ) {
 }
 export function layoutVariables( layout ) {
 	const vars = {
-		'--canvas-fit': layout.fit,
+		'--canvas-fit': layout.fill ? 'cover' : 'contain',
 		'--canvas-image-mask': shapeMask( layout.shape, layout.shapeStretch ),
 	};
-	const position = imagePosition(
-		layout.fit === 'contain' ? null : layout.imagePosition
-	);
+	const position = imagePosition( layout.fill ? layout.imagePosition : null );
 	vars[ '--canvas-image-position' ] =
 		`${ position.x * 100 }% ${ position.y * 100 }%`;
 	for ( const mode of Object.keys( COLUMNS ) ) {

@@ -126,7 +126,7 @@ test('precise fitted headings share the wide cap and reopen after editing', () =
     column: 9, row: 9, columnSpan: 16, rowSpan: 7, gridColumns: 24,
     free: { x: .372659, y: 7, width: .523556, ratio: 2.56121 }, anchors: { right: 'wide' },
   }, 'core/heading')];
-  blocks.forEach(b => b.attributes.canvas.fitArea = true);
+  blocks.forEach(b => b.attributes.canvas.fill = true);
   const expected = resolveLayouts(blocks, geometry(1400, blocks));
   for (const width of [1400, 2000, 3840]) {
     const all = geometry(width, blocks);

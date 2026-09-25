@@ -14,7 +14,8 @@ export function automaticCanvasRows( occupied, minimum = 1 ) {
 // downward when their content no longer fits (for example, at a narrower
 // width within the same viewport). Explicit growth ends at a cell bottom and
 // collision clearance starts at a cell top; automatic frames stay proportional.
-const adjustable = ( item ) => item.automatic || item.explicitReadable;
+const adjustable = ( item ) =>
+	item.widthFit || item.automatic || item.explicitReadable;
 
 export function readablePlacements(
 	items,
@@ -44,7 +45,7 @@ export function readablePlacements(
 				adjustable( item ) &&
 				item.kind !== 'image' &&
 				! item.areaFit &&
-				! ( item.explicitReadable && item.widthFit );
+				! item.widthFit;
 			if ( readable && item.automatic ) {
 				rect.width = Math.max(
 					rect.width,
@@ -65,7 +66,9 @@ export function readablePlacements(
 					);
 				}
 			}
-			if ( readable ) {
+			if ( item.widthFit && ! item.areaFit ) {
+				rect.height = measure( item, rect.width );
+			} else if ( readable ) {
 				rect.height = Math.max(
 					original.height,
 					measure( item, rect.width )

@@ -13,10 +13,10 @@ const frame = { _rect: { width: 400, height: 200 } };
 
 test('stretch fills every shape frame and preserving proportions uses each shape ratio', () => {
   for (const shape of shapes) for (const shapeStretch of [true, false]) {
-    const saved = { shape, shapeStretch, fit: 'contain', imagePosition: { x: .2, y: .7 }, desktop: { columnSpan: 8, rowSpan: 4 } };
+    const saved = { shape, shapeStretch, fill: false, imagePosition: { x: .2, y: .7 }, desktop: { columnSpan: 8, rowSpan: 4 } };
     const before = structuredClone(saved), layout = resolve(saved);
     assert.equal(layout.shapeStretch, shapeStretch);
-    assert.equal(layout.fit, 'cover');
+    assert.equal(layout.fill, true);
     assert.equal(imageResizeRatio(layout, frame), undefined);
     for (const [width, height] of [[400, 200], [200, 400]]) {
       const { x, y } = shapeInsets(width, height, shape, shapeStretch);

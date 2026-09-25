@@ -118,3 +118,19 @@ test('PHP and JavaScript retain valid per-viewport frame ratios and ignore inval
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout), values.map(value => normalizePlacement(value, 'desktop')));
 });
+
+test('video frames preserve authored portrait and landscape ratios across responsive widths', () => {
+  for (const ratio of [9 / 16, 16 / 9]) for (const width of [320, 390, 782, 1440, 3840]) {
+    const mode = width <= 480 ? 'mobile' : width <= 782 ? 'tablet' : 'desktop';
+    const saved = { fill: true, desktop: { ...source, frameRatio: ratio } };
+    const video = { clientId: 'video', name: 'core/video', attributes: { src: '/movie.mp4', canvas: saved } };
+    const layout = resolveLayouts([video], { [mode]: geometry(width, mode) }).video;
+    assertNearestFrame(layout[mode], ratio);
+    const moved = dragCanvasPlacement(layout[mode], mode, 'move', 20, 24, { columnSpan: 1, rowSpan: 1 });
+    const next = savePlacement(saved, layout, mode, moved);
+    assert.equal(next.fill, true);
+    assert.equal(next[mode].fillHeight, undefined);
+    assert.ok(Math.abs(next[mode].frameRatio - ratio) < 0.00001);
+    assert.equal(JSON.stringify(next).includes('_rect'), false);
+  }
+});

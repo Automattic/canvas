@@ -32,7 +32,7 @@ test('position survives layout changes, duplication and serialization without cr
   const raw = { desktop: { column: 2, row: 2, columnSpan: 8, rowSpan: 6 }, imagePosition: { x: .2, y: .8 } };
   const layout = resolveLayouts([{ clientId: 'image', name: 'core/image', attributes: { [ATTRIBUTE]: raw } }]).image;
   assert.equal(layoutVariables(layout)['--canvas-image-position'], '20% 80%');
-  assert.equal(layoutVariables({ ...layout, fit: 'contain' })['--canvas-image-position'], '50% 50%');
+  assert.equal(layoutVariables({ ...layout, fill: false })['--canvas-image-position'], '50% 50%');
   assert.deepEqual(duplicateLayout(layout, raw).imagePosition, raw.imagePosition);
   assert.deepEqual(savePlacement(raw, layout, 'desktop', layout.desktop).imagePosition, raw.imagePosition);
   assert.equal(raw.mobile, undefined);

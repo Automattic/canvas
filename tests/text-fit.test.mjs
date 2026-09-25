@@ -13,16 +13,16 @@ test('fits both width and height, including discontinuous line wraps', () => {
 });
 
 test('keeps the readability floor when the area is too small', () => {
-  assert.equal(fittingFontSize((size) => ({ width: 100, height: size * 100 }), 100, 24), 12);
+  assert.equal(fittingFontSize((size) => ({ width: 100, height: size * 100 }), 100, 24, 12), 12);
 });
 
 test('text fitting is opt-in and survives changes to either viewport', () => {
-  const blocks = [{ clientId: 'a', attributes: { canvas: { fitArea: true } } }, { clientId: 'b', attributes: {} }];
+  const blocks = [{ clientId: 'a', name: 'core/heading', attributes: { canvas: { fill: true } } }, { clientId: 'b', name: 'core/paragraph', attributes: {} }];
   const layouts = resolveLayouts(blocks);
-  assert.equal(layouts.a.fitArea, true);
-  assert.equal(layouts.b.fitArea, false);
+  assert.equal(layouts.a.fill, true);
+  assert.equal(layouts.b.fill, false);
   const changed = changeViewport(layouts.a, 'mobile', { ...layouts.a.mobile, columnSpan: 4 });
-  assert.equal(changed.fitArea, true);
+  assert.equal(changed.fill, true);
   assert.deepEqual(changed.desktop, layouts.a.desktop);
 });
 
@@ -85,4 +85,37 @@ test('fitting tracks grouped descendants and releases removed, disabled, and dis
   await flush();
   assert.equal(frames.size, 0);
   dom.window.close();
+});
+
+test('wrapped spaces do not force the minimum font size, while overwide words retain fractional precision', async () => {
+  const { JSDOM } = await import('jsdom');
+  const { measureText } = await import('../src/text-fit.mjs');
+  const dom = new JSDOM('<p data-canvas-text-fit="true">Words with a soft wrap</p>');
+  const { document, HTMLElement } = dom.window;
+  let wordWidth = 92.5;
+  Object.defineProperties(HTMLElement.prototype, {
+    offsetHeight: { get() { return 36; } },
+    scrollHeight: { get() { return 36; } },
+    scrollWidth: { get() { return 330; } },
+  });
+  document.createRange = () => ({
+    selectNodeContents() {},
+    getBoundingClientRect() {
+      return { width: document.querySelector('.canvas-measure-text').style.width === 'min-content' ? wordWidth : 332.8 };
+    },
+  });
+  const item = document.querySelector('p');
+  const measure = () => measureText(item, 329.984, callback => callback(18));
+  assert.deepEqual(measure(), { width: 329.984, height: 36 });
+  wordWidth = 330.15;
+  assert.deepEqual(measure(), { width: 330.15, height: 36 });
+  assert.equal(document.querySelector('.canvas-measure-text'), null);
+  dom.window.close();
+});
+
+
+test('shallow frames shrink below the readability preference rather than overflow', () => {
+ const measure=size=>({width:size*20,height:size*1.2});
+ const size=fittingFontSize(measure,200,8);
+ assert.ok(size<12); assert.ok(measure(size).height<=8); assert.ok(measure(size).width<=200);
 });

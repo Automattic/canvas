@@ -21,7 +21,7 @@ function fixture(t) {
   };
   const cache = new WeakMap();
   const read = (width = 200, size = 20, includeBox = false, measurements = cache) =>
-    measureText(item, width, measure => measure(size), includeBox, measurements);
+    measureText(item, width, measure => measure(size), includeBox, false, measurements);
   return { item, cache, read, probes: () => probes, document };
 }
 
@@ -80,7 +80,7 @@ test('cached reads restore live fitting flags and remove probes when callbacks t
   assert.throws(() => measureText(item, 250, measure => {
     measure(20);
     throw new Error('callback failure');
-  }, false, cache), /callback failure/);
+  }, false, false, cache), /callback failure/);
   assert.equal(document.querySelector('.canvas-measure-text'), null);
 });
 

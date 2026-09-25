@@ -12,7 +12,7 @@ Move, resize, rotate, and layer WordPress blocks to create responsive layouts.
 
 == Description ==
 
-Canvas adds a block for composing responsive layouts with WordPress headings, paragraphs, images, buttons, and groups. Arrange content on a grid while keeping text and images editable with the native block editor.
+Canvas adds a block for composing responsive layouts with WordPress headings, paragraphs, images, videos, buttons, and groups. Arrange content on a grid while keeping text and images editable with the native block editor.
 
 * Move, resize, rotate, and layer blocks directly on the canvas.
 * Start with automatic tablet and mobile layouts, then adjust each view when needed.
@@ -37,15 +37,15 @@ A source checkout needs a production build before installation. Run npm ci and n
 
 = Arrange content =
 
-Use Add block inside a Canvas to insert a heading, paragraph, image, or buttons. Click a block to select it, then drag to move it. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Command (Mac) or Shift + Ctrl (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
+Use Add block inside a Canvas to insert a heading, paragraph, image, video, or buttons. Click a block to select it, then drag to move it. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Command (Mac) or Shift + Ctrl (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
 
 Select the Canvas block and toggle Show cells in its toolbar to keep the grid visible while working inside it. This editor-only guide does not change the published page.
 
 Move an existing heading, paragraph, image, or Buttons block into Canvas using its toolbar drag handle or by dragging it from List View onto the canvas. The preview shows its grid position; release to move the original block there. Dropping an existing image over another image adds it to the composition. Undo restores the block to its original location. Blocks locked against moving or leaving their current parent cannot be dropped into Canvas.
 
-Temporary guides show where a block will snap when you release it. Vertical edge snapping sets a position once. Center vertically keeps the row span and chooses the nearest cell position; a tie uses the earlier row. Increasing the row count or dragging the Canvas height handle adds space below without moving or resizing existing blocks. Hold Shift while resizing the Canvas to add equal space above and below. Partial padding-cell blocks keep their exact size as rows are added. Group moves preserve the spacing between children. Existing content, wide, padding, and full-width horizontal alignment continues to follow the section width.
+Temporary guides show where a block will snap when you release it. Short solid guides connect sibling edges and centres only when their snapped cell positions align. Sibling guides do not change the grid destination or pull blocks off-grid. Vertical edge snapping sets a position once. Center vertically keeps the row span and chooses the nearest cell position; a tie uses the earlier row. Increasing the row count or dragging the Canvas height handle adds space below without moving or resizing existing blocks. Hold Shift while resizing the Canvas to add equal space above and below. Partial padding-cell blocks keep their exact size as rows are added. Group moves preserve the spacing between children. Existing content, wide, padding, and full-width horizontal alignment continues to follow the section width.
 
-Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. The right-click menu provides layer order, alignment, and block-specific controls. Select several blocks and right-click the selection to access Group.
+Hold Command (Ctrl on Windows/Linux) while dragging a corner or the block's surface to rotate. Shift snaps rotation to 15-degree increments. The right-click menu provides layer order, centering, and block-specific controls. Select several blocks and right-click the selection to access Group.
 
 = Keyboard and touch =
 
@@ -55,9 +55,9 @@ On touch screens, tap to select, drag with one finger to move, or pinch and twis
 
 = Images and text =
 
-In the right-click menu, use Text sizing to choose Default, Fit area, or Fit width, and Content alignment to position text or buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
+In the right-click menu, Fill area scales and wraps text within the frame or crops media to cover it. Turn it off to use normal text sizing or show the whole image. Text also offers Fit text: it keeps one line, scales to the width, and lets height follow automatically. Width fitting uses left/right handles; area fitting keeps all eight. Enabling either text fitting option disables the other. Use the block toolbar to align text vertically or justify and align buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
-Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. Shapes can have preferred proportions and resize locks. Image → Stretch shape overrides that behavior for an individual image while preserving its frame and crop. Image → Lock aspect ratio controls proportional resizing. Double-click a filled image to reposition its crop, then click outside or press Escape to finish.
+Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. With a shape selected, Fill area stretches the shape to its frame; turn it off to preserve the shape's proportions. The photo always fills the shape without distortion. Removing the shape restores the image's previous fill preference. Image → Lock aspect ratio controls proportional resizing. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
 
 = Groups and spacing =
 
@@ -79,11 +79,15 @@ Canvas uses the active theme's layout and style settings. Available widths and s
 
 = What happens if I deactivate Canvas? =
 
-The headings, paragraphs, images, buttons, and groups remain saved as core WordPress blocks. Canvas positioning and responsive behavior require the plugin to be active.
+The headings, paragraphs, images, videos, buttons, and groups remain saved as core WordPress blocks. Canvas positioning and responsive behavior require the plugin to be active.
 
 = Can an agent create or edit Canvas sections? =
 
 Yes. Canvas exposes WordPress abilities for reading context, validating sections, and creating or updating pages. An MCP client also needs the separate WordPress MCP Adapter or a local Playground bridge. The bundled AUTHORING.md describes the format and authoring workflow; the repository README covers connections. No AI provider account is required to use Canvas itself.
+
+= Videos =
+
+Videos use the same movement and resize controls as images. Fill area is enabled by default; turn it off to show the whole video. Click a selected video again or press Enter to access playback controls and Text tracks. Choose Done or press Escape to pause playback and return to moving. WordPress provides the video source, poster, captions, and playback settings.
 
 == Changelog ==
 

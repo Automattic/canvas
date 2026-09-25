@@ -1,3 +1,4 @@
+import { isFrameMedia } from './content-fill.mjs';
 import { isCanvasGroup } from './canvas-groups.mjs';
 import { rotationModifier } from './rotation.mjs';
 import { centerResizeModifier } from './resize-modifiers.mjs';
@@ -11,6 +12,7 @@ import { useSelect } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { gestureDocuments } from './gesture-pointer.mjs';
 import { canRepositionImage } from './image-reposition';
+import { __ } from '@wordpress/i18n';
 
 // The placeholder background is a canvas surface; only its native controls
 // should bypass selection and gestures (including clicks on button icons).
@@ -164,9 +166,42 @@ export function useCanvasInteractions( {
 	const editing = useRef( null );
 	const insertionFocus = useRef( null );
 	const exitEditing = useCallback( () => {
+		if ( editing.current ) {
+			gridRef.current?.ownerDocument
+				.getElementById( `block-${ editing.current }` )
+				?.querySelector( 'video' )
+				?.pause();
+		}
 		editing.current = null;
 		setEditingId( null );
-	}, [] );
+	}, [ gridRef ] );
+	const emptyEditingVideo = useSelect( () => {
+		const store = registry.select( blockEditorStore );
+		return (
+			!! editingId &&
+			store.getBlockName( editingId ) === 'core/video' &&
+			! store.getBlockAttributes( editingId )?.src
+		);
+	}, [ editingId, registry ] );
+	useLayoutEffect( () => {
+		if ( emptyEditingVideo ) {
+			exitEditing();
+		}
+	}, [ emptyEditingVideo, exitEditing ] );
+	const finishEditing = useCallback( () => {
+		const id = editing.current;
+		exitEditing();
+		if ( id ) {
+			selectBlock( id, null );
+			gridRef.current?.ownerDocument
+				.getElementById( `block-${ id }` )
+				?.focus( { preventScroll: true } );
+			announce(
+				'Movement mode. Arrow keys move. Tab reaches layout handles.'
+			);
+		}
+	}, [ exitEditing, gridRef, selectBlock, announce ] );
+
 	const selectInsertedBlock = useCallback(
 		( block ) => {
 			if ( ! block?.clientId ) {
@@ -381,6 +416,12 @@ export function useCanvasInteractions( {
 			if ( store.getBlockEditingMode( id ) === 'disabled' ) {
 				return;
 			}
+			if (
+				store.getBlockName( id ) === 'core/video' &&
+				! store.getBlockAttributes( id )?.src
+			) {
+				return;
+			}
 			if ( store.getBlockName( id ) === 'core/image' ) {
 				if ( ! canRepositionImage( item, store ) ) {
 					return;
@@ -440,6 +481,17 @@ export function useCanvasInteractions( {
 			}
 			editing.current = id;
 			setEditingId( id );
+			if ( store.getBlockName( id ) === 'core/video' ) {
+				selectBlock( id, null );
+				const video = item.querySelector( 'video' );
+				if (
+					video &&
+					! target.closest?.( '[contenteditable="true"]' )
+				) {
+					video.focus( { preventScroll: true } );
+					return;
+				}
+			}
 			const editable =
 				target.closest?.(
 					'[contenteditable="true"], input, textarea'
@@ -497,6 +549,7 @@ export function useCanvasInteractions( {
 						'core/paragraph',
 						'core/buttons',
 						'core/group',
+						'core/video',
 					].includes( store.getBlockName( id ) ) ||
 						canRepositionImage( item, store ) );
 				let openMenu;
@@ -606,6 +659,8 @@ export function useCanvasInteractions( {
 					'core/paragraph',
 					'core/buttons',
 					'core/group',
+					'core/image',
+					'core/video',
 				].includes( store.getBlockName( id ) )
 			) {
 				editOnClick = id;
@@ -645,6 +700,25 @@ export function useCanvasInteractions( {
 			}
 		};
 		const click = ( event ) => {
+			const placeholderItem = itemAt( event.target );
+			if (
+				event.type === 'dblclick' &&
+				placeholderItem &&
+				isFrameMedia(
+					store.getBlockName( placeholderItem.dataset.canvasItem )
+				) &&
+				event.target.closest( '.block-editor-media-placeholder' ) &&
+				! isPlaceholderControl( event.target ) &&
+				! event.shiftKey &&
+				selection.current.length <= 1 &&
+				store.getBlockEditingMode(
+					placeholderItem.dataset.canvasItem
+				) === 'default'
+			) {
+				// Let the placeholder's native MediaUpload open its library.
+				event.preventDefault();
+				return;
+			}
 			// Browsers send dblclick after the second click. Do not enter another
 			// Group level again, but leave native text selection available in editing.
 			if ( event.type === 'dblclick' && enteredOnClick ) {
@@ -779,16 +853,28 @@ export function useCanvasInteractions( {
 			}
 			if (
 				event.key === 'Enter' &&
-				store.getBlockName( item.dataset.canvasItem ) ===
-					'core/image' &&
+				isFrameMedia( store.getBlockName( item.dataset.canvasItem ) ) &&
 				item.querySelector( '.block-editor-media-placeholder' )
 			) {
 				stop( event );
-				item.querySelector(
-					'.block-editor-media-placeholder button'
-				)?.focus( {
-					preventScroll: true,
-				} );
+				const label =
+					store.getBlockName( item.dataset.canvasItem ) ===
+					'core/image'
+						? __( 'Add image' )
+						: __( 'Add video' );
+				for ( const document of gestureDocuments( doc ) ) {
+					const button = Array.from(
+						document.querySelectorAll( '[role="toolbar"] button' )
+					).find(
+						( candidate ) =>
+							candidate.textContent.trim() === label ||
+							candidate.getAttribute( 'aria-label' ) === label
+					);
+					if ( button ) {
+						button.focus( { preventScroll: true } );
+						break;
+					}
+				}
 				return;
 			}
 			if ( event.key === 'Enter' ) {
@@ -841,6 +927,21 @@ export function useCanvasInteractions( {
 				event.stopImmediatePropagation();
 				return;
 			}
+			// Core's caption toolbar and keyboard tabbing can focus video content
+			// without going through Canvas's double-click or Enter handler.
+			if (
+				item &&
+				store.getBlockName( item.dataset.canvasItem ) ===
+					'core/video' &&
+				!! store.getBlockAttributes( item.dataset.canvasItem )?.src &&
+				event.target.matches( 'video, [contenteditable="true"]' )
+			) {
+				editing.current = item.dataset.canvasItem;
+				setEditingId( editing.current );
+				setSelection( [ editing.current ] );
+				return;
+			}
+
 			if (
 				item &&
 				editing.current &&
@@ -987,6 +1088,7 @@ export function useCanvasInteractions( {
 	return {
 		editingId,
 		exitEditing,
+		finishEditing,
 		selectInsertedBlock,
 		contextMenu,
 		closeContextMenu,

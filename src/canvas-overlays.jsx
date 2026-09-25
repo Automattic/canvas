@@ -1,3 +1,7 @@
+import {
+	alignedSiblingGuides,
+	siblingGuideRectangles,
+} from './sibling-guides.mjs';
 import { useLayoutEffect, useRef, useState } from '@wordpress/element';
 import { focusCanvasControl } from './canvas-keyboard';
 import { gridMetrics } from './canvas-metrics.mjs';
@@ -294,6 +298,22 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 				aria-hidden="true"
 			>
 				<svg className="canvas__grid-guidelines" focusable="false">
+					{ showAlignment &&
+						preview &&
+						! preview.rotating &&
+						alignedSiblingGuides(
+							siblingGuideRectangles( preview ),
+							preview.siblings || []
+						).map( ( { axis, position, from, to } ) => (
+							<line
+								key={ `sibling-${ axis }-${ position }` }
+								className="canvas__guideline is-sibling is-aligned"
+								x1={ axis === 'x' ? position : from }
+								x2={ axis === 'x' ? position : to }
+								y1={ axis === 'y' ? position : from }
+								y2={ axis === 'y' ? position : to }
+							/>
+						) ) }
 					{ showAlignment &&
 						preview &&
 						guidelines.map( ( { axis, position, kind } ) => {

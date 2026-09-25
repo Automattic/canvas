@@ -1,3 +1,4 @@
+import { isFrameMedia } from './content-fill.mjs';
 import { compactCanvas, compactCanvasAttributes } from './serialization.mjs';
 import { ImageShapeMenu } from './image-shape-controls';
 import {
@@ -5,10 +6,22 @@ import {
 	saveGroupMove,
 	sourcePlacement,
 } from './canvas-groups.mjs';
-import { memo, useCallback, useContext } from '@wordpress/element';
+import {
+	memo,
+	cloneElement,
+	createContext,
+	useCallback,
+	useContext,
+	useLayoutEffect,
+	useRef,
+} from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import {
 	BlockControls,
+	BlockVerticalAlignmentControl,
+	JustifyContentControl,
+	MediaReplaceFlow,
+	MediaUpload,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
 import { MenuItem, ToolbarButton } from '@wordpress/components';
@@ -28,27 +41,123 @@ import {
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { Menu } from './core-menu';
-import { CanvasSubmenu } from './canvas-menu';
-import { normalizeRotation } from './rotation.mjs';
+import { CanvasMenuToggle, CanvasSubmenu } from './canvas-menu';
 import { imageWasReplaced } from './image-position.mjs';
 import { RadiusSettings } from './radius-settings';
-const TEXT_SIZING_OPTIONS = [
-	{
-		value: 'default',
-		label: 'Default',
-		info: 'Use the normal font size.',
-	},
-	{
-		value: 'area',
-		label: 'Fit area',
-		info: 'Resize and wrap to fit.',
-	},
-	{
-		value: 'width',
-		label: 'Fit width',
-		info: 'Resize to fit one line.',
-	},
-];
+import { __ } from '@wordpress/i18n';
+
+const EmptyMediaContext = createContext( false );
+
+function MediaPlaceholderIcon( { icon } ) {
+	const ref = useRef( null );
+	useLayoutEffect( () => {
+		const element = ref.current;
+		const doc = element.ownerDocument;
+		const view = doc.defaultView;
+		const ancestors = [];
+		for (
+			let node = element.parentElement;
+			node;
+			node = node.parentElement
+		) {
+			ancestors.push( node );
+		}
+		const update = () => {
+			// Transparent media wrappers inherit the visible surface behind them.
+			const background = ancestors
+				.map(
+					( node ) => view.getComputedStyle( node ).backgroundColor
+				)
+				.find(
+					( color ) =>
+						color !== 'transparent' &&
+						! /(?:,\s*0|\/\s*0(?:%)?)\s*\)$/.test( color )
+				);
+			element.style.setProperty(
+				'--canvas-placeholder-surface',
+				background || 'Canvas'
+			);
+		};
+		const observer = new view.MutationObserver( update );
+		ancestors.forEach( ( node ) =>
+			observer.observe( node, {
+				attributes: true,
+				attributeFilter: [ 'class', 'style' ],
+			} )
+		);
+		observer.observe( doc.head, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+		} );
+		update();
+		return () => observer.disconnect();
+	}, [] );
+	return (
+		<span
+			ref={ ref }
+			className="canvas__media-placeholder-icon"
+			aria-hidden="true"
+		>
+			{ icon }
+		</span>
+	);
+}
+
+addFilter(
+	'editor.MediaPlaceholder',
+	'tabor/canvas-empty-media',
+	( Original ) =>
+		function CanvasMediaPlaceholder( props ) {
+			const emptyMedia = useContext( EmptyMediaContext );
+			if (
+				! emptyMedia ||
+				props.disableMediaButtons ||
+				! props.placeholder
+			) {
+				return <Original { ...props } />;
+			}
+			// Reuse Core's illustration and upload handling without the inline form.
+			const placeholder = cloneElement( props.placeholder( null ), {
+				withIllustration: true,
+				icon: null,
+				label: null,
+				instructions: null,
+				children: (
+					<>
+						<Original { ...props } disableMediaButtons />
+						{ emptyMedia === 'video' && (
+							<MediaPlaceholderIcon icon={ props.icon } />
+						) }
+					</>
+				),
+			} );
+			return (
+				<>
+					<MediaUpload
+						allowedTypes={ props.allowedTypes }
+						onSelect={ props.onSelect }
+						render={ ( { open } ) =>
+							cloneElement( placeholder, { onDoubleClick: open } )
+						}
+					/>
+					{ emptyMedia === 'video' && (
+						<BlockControls group="other">
+							<MediaReplaceFlow
+								name={ __( 'Add video' ) }
+								allowedTypes={ props.allowedTypes }
+								accept={ props.accept }
+								onSelect={ props.onSelect }
+								onSelectURL={ props.onSelectURL }
+								onError={ props.onError }
+								variant="toolbar"
+							/>
+						</BlockControls>
+					) }
+				</>
+			);
+		}
+);
 export function ItemLayerMenu( {
 	clientId,
 	layouts,
@@ -113,81 +222,62 @@ export function ItemLayerMenu( {
 		</>
 	);
 }
-function ItemAlignmentMenu( {
-	clientId,
-	buttons,
-	editable,
-	changeAlignment,
-	hideOnClick,
-} ) {
-	const attributes = useSelect(
-		( select ) => select( blockEditorStore ).getBlockAttributes( clientId ),
+function ItemAlignmentControls( { clientId, name, attributes } ) {
+	const { changeAlignment } = useContext( CanvasContext );
+	const editable = useSelect(
+		( select ) =>
+			select( blockEditorStore ).getBlockEditingMode( clientId ) ===
+			'default',
 		[ clientId ]
 	);
-	const data = alignmentAttributes(
-		buttons ? 'core/buttons' : 'core/paragraph',
-		attributes
-	);
-	const axes = [
-		{
-			axis: 'y',
-			label: 'Vertical',
-			value: buttons
-				? data[ 'data-canvas-align-y' ]
-				: data[ 'data-canvas-text-align-y' ],
-			options: buttons
-				? [ 'top', 'center', 'bottom', 'stretch' ]
-				: [ 'top', 'center', 'bottom' ],
-		},
-	];
-	if ( buttons ) {
-		axes.unshift( {
-			axis: 'x',
-			label: 'Horizontal',
-			value: data[ 'data-canvas-justify' ],
-			options: [ 'left', 'center', 'right', 'stretch' ],
-		} );
+	if ( ! editable ) {
+		return null;
 	}
+	const buttons = name === 'core/buttons';
+	const data = alignmentAttributes( name, attributes );
 	return (
-		<CanvasSubmenu>
-			<Menu.SubmenuTriggerItem>
-				<Menu.ItemLabel>Content alignment</Menu.ItemLabel>
-			</Menu.SubmenuTriggerItem>
-			<Menu.Popover aria-label="Content alignment">
-				{ axes.map( ( { axis, label, value, options } ) => (
-					<Menu.Group key={ axis }>
-						<Menu.GroupLabel>{ label }</Menu.GroupLabel>
-						{ options.map( ( option ) => (
-							<Menu.RadioItem
-								key={ option }
-								name={ `content-alignment-${ axis }` }
-								value={ option }
-								checked={
-									( value === 'space-between'
-										? options[ 0 ]
-										: value ) === option
-								}
-								disabled={ ! editable }
-								hideOnClick={ hideOnClick }
-								onChange={ () =>
-									changeAlignment(
-										clientId,
-										axis,
-										option,
-										buttons
-									)
-								}
-							>
-								<Menu.ItemLabel>
-									{ option[ 0 ].toUpperCase() +
-										option.slice( 1 ) }
-								</Menu.ItemLabel>
-							</Menu.RadioItem>
-						) ) }
-					</Menu.Group>
-				) ) }
-			</Menu.Popover>
-		</CanvasSubmenu>
+		<BlockControls group="block">
+			<div data-canvas-alignment-controls>
+				{ buttons && (
+					<JustifyContentControl
+						value={ data[ 'data-canvas-justify' ] }
+						allowedControls={ [
+							'left',
+							'center',
+							'right',
+							'space-between',
+							'stretch',
+						] }
+						onChange={ ( value ) =>
+							changeAlignment( clientId, 'x', value, true )
+						}
+					/>
+				) }
+				<BlockVerticalAlignmentControl
+					value={
+						data[
+							buttons
+								? 'data-canvas-align-y'
+								: 'data-canvas-text-align-y'
+						]
+					}
+					controls={
+						buttons
+							? [
+									'top',
+									'center',
+									'bottom',
+									'space-between',
+									'stretch',
+								]
+							: [ 'top', 'center', 'bottom' ]
+					}
+					onChange={ ( value ) =>
+						changeAlignment( clientId, 'y', value, buttons )
+					}
+				/>
+			</div>
+		</BlockControls>
 	);
 }
 function ItemMenuItems( {
@@ -197,14 +287,12 @@ function ItemMenuItems( {
 	mode,
 	layer,
 	changeAspectRatio,
-	changeFit,
+	changeFill,
+	changeTextSizing,
 	changeShape,
 	changeShapeStretch,
 	previewShape,
 	clearShapePreview,
-	changeTextSizing,
-	changeAlignment,
-	changeRotation,
 	grouping,
 } ) {
 	const name = useSelect(
@@ -217,17 +305,30 @@ function ItemMenuItems( {
 				?.fitText,
 		[ menu.id ]
 	);
+	const hasImage = useSelect(
+		( select ) =>
+			!! select( blockEditorStore ).getBlockAttributes( menu.id )?.url,
+		[ menu.id ]
+	);
 	const image = name === 'core/image';
-	const fill = layouts[ menu.id ].fit === 'cover';
+	const emptyImage = image && ! hasImage;
+	const video = name === 'core/video';
+	const fill = layouts[ menu.id ].fill;
 	const shaped = layouts[ menu.id ].shape !== 'none';
+	const fillArea =
+		emptyImage ||
+		( image && shaped ? layouts[ menu.id ].shapeStretch : fill );
 	const text = [ 'core/heading', 'core/paragraph' ].includes( name );
-	let sizing;
-	if ( fitText ) {
-		sizing = 'width';
-	} else if ( layouts[ menu.id ].fitArea ) {
-		sizing = 'area';
-	} else {
-		sizing = 'default';
+	let fillDescription =
+		'Scale and wrap text to fit its width and height. Turn off to use its normal font size.';
+	if ( image ) {
+		fillDescription = shaped
+			? 'Stretch the shape to fill its area. Turn off to keep its proportions. The image always fills the shape.'
+			: 'Crop the image to fill its area. Turn off to show the whole image.';
+	}
+	if ( video ) {
+		fillDescription =
+			'Crop the video to fill its area. Turn off to show the whole video.';
 	}
 	const editable = useSelect(
 		( select ) =>
@@ -273,67 +374,37 @@ function ItemMenuItems( {
 				</Menu.Item>
 				<Menu.Separator />
 			</Menu.Group>
+			{ ( text || image || video ) && (
+				<CanvasMenuToggle
+					hideOnClick={ hideOnClick }
+					checked={ fillArea }
+					disabled={ ! editable || emptyImage }
+					aria-description={
+						emptyImage ? undefined : fillDescription
+					}
+					onChange={ () =>
+						image && shaped
+							? changeShapeStretch( menu.id, ! fillArea )
+							: changeFill( menu.id, ! fillArea )
+					}
+				>
+					<Menu.ItemLabel>Fill area</Menu.ItemLabel>
+				</CanvasMenuToggle>
+			) }
 			{ image && (
 				<CanvasSubmenu>
 					<Menu.SubmenuTriggerItem>
 						<Menu.ItemLabel>Image</Menu.ItemLabel>
 					</Menu.SubmenuTriggerItem>
 					<Menu.Popover aria-label="Image">
-						<Menu.CheckboxItem
-							name="image-fill"
-							hideOnClick={ hideOnClick }
-							checked={ fill }
-							disabled={ ! editable || shaped }
-							aria-description={
-								shaped
-									? 'Shapes require the image to fill its area.'
-									: 'Crop the image to fill its area. Turn off to show the whole image.'
-							}
-							onChange={ () =>
-								changeFit( menu.id, fill ? 'contain' : 'cover' )
-							}
-						>
-							<Menu.ItemLabel>Fill image</Menu.ItemLabel>
-						</Menu.CheckboxItem>
-						<Menu.CheckboxItem
-							name="image-aspect-ratio"
+						<CanvasMenuToggle
 							hideOnClick={ hideOnClick }
 							checked={ !! layouts[ menu.id ].aspectRatio }
 							disabled={ ! editable || ! fill }
 							onChange={ () => changeAspectRatio( menu.id ) }
 						>
 							<Menu.ItemLabel>Lock aspect ratio</Menu.ItemLabel>
-						</Menu.CheckboxItem>
-						<Menu.Item
-							hideOnClick={ hideOnClick }
-							disabled={
-								! editable ||
-								rotationLocked ||
-								normalizeRotation(
-									layouts[ menu.id ][ mode ].rotation
-								) === 0
-							}
-							onClick={ () => changeRotation( menu.id, 0 ) }
-						>
-							<Menu.ItemLabel>Reset rotation</Menu.ItemLabel>
-						</Menu.Item>
-						{ shaped && (
-							<Menu.CheckboxItem
-								name="shape-stretch"
-								hideOnClick={ hideOnClick }
-								checked={ layouts[ menu.id ].shapeStretch }
-								disabled={ ! editable }
-								aria-description="Fill the frame with the shape. Turn off to keep its proportions."
-								onChange={ () =>
-									changeShapeStretch(
-										menu.id,
-										! layouts[ menu.id ].shapeStretch
-									)
-								}
-							>
-								<Menu.ItemLabel>Stretch shape</Menu.ItemLabel>
-							</Menu.CheckboxItem>
-						) }
+						</CanvasMenuToggle>
 					</Menu.Popover>
 				</CanvasSubmenu>
 			) }
@@ -347,43 +418,16 @@ function ItemMenuItems( {
 					clearShapePreview={ clearShapePreview }
 				/>
 			) }
-			{ ( text || name === 'core/buttons' ) && (
-				<ItemAlignmentMenu
-					clientId={ menu.id }
-					buttons={ name === 'core/buttons' }
-					editable={ editable }
-					changeAlignment={ changeAlignment }
-					hideOnClick={ hideOnClick }
-				/>
-			) }
 			{ text && (
-				<CanvasSubmenu>
-					<Menu.SubmenuTriggerItem>
-						<Menu.ItemLabel>Text sizing</Menu.ItemLabel>
-					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Text sizing">
-						{ TEXT_SIZING_OPTIONS.map(
-							( { value, label, info } ) => (
-								<Menu.RadioItem
-									key={ value }
-									name="text-sizing"
-									value={ value }
-									hideOnClick={ hideOnClick }
-									checked={ sizing === value }
-									disabled={ ! editable }
-									onChange={ () =>
-										changeTextSizing( menu.id, value )
-									}
-								>
-									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
-									<Menu.ItemHelpText>
-										{ info }
-									</Menu.ItemHelpText>
-								</Menu.RadioItem>
-							)
-						) }
-					</Menu.Popover>
-				</CanvasSubmenu>
+				<CanvasMenuToggle
+					hideOnClick={ hideOnClick }
+					checked={ fitText }
+					disabled={ ! editable }
+					aria-description="Scale text to one line; height follows its width."
+					onChange={ () => changeTextSizing( menu.id, ! fitText ) }
+				>
+					<Menu.ItemLabel>Fit text</Menu.ItemLabel>
+				</CanvasMenuToggle>
 			) }
 			{ grouping }
 		</>
@@ -396,14 +440,12 @@ export function ItemMenu( {
 	mode,
 	layer,
 	changeAspectRatio,
-	changeFit,
+	changeFill,
+	changeTextSizing,
 	changeShape,
 	changeShapeStretch,
 	previewShape,
 	clearShapePreview,
-	changeTextSizing,
-	changeAlignment,
-	changeRotation,
 	onClose,
 	grouping,
 } ) {
@@ -417,14 +459,12 @@ export function ItemMenu( {
 					mode={ mode }
 					layer={ layer }
 					changeAspectRatio={ changeAspectRatio }
-					changeFit={ changeFit }
+					changeFill={ changeFill }
+					changeTextSizing={ changeTextSizing }
 					changeShape={ changeShape }
 					changeShapeStretch={ changeShapeStretch }
 					previewShape={ previewShape }
 					clearShapePreview={ clearShapePreview }
-					changeTextSizing={ changeTextSizing }
-					changeAlignment={ changeAlignment }
-					changeRotation={ changeRotation }
 					onClose={ onClose }
 					grouping={ grouping }
 				/>
@@ -434,14 +474,28 @@ export function ItemMenu( {
 		</>
 	);
 }
-function ItemImageRepositionControl( { clientId } ) {
-	const { editingId, finishImageReposition } = useContext( CanvasContext );
+function ItemMediaEditingControl( { clientId, name } ) {
+	const { editingId, finishImageReposition, finishEditing } =
+		useContext( CanvasContext );
 	return (
 		editingId === clientId && (
 			<BlockControls group="other">
+				{ name === 'core/video' && (
+					<div
+						className="canvas__media-divider"
+						role="separator"
+						aria-orientation="vertical"
+					/>
+				) }
 				<ToolbarButton
-					data-canvas-image-done
-					onClick={ finishImageReposition }
+					data-canvas-image-done={
+						name === 'core/image' ? '' : undefined
+					}
+					onClick={
+						name === 'core/image'
+							? finishImageReposition
+							: finishEditing
+					}
 				>
 					Done
 				</ToolbarButton>
@@ -460,7 +514,6 @@ function CanvasItem( { Original, ...props } ) {
 	const placement =
 		preview?.placements?.[ props.clientId ] ||
 		( preview?.id === props.clientId ? preview.placement : null );
-	const fitArea = preview?.placements ? layout?.fitArea : preview?.fitArea;
 	return (
 		<CanvasItemPlacement
 			{ ...props }
@@ -468,7 +521,6 @@ function CanvasItem( { Original, ...props } ) {
 			canvasLayout={ layout }
 			canvasShapeAttributes={ shapeAttributes }
 			canvasPlacement={ placement }
-			canvasFitArea={ placement ? fitArea : undefined }
 			canvasMode={ canvas?.mode }
 			canvasEditing={ canvas?.editingId === props.clientId }
 		/>
@@ -482,7 +534,6 @@ const CanvasItemPlacement = memo( function ItemPlacement( {
 	canvasLayout: layout,
 	canvasShapeAttributes: shapeAttributes,
 	canvasPlacement: placement,
-	canvasFitArea: fitArea,
 	canvasMode: mode,
 	canvasEditing: editing,
 	...props
@@ -496,17 +547,8 @@ const CanvasItemPlacement = memo( function ItemPlacement( {
 	if ( ! layout ) {
 		return <Original { ...props } />;
 	}
-	// Core width fitting keeps ownership during a drag, so a preview never
-	// runs two fitting engines.
 	const shown = placement
-		? changeViewport(
-				{
-					...layout,
-					fitArea: fitArea && ! props.attributes.fitText,
-				},
-				mode,
-				placement
-			)
+		? changeViewport( layout, mode, placement )
 		: layout;
 	let savedPlacement;
 	if ( placement ) {
@@ -531,15 +573,22 @@ const CanvasItemPlacement = memo( function ItemPlacement( {
 	let description;
 	if ( props.name === 'core/image' && ! props.attributes.url ) {
 		description =
-			'Empty image. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches upload controls. Shift+F10 opens Canvas options.';
-	} else if ( props.name === 'core/image' && shown.fit === 'cover' ) {
+			'Empty image. Double-click to open the media library. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches Add image in the toolbar. Shift+F10 opens Canvas options.';
+	} else if ( props.name === 'core/image' && shown.fill ) {
 		if ( editing ) {
 			description =
 				'Reposition image. Drag or use arrow keys. Shift uses larger steps. Home centers. Tab reaches Done. Escape finishes.';
 		} else {
 			description =
-				'Drag to move the block. Double-click or press Enter to reposition the image inside its frame.';
+				'Drag to move the block. Click the selected block again or press Enter to reposition the image inside its frame.';
 		}
+	} else if ( props.name === 'core/video' && ! props.attributes.src ) {
+		description =
+			'Empty video. Double-click to open the media library. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches Add video in the toolbar. Shift+F10 opens Canvas options.';
+	} else if ( props.name === 'core/video' && props.attributes.src ) {
+		description = editing
+			? 'Video editing. Use playback controls. Choose Done or press Escape to return to moving.'
+			: 'Drag to move the block. Click the selected block again or press Enter to use video controls.';
 	} else if ( layout.group ) {
 		description =
 			'Group. Drag or use arrow keys to move. Enter edits children. Escape exits the group.';
@@ -551,6 +600,8 @@ const CanvasItemPlacement = memo( function ItemPlacement( {
 	let itemClass;
 	if ( props.name === 'core/image' ) {
 		itemClass = ' canvas__image';
+	} else if ( props.name === 'core/video' ) {
+		itemClass = ' canvas__video';
 	} else if ( props.name === 'core/group' ) {
 		itemClass = ' canvas__container';
 	} else {
@@ -591,7 +642,7 @@ const CanvasItemPlacement = memo( function ItemPlacement( {
 						? String( shown.shapeStretch )
 						: undefined,
 				'data-canvas-text-fit':
-					shown.fitArea &&
+					shown.fill &&
 					[ 'core/heading', 'core/paragraph' ].includes( props.name )
 						? 'true'
 						: undefined,
@@ -625,12 +676,23 @@ export function registerItemControls() {
 					direct &&
 					[ 'core/heading', 'core/paragraph' ].includes( props.name );
 				const image = direct && props.name === 'core/image';
-				const context = image
-					? {
-							...props.context,
-							allowResize: false,
-						}
-					: props.context;
+				let emptyMedia = false;
+				if ( image && ! props.attributes.url ) {
+					emptyMedia = 'image';
+				} else if (
+					direct &&
+					props.name === 'core/video' &&
+					! props.attributes.src
+				) {
+					emptyMedia = 'video';
+				}
+				const context =
+					direct && isFrameMedia( props.name )
+						? {
+								...props.context,
+								allowResize: false,
+							}
+						: props.context;
 				// Supply the default on the first render, before Core Image starts uploading.
 				// Core resolves the Large URL and falls back when that size is unavailable.
 				const container = !! canvas && props.name === 'core/group';
@@ -701,7 +763,7 @@ export function registerItemControls() {
 										?.fontSize );
 						if (
 							text &&
-							canvas.layouts[ props.clientId ].fitArea &&
+							canvas.layouts[ props.clientId ].fill &&
 							( updates.fitText || fontSizeChanged )
 						) {
 							updates = {
@@ -709,7 +771,7 @@ export function registerItemControls() {
 								[ ATTRIBUTE ]: {
 									...props.attributes[ ATTRIBUTE ],
 									...updates[ ATTRIBUTE ],
-									fitArea: false,
+									fill: false,
 								},
 							};
 						}
@@ -728,10 +790,11 @@ export function registerItemControls() {
 					]
 				);
 				let inspectorControls;
-				if ( props.name === 'core/image' ) {
+				if ( isFrameMedia( props.name ) ) {
 					inspectorControls = (
-						<ItemImageRepositionControl
+						<ItemMediaEditingControl
 							clientId={ props.clientId }
+							name={ props.name }
 						/>
 					);
 				} else {
@@ -750,12 +813,23 @@ export function registerItemControls() {
 									name={ props.name }
 								/>
 							) }
-						<Original
-							{ ...props }
-							attributes={ attributes }
-							context={ context }
-							setAttributes={ setAttributes }
-						/>
+						<EmptyMediaContext.Provider value={ emptyMedia }>
+							<Original
+								{ ...props }
+								attributes={ attributes }
+								context={ context }
+								setAttributes={ setAttributes }
+							/>
+						</EmptyMediaContext.Provider>
+						{ props.isSelected &&
+							direct &&
+							( text || props.name === 'core/buttons' ) && (
+								<ItemAlignmentControls
+									clientId={ props.clientId }
+									name={ props.name }
+									attributes={ props.attributes }
+								/>
+							) }
 						{ props.isSelected && direct && inspectorControls }
 					</>
 				);
