@@ -18,6 +18,11 @@
 	}
 }
 
+// Keep alignment controls in the native row without extra group padding.
+[data-canvas-alignment-controls] {
+	display: contents;
+}
+
 .has-canvas-child-selected .block-editor-block-toolbar {
 
 	[data-canvas-hidden-control],

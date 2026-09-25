@@ -55,7 +55,7 @@ On touch screens, tap to select, drag with one finger to move, or pinch and twis
 
 = Images and text =
 
-In the right-click menu, use Text sizing to choose Default, Fit area, or Fit width, and Content alignment to position text or buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
+In the right-click menu, use Text sizing to choose Default, Fit area, or Fit width, and the block toolbar to align text vertically or justify and align buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
 Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. Shapes can have preferred proportions and resize locks. Image → Stretch shape overrides that behavior for an individual image while preserving its frame and crop. Image → Lock aspect ratio controls proportional resizing. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
 

@@ -17,6 +17,8 @@ import {
 import { useSelect } from '@wordpress/data';
 import {
 	BlockControls,
+	BlockVerticalAlignmentControl,
+	JustifyContentControl,
 	MediaReplaceFlow,
 	MediaUpload,
 	store as blockEditorStore,
@@ -237,81 +239,62 @@ export function ItemLayerMenu( {
 		</>
 	);
 }
-function ItemAlignmentMenu( {
-	clientId,
-	buttons,
-	editable,
-	changeAlignment,
-	hideOnClick,
-} ) {
-	const attributes = useSelect(
-		( select ) => select( blockEditorStore ).getBlockAttributes( clientId ),
+function ItemAlignmentControls( { clientId, name, attributes } ) {
+	const { changeAlignment } = useContext( CanvasContext );
+	const editable = useSelect(
+		( select ) =>
+			select( blockEditorStore ).getBlockEditingMode( clientId ) ===
+			'default',
 		[ clientId ]
 	);
-	const data = alignmentAttributes(
-		buttons ? 'core/buttons' : 'core/paragraph',
-		attributes
-	);
-	const axes = [
-		{
-			axis: 'y',
-			label: 'Vertical',
-			value: buttons
-				? data[ 'data-canvas-align-y' ]
-				: data[ 'data-canvas-text-align-y' ],
-			options: buttons
-				? [ 'top', 'center', 'bottom', 'stretch' ]
-				: [ 'top', 'center', 'bottom' ],
-		},
-	];
-	if ( buttons ) {
-		axes.unshift( {
-			axis: 'x',
-			label: 'Horizontal',
-			value: data[ 'data-canvas-justify' ],
-			options: [ 'left', 'center', 'right', 'stretch' ],
-		} );
+	if ( ! editable ) {
+		return null;
 	}
+	const buttons = name === 'core/buttons';
+	const data = alignmentAttributes( name, attributes );
 	return (
-		<CanvasSubmenu>
-			<Menu.SubmenuTriggerItem>
-				<Menu.ItemLabel>Content alignment</Menu.ItemLabel>
-			</Menu.SubmenuTriggerItem>
-			<Menu.Popover aria-label="Content alignment">
-				{ axes.map( ( { axis, label, value, options } ) => (
-					<Menu.Group key={ axis }>
-						<Menu.GroupLabel>{ label }</Menu.GroupLabel>
-						{ options.map( ( option ) => (
-							<Menu.RadioItem
-								key={ option }
-								name={ `content-alignment-${ axis }` }
-								value={ option }
-								checked={
-									( value === 'space-between'
-										? options[ 0 ]
-										: value ) === option
-								}
-								disabled={ ! editable }
-								hideOnClick={ hideOnClick }
-								onChange={ () =>
-									changeAlignment(
-										clientId,
-										axis,
-										option,
-										buttons
-									)
-								}
-							>
-								<Menu.ItemLabel>
-									{ option[ 0 ].toUpperCase() +
-										option.slice( 1 ) }
-								</Menu.ItemLabel>
-							</Menu.RadioItem>
-						) ) }
-					</Menu.Group>
-				) ) }
-			</Menu.Popover>
-		</CanvasSubmenu>
+		<BlockControls group="block">
+			<div data-canvas-alignment-controls>
+				{ buttons && (
+					<JustifyContentControl
+						value={ data[ 'data-canvas-justify' ] }
+						allowedControls={ [
+							'left',
+							'center',
+							'right',
+							'space-between',
+							'stretch',
+						] }
+						onChange={ ( value ) =>
+							changeAlignment( clientId, 'x', value, true )
+						}
+					/>
+				) }
+				<BlockVerticalAlignmentControl
+					value={
+						data[
+							buttons
+								? 'data-canvas-align-y'
+								: 'data-canvas-text-align-y'
+						]
+					}
+					controls={
+						buttons
+							? [
+									'top',
+									'center',
+									'bottom',
+									'space-between',
+									'stretch',
+								]
+							: [ 'top', 'center', 'bottom' ]
+					}
+					onChange={ ( value ) =>
+						changeAlignment( clientId, 'y', value, buttons )
+					}
+				/>
+			</div>
+		</BlockControls>
 	);
 }
 function ItemMenuItems( {
@@ -327,7 +310,6 @@ function ItemMenuItems( {
 	previewShape,
 	clearShapePreview,
 	changeTextSizing,
-	changeAlignment,
 	changeRotation,
 	grouping,
 } ) {
@@ -485,15 +467,6 @@ function ItemMenuItems( {
 					clearShapePreview={ clearShapePreview }
 				/>
 			) }
-			{ ( text || name === 'core/buttons' ) && (
-				<ItemAlignmentMenu
-					clientId={ menu.id }
-					buttons={ name === 'core/buttons' }
-					editable={ editable }
-					changeAlignment={ changeAlignment }
-					hideOnClick={ hideOnClick }
-				/>
-			) }
 			{ text && (
 				<CanvasSubmenu>
 					<Menu.SubmenuTriggerItem>
@@ -540,7 +513,6 @@ export function ItemMenu( {
 	previewShape,
 	clearShapePreview,
 	changeTextSizing,
-	changeAlignment,
 	changeRotation,
 	onClose,
 	grouping,
@@ -561,7 +533,6 @@ export function ItemMenu( {
 					previewShape={ previewShape }
 					clearShapePreview={ clearShapePreview }
 					changeTextSizing={ changeTextSizing }
-					changeAlignment={ changeAlignment }
 					changeRotation={ changeRotation }
 					onClose={ onClose }
 					grouping={ grouping }
@@ -907,6 +878,15 @@ export function registerItemControls() {
 								setAttributes={ setAttributes }
 							/>
 						</EmptyMediaContext.Provider>
+						{ props.isSelected &&
+							direct &&
+							( text || props.name === 'core/buttons' ) && (
+								<ItemAlignmentControls
+									clientId={ props.clientId }
+									name={ props.name }
+									attributes={ props.attributes }
+								/>
+							) }
 						{ props.isSelected && direct && inspectorControls }
 					</>
 				);

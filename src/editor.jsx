@@ -1183,7 +1183,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				previewShape={ previewShape }
 				clearShapePreview={ clearShapePreview }
 				changeTextSizing={ changeTextSizing }
-				changeAlignment={ changeAlignment }
 				changeRotation={ changeRotation }
 				onClose={ onClose }
 				grouping={
@@ -1212,7 +1211,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			previewShape,
 			clearShapePreview,
 			changeTextSizing,
-			changeAlignment,
 			changeRotation,
 			clientId,
 			registry,
@@ -1234,6 +1232,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			finishEditing,
 			changeFit,
 			changeShape,
+			changeAlignment,
 			layer,
 			radiusSettings,
 			gridRef,
@@ -1251,6 +1250,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			finishEditing,
 			changeFit,
 			changeShape,
+			changeAlignment,
 			layer,
 			radiusSettings,
 		]

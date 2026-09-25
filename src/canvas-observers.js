@@ -222,8 +222,8 @@ export function useItemToolbar(
 			labels.push( __( 'Align' ), __( 'Align block' ) );
 		}
 		// Core shares Buttons layout controls with its inner Button blocks.
-		// Show them only when the Buttons grid item itself is selected.
-		if ( selectedName === 'core/buttons' && ! directSelected ) {
+		// Canvas supplies controls with its own fill defaults for the grid item.
+		if ( selectedName === 'core/buttons' ) {
 			labels.push(
 				__( 'Change items justification' ),
 				__( 'Change vertical alignment' ),
@@ -260,7 +260,8 @@ export function useItemToolbar(
 					labels.includes(
 						node.getAttribute( 'aria-label' ) ||
 							node.textContent.trim()
-					)
+					) &&
+					! node.closest( '[data-canvas-alignment-controls]' )
 				) {
 					node.setAttribute( 'data-canvas-hidden-control', '' );
 					hidden.add( node );
