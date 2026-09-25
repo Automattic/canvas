@@ -89,7 +89,7 @@ test('None, missing measurements and an already suitable frame leave placement a
 });
 
 test('saving a mobile shape fit preserves other views, crop position and existing preferences', () => {
-  const saved = compactCanvas({ fit: 'contain', imagePosition: { x: .2, y: .7 },
+  const saved = compactCanvas({ fill: false, imagePosition: { x: .2, y: .7 },
     desktop: savedCanvasPlacement(placement('desktop')), tablet: savedCanvasPlacement(placement('tablet')) });
   const image = { clientId: 'image', name: 'core/image', attributes: { [ATTRIBUTE]: saved } };
   const layouts = resolveLayouts([image], Object.fromEntries(Object.keys(COLUMNS).map(mode => [mode, geometry(mode)])));
@@ -98,7 +98,7 @@ test('saving a mobile shape fit preserves other views, crop position and existin
   assert.deepEqual(next.desktop, saved.desktop);
   assert.deepEqual(next.tablet, saved.tablet);
   assert.deepEqual(next.imagePosition, saved.imagePosition);
-  assert.equal(next.fit, 'contain');
+  assert.equal(next.fill, false);
   assert.equal(next.aspectRatio, undefined);
   assert.ok(next.mobile);
   assert.equal(saved.mobile, undefined);

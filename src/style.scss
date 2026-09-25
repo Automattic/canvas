@@ -79,7 +79,7 @@
 		min-height: 100%;
 		box-sizing: border-box;
 	}
-	// Fitted text must keep words intact during measurement and rendering.
+	// Area fitting wraps text within the authored frame.
 	[data-canvas-text-fit="true"],
 	[data-canvas-text-fit="true"] > :is(h1,h2,h3,h4,h5,h6,p) {
 		overflow-wrap: normal;

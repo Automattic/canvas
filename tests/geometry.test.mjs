@@ -26,10 +26,10 @@ test('new items append to the desktop layout and inherit into smaller viewports'
 });
 
 test('editing desktop preserves mobile position and image fit', () => {
-  const initial = resolveLayouts([{ clientId: 'a', attributes: {} }]).a;
+  const initial = resolveLayouts([{ clientId: 'a', name: 'core/image', attributes: {} }]).a;
   const changed = changeViewport(initial, 'desktop', { ...initial.desktop, column: 4, rowSpan: 10 });
   assert.deepEqual(changed.mobile, initial.mobile);
-  assert.equal(changed.fit, 'cover');
+  assert.equal(changed.fill, true);
   assert.equal(initial.desktop.column, 1);
 });
 

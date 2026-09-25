@@ -1,3 +1,4 @@
+import { fillUpdates, textWidthUpdates } from './content-fill.mjs';
 import {
 	compactCanvasAttributes,
 	serializePlacement,
@@ -381,7 +382,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		geometry[ mode ]?.coreRows || 1
 	);
 	const commitSelection = useCallback(
-		( placements, fitAreas = {} ) => {
+		( placements ) => {
 			const updates = {};
 			for ( const [ id, placement ] of Object.entries( placements ) ) {
 				const current = layouts[ id ];
@@ -391,11 +392,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				if ( ! current || ! block ) {
 					continue;
 				}
-				const fitArea = fitAreas[ id ] ?? current.fitArea;
-				if (
-					placement === current[ mode ] &&
-					fitArea === current.fitArea
-				) {
+				if ( placement === current[ mode ] ) {
 					continue;
 				}
 				if ( isCanvasGroup( block ) ) {
@@ -418,23 +415,14 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				);
 				if (
 					JSON.stringify( next[ mode ] ) ===
-						JSON.stringify(
-							serializePlacement( current[ mode ], mode )
-						) &&
-					fitArea === current.fitArea
+					JSON.stringify(
+						serializePlacement( current[ mode ], mode )
+					)
 				) {
 					continue;
 				}
 				updates[ id ] = {
-					[ ATTRIBUTE ]: {
-						...next,
-						fitArea,
-					},
-					...( fitArea
-						? {
-								fitText: undefined,
-							}
-						: {} ),
+					[ ATTRIBUTE ]: next,
 				};
 			}
 			if ( Object.keys( updates ).length ) {
@@ -444,15 +432,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		[ blocks, layouts, mode, commitUpdates ]
 	);
 	const commit = useCallback(
-		( id, placement, fitArea ) =>
-			commitSelection(
-				{
-					[ id ]: placement,
-				},
-				{
-					[ id ]: fitArea,
-				}
-			),
+		( id, placement ) => commitSelection( { [ id ]: placement } ),
 		[ commitSelection ]
 	);
 	const centerBlock = useCallback(
@@ -539,28 +519,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			blocks,
 		]
 	);
-	const changeRotation = useCallback(
-		( id, value ) => {
-			const store = registry.select( blockEditorStore );
-			if (
-				! layouts[ id ] ||
-				layouts[ id ].group ||
-				! Number.isFinite( value ) ||
-				store.getTemplateLock( clientId ) ||
-				store.getBlockAttributes( id )?.lock?.move ||
-				store.getBlockEditingMode( id ) !== 'default'
-			) {
-				return;
-			}
-			const rotation = normalizeRotation( value );
-			commit( id, {
-				...layouts[ id ][ mode ],
-				rotation,
-			} );
-			announce( `Rotation ${ rotation } degrees.` );
-		},
-		[ registry, layouts, clientId, mode, commit, announce ]
-	);
 	const layer = useCallback(
 		( id, direction ) => {
 			const store = registry.select( blockEditorStore );
@@ -608,26 +566,21 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		},
 		[ layouts, mode, commitUpdates, registry, clientId ]
 	);
-	const changeFit = useCallback(
-		( id, fit ) => {
+	const changeFill = useCallback(
+		( id, fill ) => {
 			const store = registry.select( blockEditorStore );
-			const saved = store.getBlockAttributes( id )?.[ ATTRIBUTE ] || {};
-			if (
-				store.getBlockEditingMode( id ) !== 'default' ||
-				imageShape( saved.shape ) !== 'none'
-			) {
+			const current = store.getBlockAttributes( id );
+			if ( ! current || store.getBlockEditingMode( id ) !== 'default' ) {
 				return;
 			}
-			commitUpdates( {
-				[ id ]: {
-					[ ATTRIBUTE ]: {
-						...saved,
-						...( store.getBlockName( id ) === 'core/video'
-							? { fill: fit === 'cover' }
-							: { fit } ),
-					},
-				},
-			} );
+			const updates = fillUpdates(
+				store.getBlockName( id ),
+				current,
+				fill
+			);
+			if ( updates ) {
+				commitUpdates( { [ id ]: updates } );
+			}
 		},
 		[ registry, commitUpdates ]
 	);
@@ -740,7 +693,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			if (
 				store.getBlockName( id ) !== 'core/image' ||
 				store.getBlockEditingMode( id ) !== 'default' ||
-				layouts[ id ]?.fit !== 'cover'
+				! layouts[ id ]?.fill
 			) {
 				return;
 			}
@@ -822,38 +775,17 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		canvasLocked,
 	] );
 	const changeTextSizing = useCallback(
-		( id, sizing ) => {
+		( id, enabled ) => {
 			const current = registry
 				.select( blockEditorStore )
 				.getBlockAttributes( id );
-			if ( ! current || ! layouts[ id ] ) {
-				return;
+			if ( current && layouts[ id ] ) {
+				commitUpdates( {
+					[ id ]: textWidthUpdates( current, enabled ),
+				} );
 			}
-			const updates = {
-				fitText: sizing === 'width' ? true : undefined,
-				[ ATTRIBUTE ]: {
-					...current[ ATTRIBUTE ],
-					fitArea: sizing === 'area',
-				},
-			};
-			// Match core Fit text: width fitting replaces explicit font-size settings.
-			if ( sizing === 'width' ) {
-				updates.fontSize = undefined;
-				if ( current.style?.typography?.fontSize ) {
-					updates.style = {
-						...current.style,
-						typography: {
-							...current.style.typography,
-							fontSize: undefined,
-						},
-					};
-				}
-			}
-			commitUpdates( {
-				[ id ]: updates,
-			} );
 		},
-		[ layouts, registry, commitUpdates ]
+		[ registry, layouts, commitUpdates ]
 	);
 	const changeAlignment = useCallback(
 		( id, axis, value, buttons ) => {
@@ -1177,13 +1109,12 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				mode={ mode }
 				layer={ layer }
 				changeAspectRatio={ changeAspectRatio }
-				changeFit={ changeFit }
+				changeFill={ changeFill }
+				changeTextSizing={ changeTextSizing }
 				changeShape={ changeShape }
 				changeShapeStretch={ changeShapeStretch }
 				previewShape={ previewShape }
 				clearShapePreview={ clearShapePreview }
-				changeTextSizing={ changeTextSizing }
-				changeRotation={ changeRotation }
 				onClose={ onClose }
 				grouping={
 					<ContainerActions
@@ -1205,13 +1136,12 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			mode,
 			layer,
 			changeAspectRatio,
-			changeFit,
+			changeFill,
+			changeTextSizing,
 			changeShape,
 			changeShapeStretch,
 			previewShape,
 			clearShapePreview,
-			changeTextSizing,
-			changeRotation,
 			clientId,
 			registry,
 			afterGrouping,
@@ -1230,7 +1160,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			editingId,
 			finishImageReposition,
 			finishEditing,
-			changeFit,
+			changeFill,
+			changeTextSizing,
 			changeShape,
 			changeAlignment,
 			layer,
@@ -1248,7 +1179,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			editingId,
 			finishImageReposition,
 			finishEditing,
-			changeFit,
+			changeFill,
+			changeTextSizing,
 			changeShape,
 			changeAlignment,
 			layer,

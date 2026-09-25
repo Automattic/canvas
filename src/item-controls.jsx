@@ -40,8 +40,7 @@ import {
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext } from './editor-context';
 import { Menu } from './core-menu';
-import { CanvasSubmenu } from './canvas-menu';
-import { normalizeRotation } from './rotation.mjs';
+import { CanvasMenuToggle, CanvasSubmenu } from './canvas-menu';
 import { imageWasReplaced } from './image-position.mjs';
 import { RadiusSettings } from './radius-settings';
 import { __ } from '@wordpress/i18n';
@@ -158,23 +157,6 @@ addFilter(
 			);
 		}
 );
-const TEXT_SIZING_OPTIONS = [
-	{
-		value: 'default',
-		label: 'Default',
-		info: 'Use the normal font size.',
-	},
-	{
-		value: 'area',
-		label: 'Fit area',
-		info: 'Resize and wrap to fit.',
-	},
-	{
-		value: 'width',
-		label: 'Fit width',
-		info: 'Resize to fit one line.',
-	},
-];
 export function ItemLayerMenu( {
 	clientId,
 	layouts,
@@ -304,13 +286,12 @@ function ItemMenuItems( {
 	mode,
 	layer,
 	changeAspectRatio,
-	changeFit,
+	changeFill,
+	changeTextSizing,
 	changeShape,
 	changeShapeStretch,
 	previewShape,
 	clearShapePreview,
-	changeTextSizing,
-	changeRotation,
 	grouping,
 } ) {
 	const name = useSelect(
@@ -323,17 +304,30 @@ function ItemMenuItems( {
 				?.fitText,
 		[ menu.id ]
 	);
+	const hasImage = useSelect(
+		( select ) =>
+			!! select( blockEditorStore ).getBlockAttributes( menu.id )?.url,
+		[ menu.id ]
+	);
 	const image = name === 'core/image';
-	const fill = layouts[ menu.id ].fit === 'cover';
+	const emptyImage = image && ! hasImage;
+	const video = name === 'core/video';
+	const fill = layouts[ menu.id ].fill;
 	const shaped = layouts[ menu.id ].shape !== 'none';
+	const fillArea =
+		emptyImage ||
+		( image && shaped ? layouts[ menu.id ].shapeStretch : fill );
 	const text = [ 'core/heading', 'core/paragraph' ].includes( name );
-	let sizing;
-	if ( fitText ) {
-		sizing = 'width';
-	} else if ( layouts[ menu.id ].fitArea ) {
-		sizing = 'area';
-	} else {
-		sizing = 'default';
+	let fillDescription =
+		'Scale and wrap text to fit its width and height. Turn off to use its normal font size.';
+	if ( image ) {
+		fillDescription = shaped
+			? 'Stretch the shape to fill its area. Turn off to keep its proportions. The image always fills the shape.'
+			: 'Crop the image to fill its area. Turn off to show the whole image.';
+	}
+	if ( video ) {
+		fillDescription =
+			'Crop the video to fill its area. Turn off to show the whole video.';
 	}
 	const editable = useSelect(
 		( select ) =>
@@ -379,19 +373,22 @@ function ItemMenuItems( {
 				</Menu.Item>
 				<Menu.Separator />
 			</Menu.Group>
-			{ name === 'core/video' && (
-				<Menu.CheckboxItem
-					name="video-fill"
+			{ ( text || image || video ) && (
+				<CanvasMenuToggle
 					hideOnClick={ hideOnClick }
-					checked={ fill }
-					disabled={ ! editable }
-					aria-description="Crop the video to fill its area. Turn off to show the whole video."
+					checked={ fillArea }
+					disabled={ ! editable || emptyImage }
+					aria-description={
+						emptyImage ? undefined : fillDescription
+					}
 					onChange={ () =>
-						changeFit( menu.id, fill ? 'contain' : 'cover' )
+						image && shaped
+							? changeShapeStretch( menu.id, ! fillArea )
+							: changeFill( menu.id, ! fillArea )
 					}
 				>
-					<Menu.ItemLabel>Fit area</Menu.ItemLabel>
-				</Menu.CheckboxItem>
+					<Menu.ItemLabel>Fill area</Menu.ItemLabel>
+				</CanvasMenuToggle>
 			) }
 			{ image && (
 				<CanvasSubmenu>
@@ -399,61 +396,14 @@ function ItemMenuItems( {
 						<Menu.ItemLabel>Image</Menu.ItemLabel>
 					</Menu.SubmenuTriggerItem>
 					<Menu.Popover aria-label="Image">
-						<Menu.CheckboxItem
-							name="image-fill"
-							hideOnClick={ hideOnClick }
-							checked={ fill }
-							disabled={ ! editable || shaped }
-							aria-description={
-								shaped
-									? 'Shapes require the image to fill its area.'
-									: 'Crop the image to fill its area. Turn off to show the whole image.'
-							}
-							onChange={ () =>
-								changeFit( menu.id, fill ? 'contain' : 'cover' )
-							}
-						>
-							<Menu.ItemLabel>Fill image</Menu.ItemLabel>
-						</Menu.CheckboxItem>
-						<Menu.CheckboxItem
-							name="image-aspect-ratio"
+						<CanvasMenuToggle
 							hideOnClick={ hideOnClick }
 							checked={ !! layouts[ menu.id ].aspectRatio }
 							disabled={ ! editable || ! fill }
 							onChange={ () => changeAspectRatio( menu.id ) }
 						>
 							<Menu.ItemLabel>Lock aspect ratio</Menu.ItemLabel>
-						</Menu.CheckboxItem>
-						<Menu.Item
-							hideOnClick={ hideOnClick }
-							disabled={
-								! editable ||
-								rotationLocked ||
-								normalizeRotation(
-									layouts[ menu.id ][ mode ].rotation
-								) === 0
-							}
-							onClick={ () => changeRotation( menu.id, 0 ) }
-						>
-							<Menu.ItemLabel>Reset rotation</Menu.ItemLabel>
-						</Menu.Item>
-						{ shaped && (
-							<Menu.CheckboxItem
-								name="shape-stretch"
-								hideOnClick={ hideOnClick }
-								checked={ layouts[ menu.id ].shapeStretch }
-								disabled={ ! editable }
-								aria-description="Fill the frame with the shape. Turn off to keep its proportions."
-								onChange={ () =>
-									changeShapeStretch(
-										menu.id,
-										! layouts[ menu.id ].shapeStretch
-									)
-								}
-							>
-								<Menu.ItemLabel>Stretch shape</Menu.ItemLabel>
-							</Menu.CheckboxItem>
-						) }
+						</CanvasMenuToggle>
 					</Menu.Popover>
 				</CanvasSubmenu>
 			) }
@@ -468,33 +418,15 @@ function ItemMenuItems( {
 				/>
 			) }
 			{ text && (
-				<CanvasSubmenu>
-					<Menu.SubmenuTriggerItem>
-						<Menu.ItemLabel>Text sizing</Menu.ItemLabel>
-					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Text sizing">
-						{ TEXT_SIZING_OPTIONS.map(
-							( { value, label, info } ) => (
-								<Menu.RadioItem
-									key={ value }
-									name="text-sizing"
-									value={ value }
-									hideOnClick={ hideOnClick }
-									checked={ sizing === value }
-									disabled={ ! editable }
-									onChange={ () =>
-										changeTextSizing( menu.id, value )
-									}
-								>
-									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
-									<Menu.ItemHelpText>
-										{ info }
-									</Menu.ItemHelpText>
-								</Menu.RadioItem>
-							)
-						) }
-					</Menu.Popover>
-				</CanvasSubmenu>
+				<CanvasMenuToggle
+					hideOnClick={ hideOnClick }
+					checked={ fitText }
+					disabled={ ! editable }
+					aria-description="Scale text to one line; height follows its width."
+					onChange={ () => changeTextSizing( menu.id, ! fitText ) }
+				>
+					<Menu.ItemLabel>Fit text</Menu.ItemLabel>
+				</CanvasMenuToggle>
 			) }
 			{ grouping }
 		</>
@@ -507,13 +439,12 @@ export function ItemMenu( {
 	mode,
 	layer,
 	changeAspectRatio,
-	changeFit,
+	changeFill,
+	changeTextSizing,
 	changeShape,
 	changeShapeStretch,
 	previewShape,
 	clearShapePreview,
-	changeTextSizing,
-	changeRotation,
 	onClose,
 	grouping,
 } ) {
@@ -527,13 +458,12 @@ export function ItemMenu( {
 					mode={ mode }
 					layer={ layer }
 					changeAspectRatio={ changeAspectRatio }
-					changeFit={ changeFit }
+					changeFill={ changeFill }
+					changeTextSizing={ changeTextSizing }
 					changeShape={ changeShape }
 					changeShapeStretch={ changeShapeStretch }
 					previewShape={ previewShape }
 					clearShapePreview={ clearShapePreview }
-					changeTextSizing={ changeTextSizing }
-					changeRotation={ changeRotation }
 					onClose={ onClose }
 					grouping={ grouping }
 				/>
@@ -592,18 +522,8 @@ function CanvasItem( { Original, ...props } ) {
 	const placement =
 		preview?.placements?.[ props.clientId ] ||
 		( preview?.id === props.clientId ? preview.placement : null );
-	const fitArea = preview?.placements ? layout.fitArea : preview?.fitArea;
-	// Core width fitting keeps ownership during a drag, so a preview never
-	// runs two fitting engines.
 	const shown = placement
-		? changeViewport(
-				{
-					...layout,
-					fitArea: fitArea && ! props.attributes.fitText,
-				},
-				mode,
-				placement
-			)
+		? changeViewport( layout, mode, placement )
 		: layout;
 	let savedPlacement;
 	if ( placement ) {
@@ -629,7 +549,7 @@ function CanvasItem( { Original, ...props } ) {
 	if ( props.name === 'core/image' && ! props.attributes.url ) {
 		description =
 			'Empty image. Double-click to open the media library. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches Add image in the toolbar. Shift+F10 opens Canvas options.';
-	} else if ( props.name === 'core/image' && shown.fit === 'cover' ) {
+	} else if ( props.name === 'core/image' && shown.fill ) {
 		if ( canvas.editingId === props.clientId ) {
 			description =
 				'Reposition image. Drag or use arrow keys. Shift uses larger steps. Home centers. Tab reaches Done. Escape finishes.';
@@ -699,7 +619,7 @@ function CanvasItem( { Original, ...props } ) {
 						? String( shown.shapeStretch )
 						: undefined,
 				'data-canvas-text-fit':
-					shown.fitArea &&
+					shown.fill &&
 					[ 'core/heading', 'core/paragraph' ].includes( props.name )
 						? 'true'
 						: undefined,
@@ -820,7 +740,7 @@ export function registerItemControls() {
 										?.fontSize );
 						if (
 							text &&
-							canvas.layouts[ props.clientId ].fitArea &&
+							canvas.layouts[ props.clientId ].fill &&
 							( updates.fitText || fontSizeChanged )
 						) {
 							updates = {
@@ -828,7 +748,7 @@ export function registerItemControls() {
 								[ ATTRIBUTE ]: {
 									...props.attributes[ ATTRIBUTE ],
 									...updates[ ATTRIBUTE ],
-									fitArea: false,
+									fill: false,
 								},
 							};
 						}

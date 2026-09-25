@@ -37,13 +37,13 @@ test('existing dimensions, layer, image options and other viewport survive a mov
   const original = compactCanvas(resolveLayouts([block('a')]).a);
   original.layers = { desktop: 9 };
   original.desktop = { column: 2, row: 3, columnSpan: 4, rowSpan: 2 };
-  original.fit = 'contain';
+  original.fill = false;
   const a = block('a', 'core/image', { [ATTRIBUTE]: original });
   const next = droppedLayouts([a], [a], 'desktop', { x: 99999, y: -10 }, metrics).a;
   const moved = resolveLayouts([block('a','core/image',{[ATTRIBUTE]:next})],metrics.geometry).a.desktop;
   assert.deepEqual([moved.column,moved.row,moved.columnSpan,moved.rowSpan,moved.layer],[21,1,4,2,9]);
   assert.deepEqual(next.mobile, original.mobile);
-  assert.equal(next.fit, 'contain');
+  assert.equal(next.fill, false);
   assert.equal(a.attributes[ATTRIBUTE].desktop.column, 2);
 });
 

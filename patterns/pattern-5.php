@@ -10,7 +10,7 @@ $story_image_url  = plugin_dir_url( __DIR__ ) . 'images/image-3.jpg';
 $detail_image_url = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 ?>
 <!-- wp:tabor/canvas {"desktopRows":24,"tabletRows":31,"align":"full","className":"is-style-default"} -->
-<!-- wp:heading {"canvas":{"fitArea":true,"desktop":{"column":1,"row":3,"columnSpan":11,"rowSpan":3,"gridColumns":24,"anchors":{"left":"wide"}}}} -->
+<!-- wp:heading {"canvas":{"fill":true,"desktop":{"column":1,"row":3,"columnSpan":11,"rowSpan":3,"gridColumns":24,"anchors":{"left":"wide"}}}} -->
 <h2 class="wp-block-heading">Your site</h2>
 <!-- /wp:heading -->
 

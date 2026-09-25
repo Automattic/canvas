@@ -18,7 +18,7 @@ $second_image_url = plugin_dir_url( __DIR__ ) . 'images/image-3.jpg';
 <figure class="wp-block-image size-large"><img src="<?php echo esc_url( $second_image_url ); ?>" alt=""/></figure>
 <!-- /wp:image -->
 
-<!-- wp:heading {"canvas":{"fitArea":true,"desktop":{"column":1,"row":5,"columnSpan":10,"rowSpan":5,"gridColumns":24,"anchors":{"left":"wide"}},"tablet":{"column":1,"row":2,"columnSpan":6,"rowSpan":5,"gridColumns":12,"anchors":{"left":"padding"}},"mobile":{"column":1,"row":2,"columnSpan":9,"rowSpan":9,"gridColumns":12,"free":{"x":0.06263,"y":2,"width":0.653099,"ratio":2.475469},"anchors":{"left":"wide"}}}} -->
+<!-- wp:heading {"canvas":{"fill":true,"desktop":{"column":1,"row":5,"columnSpan":10,"rowSpan":5,"gridColumns":24,"anchors":{"left":"wide"}},"tablet":{"column":1,"row":2,"columnSpan":6,"rowSpan":5,"gridColumns":12,"anchors":{"left":"padding"}},"mobile":{"column":1,"row":2,"columnSpan":9,"rowSpan":9,"gridColumns":12,"free":{"x":0.06263,"y":2,"width":0.653099,"ratio":2.475469},"anchors":{"left":"wide"}}}} -->
 <h2 class="wp-block-heading">A site that grows with you</h2>
 <!-- /wp:heading -->
 

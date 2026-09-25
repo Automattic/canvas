@@ -14,13 +14,13 @@ const almost = (a,b) => assert.ok(Math.abs(a-b)<1e-8, `${a} != ${b}`);
 const sameRect = (a,b) => ['left','top','width','height'].forEach(key=>almost(a[key],b[key]));
 
 test('grouping preserves fractional frames, rotation, settings and automatic breakpoints', () => {
-  const a=leaf('a',2,2,{fit:'contain',fitArea:true,desktop:{gridColumns:24,free:{x:.12731,y:1.375,width:.23219,ratio:1.4381},rotation:23}}), b=leaf('b',12,6);
+  const a=leaf('a',2,2,{fill: true,desktop:{gridColumns:24,free:{x:.12731,y:1.375,width:.23219,ratio:1.4381},rotation:23}}), b=leaf('b',12,6);
   const before=resolveCanvasLayouts([a,b],geometry), after=resolveCanvasLayouts([group('g',[a,b])],geometry);
   for(const mode of Object.keys(COLUMNS)) for(const id of ['a','b']) {
     sameRect(before[id][mode]._rect,after[id][mode]._rect);
     assert.equal(after[id][mode].rotation,before[id][mode].rotation);
   }
-  assert.equal(after.a.fit,'contain'); assert.equal(after.a.fitArea,true);
+  assert.equal(after.a.fill,true);
   assert.equal(a.attributes[ATTRIBUTE].mobile,undefined);
   const bounds=rotatedBounds(after.a.desktop._rect,23), outer=after.g.desktop._rect;
   assert.ok(outer.left<=bounds.left && outer.top<=bounds.top);

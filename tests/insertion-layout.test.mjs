@@ -95,7 +95,7 @@ test('new Buttons use their 4 by 2 minimum across insertion paths and viewports'
     ]) {
       assert.equal(layout[mode].columnSpan, 4);
       assert.equal(layout[mode].rowSpan, 2);
-      assert.equal(layout.fitArea, undefined);
+      assert.equal(layout.fill, undefined);
       assert.equal(layout.desktop.columnSpan, 4);
       assert.equal(layout.desktop.rowSpan, 2);
     }
@@ -104,7 +104,7 @@ test('new Buttons use their 4 by 2 minimum across insertion paths and viewports'
   }
 });
 
-for (const [name, content, fitArea] of [
+for (const [name, content, fill] of [
   ['core/heading', 'This is a heading', true],
   ['core/paragraph', 'A thoughtful composition keeps its character across different screens. This longer paragraph should stay alongside the heading while there is enough room, then widen only as much as it needs.', false],
 ]) test(`new ${name} blocks share text, fitting, and default sizing across insertion paths`, () => {
@@ -117,7 +117,7 @@ for (const [name, content, fitArea] of [
     insertionLayout([], incoming, 'desktop', metrics, { x: 84, y: 144 }),
     droppedLayouts([], [incoming], 'desktop', { x: 84, y: 144 }, metrics).new,
   ]) {
-    assert.equal(layout.fitArea, fitArea || undefined);
+    assert.equal(layout.fill, fill || undefined);
     assert.equal(layout.desktop.columnSpan, name === 'core/paragraph' ? 10 : 8);
     assert.equal(layout.desktop.rowSpan, name === 'core/paragraph' ? 3 : 2);
     assert.equal(layout.mobile, undefined);
@@ -172,7 +172,7 @@ test('insertion defaults preserve authored layouts and supplied heading text and
   const initialized = withInsertionDefaults(incoming, 'desktop', metrics);
   assert.equal(initialized.attributes.content, 'Keep this heading');
   assert.equal(initialized.attributes.fitText, true);
-  assert.equal(initialized.attributes[ATTRIBUTE].fitArea, undefined);
+  assert.equal(initialized.attributes[ATTRIBUTE].fill, undefined);
   const emptyRichText = { toString: () => '' };
   assert.equal(withInsertionDefaults({ ...incoming, attributes: { content: emptyRichText } }, 'desktop', metrics).attributes.content, 'This is a heading');
 });
@@ -187,7 +187,7 @@ test('video insertion uses a landscape frame without image attributes and preser
   assert.deepEqual(inserted.attributes.tracks, incoming.attributes.tracks);
   assert.deepEqual(withInsertionDefaults(inserted, 'mobile', metrics), inserted);
   const layout = resolveLayouts([inserted], metrics.geometry).video;
-  assert.equal(layout.fit, 'cover');
+  assert.equal(layout.fill, true);
   assert.equal(layout.shape, 'none');
   assert.equal(layout.video, true);
 });

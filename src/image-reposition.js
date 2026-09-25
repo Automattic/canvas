@@ -1,4 +1,9 @@
-import { imageShape, imageFit, shapePath, shapeMask } from './image-shapes.mjs';
+import {
+	imageShape,
+	imageFill,
+	shapePath,
+	shapeMask,
+} from './image-shapes.mjs';
 import { useCallback, useLayoutEffect, useRef } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
@@ -93,7 +98,7 @@ export function canRepositionImage( item, store ) {
 	return (
 		store.getBlockName( id ) === 'core/image' &&
 		store.getBlockEditingMode( id ) === 'default' &&
-		imageFit( store.getBlockAttributes( id )?.[ ATTRIBUTE ] ) === 'cover' &&
+		imageFill( store.getBlockAttributes( id )?.[ ATTRIBUTE ] ) &&
 		!! readImageFrame( item )
 	);
 }
@@ -247,7 +252,7 @@ export function useImageReposition( {
 				store.getBlockName( editingId ) === 'core/image',
 			enabled:
 				!! attributes &&
-				imageFit( attributes[ ATTRIBUTE ] ) === 'cover' &&
+				imageFill( attributes[ ATTRIBUTE ] ) &&
 				store.getBlockEditingMode( editingId ) === 'default',
 			media: `${ attributes?.id || '' }:${ attributes?.url || '' }`,
 			...point,

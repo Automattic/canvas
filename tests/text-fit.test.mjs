@@ -13,16 +13,16 @@ test('fits both width and height, including discontinuous line wraps', () => {
 });
 
 test('keeps the readability floor when the area is too small', () => {
-  assert.equal(fittingFontSize((size) => ({ width: 100, height: size * 100 }), 100, 24), 12);
+  assert.equal(fittingFontSize((size) => ({ width: 100, height: size * 100 }), 100, 24, 12), 12);
 });
 
 test('text fitting is opt-in and survives changes to either viewport', () => {
-  const blocks = [{ clientId: 'a', attributes: { canvas: { fitArea: true } } }, { clientId: 'b', attributes: {} }];
+  const blocks = [{ clientId: 'a', name: 'core/heading', attributes: { canvas: { fill: true } } }, { clientId: 'b', name: 'core/paragraph', attributes: {} }];
   const layouts = resolveLayouts(blocks);
-  assert.equal(layouts.a.fitArea, true);
-  assert.equal(layouts.b.fitArea, false);
+  assert.equal(layouts.a.fill, true);
+  assert.equal(layouts.b.fill, false);
   const changed = changeViewport(layouts.a, 'mobile', { ...layouts.a.mobile, columnSpan: 4 });
-  assert.equal(changed.fitArea, true);
+  assert.equal(changed.fill, true);
   assert.deepEqual(changed.desktop, layouts.a.desktop);
 });
 

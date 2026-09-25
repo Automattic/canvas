@@ -690,6 +690,25 @@ body[data-canvas-drop-owner] .components-drop-zone {
 	margin: 8px -8px;
 }
 
+.canvas__menu-toggle-state {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 24px;
+	block-size: 24px;
+
+	svg {
+		width: 24px;
+		height: 24px;
+	}
+
+	path {
+		fill: none;
+		stroke: currentcolor;
+		stroke-width: 1.5;
+	}
+}
+
 .components-dropdown__content.is-alternate .canvas__menu-separator {
 	border-color: #1e1e1e;
 }
@@ -822,4 +841,9 @@ body[data-canvas-drop-owner] .components-drop-zone {
 // Native video controls receive pointer input only while editing the content.
 .wp-block-tabor-canvas .canvas__video:not([data-canvas-editing]) video {
 	pointer-events: none;
+}
+
+// Also cover the native typography panel and its options popover.
+.has-canvas-child-selected [data-canvas-hidden-control] {
+	display: none;
 }

@@ -23,12 +23,12 @@ test('rotation follows the pointer in both directions and across the angle bound
 });
 
 test('rotation saves only the edited viewport and survives serialization and duplication', () => {
-  const saved = { desktop, mobile: { ...desktop, column: 2, columnSpan: 3, rotation: -15 }, fitArea: true };
+  const saved = { desktop, mobile: { ...desktop, column: 2, columnSpan: 3, rotation: -15 }, fill: true };
   const layout = resolveLayouts([block(saved)]).a;
   const edited = savePlacement(saved, layout, 'tablet', { ...layout.tablet, rotation: 45 });
   assert.deepEqual(edited.desktop, desktop);
   assert.deepEqual(edited.mobile, saved.mobile);
-  assert.equal(edited.fitArea, true);
+  assert.equal(edited.fill, true);
   const reopened = resolveLayouts([block(JSON.parse(JSON.stringify(edited)))]).a;
   assert.equal(reopened.tablet.rotation, 45);
   const duplicate = duplicateLayout(reopened, edited);

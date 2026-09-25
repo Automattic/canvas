@@ -308,7 +308,7 @@ function validate_layout( $layout ) {
 	if ( ! is_array( $layout ) ) {
 		return failure( 'canvas must be an object.' );
 	}
-	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fill', 'fitArea', 'shape', 'shapeStretch', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
+	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fill', 'shape', 'shapeStretch', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
 	foreach ( $layout as $key => $value ) {
 		if ( ! in_array( $key, $known, true ) ) {
 			return failure( "Unknown canvas field: $key" );
@@ -316,7 +316,6 @@ function validate_layout( $layout ) {
 	}
 	$enums = array(
 		'shape'         => array_column( \PlaygroundPlugin\Canvas\image_shapes(), 'value' ),
-		'fit'           => array( 'cover', 'contain' ),
 		'verticalAlign' => array( 'top', 'center', 'bottom' ),
 		'group'         => array( 1 ),
 	);
@@ -363,9 +362,6 @@ function validate_layout( $layout ) {
 	}
 	if ( array_key_exists( 'fill', $layout ) && ! is_bool( $layout['fill'] ) ) {
 		return failure( 'canvas.fill must be a boolean.' );
-	}
-	if ( isset( $layout['fitArea'] ) && ! is_bool( $layout['fitArea'] ) ) {
-		return failure( 'canvas.fitArea must be a boolean.' );
 	}
 	if ( isset( $layout['layers'] ) ) {
 		if ( ! is_array( $layout['layers'] ) ) {
@@ -514,8 +510,8 @@ function validate_block( $block, $parent_name = null, $depth = 0 ) {
 				return failure( 'Fill height requires an image directly inside Canvas.' );
 			}
 		}
-		if ( ! empty( $attrs['fitText'] ) && ! empty( $attrs['canvas']['fitArea'] ) ) {
-			return failure( 'Choose either fitText or canvas.fitArea.' );
+		if ( ! empty( $attrs['fitText'] ) && ! empty( $attrs['canvas']['fill'] ) ) {
+			return failure( 'Choose either fitText or canvas.fill.' );
 		}
 	}
 	foreach ( array( 'desktopRows', 'tabletRows', 'mobileRows' ) as $key ) {

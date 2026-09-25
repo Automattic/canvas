@@ -442,6 +442,24 @@ function canvas_paint_layers( $blocks ) {
 }
 
 /**
+ * Resolve content filling, matching content-fill.mjs and image-shapes.mjs.
+ *
+ * @param string $name Block name.
+ * @param array  $attributes Block attributes.
+ * @return bool Whether content fills its frame.
+ */
+function content_fill( $name, $attributes ) {
+	$saved = $attributes[ ATTRIBUTE ] ?? array();
+	if ( 'core/video' === $name ) {
+		return false !== ( $saved['fill'] ?? true );
+	}
+	if ( 'core/image' === $name ) {
+		return 'none' !== image_shape( $saved['shape'] ?? null ) || false !== ( $saved['fill'] ?? true );
+	}
+	return in_array( $name, array( 'core/heading', 'core/paragraph' ), true ) && true === ( $saved['fill'] ?? false ) && empty( $attributes['fitText'] );
+}
+
+/**
  * Build the opening wrapper for a positioned Canvas child.
  *
  * @param \WP_Block $child Child block.
@@ -460,11 +478,9 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 			unset( $saved[ $mode ]['fillHeight'] );
 		}
 	}
-	$shape = 'core/image' === $child->name ? image_shape( $saved['shape'] ?? null ) : 'none';
-	$fit   = 'none' === $shape && 'contain' === ( $saved['fit'] ?? '' ) ? 'contain' : 'cover';
-	if ( 'core/video' === $child->name ) {
-		$fit = false === ( $saved['fill'] ?? true ) ? 'contain' : 'cover';
-	}
+	$shape   = 'core/image' === $child->name ? image_shape( $saved['shape'] ?? null ) : 'none';
+	$fill    = content_fill( $child->name, $child->attributes );
+	$fit     = $fill ? 'cover' : 'contain';
 	$css     = '--canvas-fit:' . $fit . ';';
 	$stretch = image_shape_stretch( $shape, $saved['shapeStretch'] ?? null );
 	if ( 'none' !== $shape ) {
@@ -502,7 +518,7 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 	}
 	$auto_modes = array_filter( array( 'tablet', 'mobile' ), static fn( $mode ) => ! isset( $saved[ $mode ] ) );
 	$auto       = ' data-canvas-auto="' . esc_attr( implode( ' ', $auto_modes ) ) . '" data-canvas-layout="' . esc_attr( wp_json_encode( compact_canvas( $saved ) ) ) . '"';
-	$text_fit   = true === ( $saved['fitArea'] ?? false ) && in_array( $child->name, array( 'core/heading', 'core/paragraph' ), true ) ? ' data-canvas-text-fit="true"' : '';
+	$text_fit   = $fill && in_array( $child->name, array( 'core/heading', 'core/paragraph' ), true ) ? ' data-canvas-text-fit="true"' : '';
 	$alignment  = '';
 	foreach ( alignment_attributes( $child->name, $child->attributes ) as $key => $value ) {
 		$alignment .= ' ' . $key . '="' . esc_attr( $value ) . '"';

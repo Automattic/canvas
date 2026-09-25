@@ -161,7 +161,6 @@ export function useCanvasGestures( {
 				.map( ( [ , layout ] ) => layout[ mode ]._rect );
 			let scroll;
 			let selectionEnabled;
-			const fitArea = layouts[ id ]?.fitArea;
 			const resizeElement = grid.querySelector(
 				`[data-canvas-item="${ id }"]`
 			);
@@ -347,7 +346,6 @@ export function useCanvasGestures( {
 					setPreview( {
 						id,
 						placement: finalValue,
-						fitArea,
 						rotating: true,
 					} );
 				} else {
@@ -420,7 +418,6 @@ export function useCanvasGestures( {
 						placement: finalValue,
 						dropPlacement: dropPlacement(),
 						siblings,
-						fitArea,
 						resizing: kind !== 'move',
 					} );
 				}
@@ -493,10 +490,9 @@ export function useCanvasGestures( {
 						announce( `Canvas height ${ finalRows } rows.` );
 					}
 				} else if (
-					JSON.stringify( finalValue ) !== JSON.stringify( start ) ||
-					fitArea !== layouts[ id ].fitArea
+					JSON.stringify( finalValue ) !== JSON.stringify( start )
 				) {
-					commit( id, finalValue, fitArea );
+					commit( id, finalValue );
 					let announcement;
 					if ( pairStart ) {
 						announcement = `Width ${ finalValue.columnSpan } columns, height ${ finalValue.rowSpan } rows. Rotation ${ finalValue.rotation || 0 } degrees.`;
@@ -576,7 +572,6 @@ export function useCanvasGestures( {
 								placement: finalValue,
 								dropPlacement: dropPlacement(),
 								siblings,
-								fitArea,
 								transforming: true,
 							} );
 						},

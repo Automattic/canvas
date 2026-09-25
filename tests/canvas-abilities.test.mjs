@@ -28,8 +28,8 @@ test('placement validation accepts wide anchors and rejects grid overflow and in
 
 test('authoring validates only the new nested schema and independent finite layer values', () => {
  const results=php(`echo json_encode(array_map(function($layout){return true===PlaygroundPlugin\\Abilities\\validate_layout($layout);},[
- ['fitArea'=>true,'layers'=>['desktop'=>1.5,'mobile'=>-0.5]], ['fitArea'=>false],
- ['fitArea'=>'true'], ['layers'=>['phone'=>1]], ['layers'=>['desktop'=>'2']], ['layers'=>['mobile'=>INF]],
+ ['fill'=>true,'layers'=>['desktop'=>1.5,'mobile'=>-0.5]], ['fill'=>false],
+ ['fill'=>'true'], ['layers'=>['phone'=>1]], ['layers'=>['desktop'=>'2']], ['layers'=>['mobile'=>INF]],
  ['desktop'=>['anchors'=>['left'=>-3,'right'=>'wide-end']]],
  ['desktop'=>['anchors'=>['left'=>'after:2']]], ['desktop'=>['anchors'=>['bottom'=>'center']]],
  ['desktop'=>['anchors'=>['middle'=>1]]], ['desktop'=>['anchors'=>'wide']],
@@ -62,7 +62,7 @@ test('all Canvas settings reject malformed values and accept supported boundarie
  ['imagePosition'=>['x'=>100]], ['imagePosition'=>['x'=>NAN]], ['imagePosition'=>['z'=>0]], ['imagePosition'=>null],
  ['verticalAlign'=>'stretch'], ['shape'=>null],
  ['desktop'=>['free'=>true]], ['desktop'=>['free'=>['x'=>0,'y'=>0,'width'=>1,'ratio'=>1,'extra'=>1]]],
- ['fit'=>'contain','shape'=>'circle','verticalAlign'=>'bottom','aspectRatio'=>0.01,'group'=>1,'order'=>0],
+ ['fill'=>false,'shape'=>'circle','verticalAlign'=>'bottom','aspectRatio'=>0.01,'group'=>1,'order'=>0],
  ['imagePosition'=>['x'=>0,'y'=>1],'offset'=>['desktop'=>['x'=>-0.5,'y'=>1.25],'mobile'=>['x'=>0]]],
  ['imagePosition'=>[],'offset'=>[]], []
  ]));`);
@@ -82,4 +82,11 @@ test('full-height placements accept only boolean values and retain horizontal-on
  }, [['fillHeight'=>true],['fillHeight'=>false],['fillHeight'=>'true'],['fillHeight'=>1],['fillHeight'=>null],
      ['fillHeight'=>true,'anchors'=>['top'=>'canvas','bottom'=>'canvas']],['fillHeight'=>true,'anchors'=>['left'=>'canvas']]]));`);
  assert.deepEqual(results, [true,true,false,false,false,false,true]);
+});
+
+test('shared fill rejects removed fields and non-boolean values', () => {
+ const results = php(`echo json_encode(array_map(function($layout) {
+   return true === PlaygroundPlugin\\Abilities\\validate_layout($layout);
+ }, [['fill'=>true],['fill'=>false],['fill'=>null],['fill'=>1],['fill'=>'false'],['fitArea'=>true],['fit'=>'cover'],['fit'=>'contain']]));`);
+ assert.deepEqual(results, [true,true,false,false,false,false,false,false]);
 });

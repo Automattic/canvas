@@ -1,7 +1,6 @@
-import { isFrameMedia } from './content-fill.mjs';
+import { contentFill, isFrameMedia } from './content-fill.mjs';
 import {
 	imageShape,
-	imageFit,
 	imageAspectRatio,
 	imageShapeStretch,
 	shapeMask,
@@ -157,16 +156,6 @@ export function resolveLayouts( blocks, geometry = {} ) {
 					occupiedRows( placement ) + 1
 				);
 			}
-			let fit;
-			if ( block.name === 'core/image' ) {
-				fit = imageFit( saved );
-			} else if ( block.name === 'core/video' ) {
-				fit = saved.fill === false ? 'contain' : 'cover';
-			} else if ( saved.fit === 'contain' ) {
-				fit = 'contain';
-			} else {
-				fit = 'cover';
-			}
 			return [
 				block.clientId,
 				{
@@ -179,8 +168,11 @@ export function resolveLayouts( blocks, geometry = {} ) {
 					shapeStretch:
 						block.name === 'core/image' &&
 						imageShapeStretch( saved ),
-					fit,
-					fitArea: saved.fitArea === true,
+					fill: contentFill( block.name, block.attributes ),
+					widthFit:
+						[ 'core/heading', 'core/paragraph' ].includes(
+							block.name
+						) && !! block.attributes.fitText,
 					imagePosition: imagePosition( saved.imagePosition ),
 					aspectRatio:
 						block.name === 'core/image'
@@ -499,12 +491,10 @@ export function reorderLayer( layouts, id, mode, direction ) {
 }
 export function layoutVariables( layout ) {
 	const vars = {
-		'--canvas-fit': layout.fit,
+		'--canvas-fit': layout.fill ? 'cover' : 'contain',
 		'--canvas-image-mask': shapeMask( layout.shape, layout.shapeStretch ),
 	};
-	const position = imagePosition(
-		layout.fit === 'contain' ? null : layout.imagePosition
-	);
+	const position = imagePosition( layout.fill ? layout.imagePosition : null );
 	vars[ '--canvas-image-position' ] =
 		`${ position.x * 100 }% ${ position.y * 100 }%`;
 	for ( const mode of Object.keys( COLUMNS ) ) {

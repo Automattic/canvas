@@ -16,12 +16,12 @@ const geometry = (width, mode = 'desktop', count = 24) => {
 };
 
 test('compact attributes retain intent and are idempotent without mutating the source', () => {
-  const source = { shape: 'none', fit: 'cover', verticalAlign: 'top', fitArea: false, layers: {},
+  const source = { shape: 'none', verticalAlign: 'top', fill: false, layers: {},
     desktop: { ...desktop, layer: 9, rotation: 0, frameRatio: 1.0184275607717435, anchors: { left: 5, right: 18, top: 2, bottom: 15 }, _rect: { width: 50 } }, mobile: {},
     group: 1, order: 0, offset: { desktop: { x: .123456789, y: 0 } }, imagePosition: { x: .2, y: .7 }, aspectRatio: 1.123456789,
   };
   const before = structuredClone(source), compact = compactCanvas(source);
-  assert.deepEqual(compact, { desktop: { ...desktop, frameRatio: 1.01843 }, mobile: {}, group: 1, order: 0,
+  assert.deepEqual(compact, { fill: false, desktop: { ...desktop, frameRatio: 1.01843 }, mobile: {}, group: 1, order: 0,
     offset: source.offset, imagePosition: source.imagePosition, aspectRatio: source.aspectRatio });
   assert.deepEqual(compactCanvas(compact), compact);
   assert.deepEqual(source, before);
@@ -104,7 +104,7 @@ test('snap mutations do not mutate nested authored anchors or accumulate save no
 });
 
 test('PHP and JavaScript compact the same schema, including fractional layers and free frames', () => {
-  const cases=[{}, ...[{left:'wide'}, {right:'canvas'}, {left:'wide',right:18}, {left:5,right:'wide'}].map(anchors=>({desktop:{...desktop,free:preciseFree,anchors}})), {desktop:{...desktop,anchorOffsets:{right:3,bottom:2.375}}}, {desktop:{rowSpan:3,anchors:{top:0,bottom:3}}}, {fitArea:false,shape:'none',layers:{},mobile:{}}, {fitArea:true,layers:{desktop:1.5,tablet:-.5},desktop:{...desktop,rotation:360,frameRatio:1.0184275607717435,anchors:{left:5,right:'wide',top:2,bottom:15}}},
+  const cases=[{}, ...[{left:'wide'}, {right:'canvas'}, {left:'wide',right:18}, {left:5,right:'wide'}].map(anchors=>({desktop:{...desktop,free:preciseFree,anchors}})), {desktop:{...desktop,anchorOffsets:{right:3,bottom:2.375}}}, {desktop:{rowSpan:3,anchors:{top:0,bottom:3}}}, {fill:false,shape:'none',layers:{},mobile:{}}, {fill:true,layers:{desktop:1.5,tablet:-.5},desktop:{...desktop,rotation:360,frameRatio:1.0184275607717435,anchors:{left:5,right:'wide',top:2,bottom:15}}},
     {group:1,order:2,offset:{mobile:{x:.123456789,y:1.75}},desktop:{...desktop,free:{x:.123456789,y:1.123456789,width:.333333333,ratio:1.123456789},anchors:{left:-2,right:25,top:'after:0',bottom:'canvas'}}},
     ...['desktop', 'tablet', 'mobile'].flatMap(mode => [
       { ...preciseFree, anchorY: 'center' },

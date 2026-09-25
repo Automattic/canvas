@@ -159,11 +159,9 @@ export function withInsertionDefaults( block, mode, metrics ) {
 	let sizingAttributes;
 	if ( text ) {
 		sizingAttributes = {
-			fitArea: saved.fitArea ?? ( heading && ! attributes.fitText ),
-		};
-	} else if ( buttons ) {
-		sizingAttributes = {
-			fitArea: false,
+			fill:
+				saved.fill ??
+				( heading && ! attributes.fitText ? true : undefined ),
 		};
 	} else {
 		sizingAttributes = {};
