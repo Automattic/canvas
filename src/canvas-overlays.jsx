@@ -55,16 +55,20 @@ export function GridHandle( {
 	...props
 } ) {
 	const ref = useRef( null );
+	const handlers = useRef( { onPointerDown, onKeyDown, onKeyUp, onBlur } );
+	useLayoutEffect( () => {
+		handlers.current = { onPointerDown, onKeyDown, onKeyUp, onBlur };
+	}, [ onPointerDown, onKeyDown, onKeyUp, onBlur ] );
 	useLayoutEffect( () => {
 		const node = ref.current;
 		const stop = ( event ) => event.stopPropagation();
 		const pointer = ( event ) => {
 			event.stopPropagation();
-			onPointerDown?.( event );
+			handlers.current.onPointerDown?.( event );
 		};
-		const key = ( event ) => onKeyDown?.( event );
-		const keyUp = ( event ) => onKeyUp?.( event );
-		const blur = ( event ) => onBlur?.( event );
+		const key = ( event ) => handlers.current.onKeyDown?.( event );
+		const keyUp = ( event ) => handlers.current.onKeyUp?.( event );
+		const blur = ( event ) => handlers.current.onBlur?.( event );
 		node.addEventListener( 'pointerdown', pointer );
 		node.addEventListener( 'keydown', key );
 		node.addEventListener( 'keyup', keyUp );
@@ -79,7 +83,7 @@ export function GridHandle( {
 			node.removeEventListener( 'focusin', stop );
 			node.removeEventListener( 'click', stop );
 		};
-	}, [ onPointerDown, onKeyDown, onKeyUp, onBlur ] );
+	}, [] );
 	useLayoutEffect( () => {
 		if ( ref.current === ref.current.ownerDocument.activeElement ) {
 			focusCanvasControl( ref.current );
@@ -89,6 +93,12 @@ export function GridHandle( {
 }
 export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 	const [ lines, setLines ] = useState( null );
+	const previewRef = useRef( preview );
+	const updateRef = useRef( null );
+	useLayoutEffect( () => {
+		previewRef.current = preview;
+		updateRef.current?.();
+	}, [ preview ] );
 	useLayoutEffect( () => {
 		const grid = gridRef.current;
 		// Keep the last geometry mounted so fading out can reverse mid-transition.
@@ -96,6 +106,7 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 			return;
 		}
 		const update = () => {
+			const currentPreview = previewRef.current;
 			const metrics = gridMetrics( grid );
 			if ( ! metrics ) {
 				return;
@@ -104,18 +115,18 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 			const scale = grid.offsetWidth / bounds.width || 1;
 			// The item follows the pointer between cells. Highlight where releasing
 			// it will land, so a guideline stays solid throughout that cell's snap range.
-			const drop = preview?.dropPlacement?._rect;
+			const drop = currentPreview?.dropPlacement?._rect;
 			const item =
-				! drop && preview?.id
+				! drop && currentPreview?.id
 					? grid
 							.querySelector(
-								'[data-canvas-item="' + preview.id + '"]'
+								'[data-canvas-item="' + currentPreview.id + '"]'
 							)
 							?.getBoundingClientRect()
 					: null;
 			let rectangles;
-			if ( preview?.dropPlacements ) {
-				rectangles = Object.values( preview.dropPlacements ).map(
+			if ( currentPreview?.dropPlacements ) {
+				rectangles = Object.values( currentPreview.dropPlacements ).map(
 					( placement ) => placement._rect
 				);
 			} else if ( drop ) {
@@ -130,16 +141,16 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 					},
 				];
 			} else {
-				rectangles = preview?.rectangles || [];
+				rectangles = currentPreview?.rectangles || [];
 			}
 			const css = grid.ownerDocument.defaultView.getComputedStyle( grid );
 			// The layout observer retains committed rows during a height drag.
 			// Extend the guides immediately using the preview's rows and cell pitch.
-			const rowMetrics = preview?.rows
+			const rowMetrics = currentPreview?.rows
 				? canvasRows(
 						metrics.padding.top,
 						metrics.padding.bottom,
-						preview.rows,
+						currentPreview.rows,
 						metrics.gap,
 						metrics.rowHeight
 					)
@@ -162,6 +173,7 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 					) || 0,
 			} );
 		};
+		updateRef.current = update;
 		update();
 		const observer = new grid.ownerDocument.defaultView.ResizeObserver(
 			update
@@ -169,10 +181,11 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 		observer.observe( grid );
 		grid.addEventListener( 'canvas-layout-change', update );
 		return () => {
+			updateRef.current = null;
 			observer.disconnect();
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
-	}, [ gridRef, active, preview ] );
+	}, [ gridRef, active ] );
 	if ( ! lines ) {
 		return null;
 	}

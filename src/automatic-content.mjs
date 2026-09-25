@@ -37,7 +37,7 @@ export function measureBox( element, width, buttons = false ) {
 }
 
 // Use the same natural content measurement for layout and live resizing.
-export function readableContentHeight( element, width ) {
+export function readableContentHeight( element, width, textMeasurements ) {
 	const height = element.classList.contains( 'canvas__container' )
 		? null
 		: measureText(
@@ -45,7 +45,9 @@ export function readableContentHeight( element, width ) {
 				width,
 				( measureAtSize, { fontSize } ) =>
 					measureAtSize( fontSize ).height,
-				true
+				true,
+				false,
+				textMeasurements
 			);
 	return (
 		height ??
@@ -74,7 +76,7 @@ export function resolveAutomaticContent(
 	placements,
 	sources,
 	authoredSources = [],
-	{ explicitReadable = false } = {}
+	{ explicitReadable = false, textMeasurements } = {}
 ) {
 	const columns = geometry.contentColumns;
 	const available = columns.at( -1 ).end - columns[ 0 ].start;
@@ -127,7 +129,9 @@ export function resolveAutomaticContent(
 						element,
 						'min-content',
 						( measure, { fontSize } ) => measure( fontSize ).width,
-						true
+						true,
+						false,
+						textMeasurements
 					) ?? measureBox( element, 'min-content' ).width;
 			}
 		}
@@ -151,9 +155,10 @@ export function resolveAutomaticContent(
 	} );
 	const measure = ( item, width ) => {
 		if ( item.widthFit ) {
-			return measureWidthFit( item.element, width ).height;
+			return measureWidthFit( item.element, width, textMeasurements )
+				.height;
 		}
-		return readableContentHeight( item.element, width );
+		return readableContentHeight( item.element, width, textMeasurements );
 	};
 	return readablePlacements( data, mode, geometry, placements, measure );
 }
