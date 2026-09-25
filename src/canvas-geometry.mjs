@@ -200,8 +200,10 @@ export function occupiedRows( value ) {
 	if ( ( value._base || value ).fillHeight ) {
 		return 1;
 	}
+	// A resolved free frame is measured geometry, so its rows follow the frame.
 	if ( value.free && value._rect && value._canvas ) {
-		return clamp(
+		return Math.max(
+			1,
 			Math.ceil(
 				( value._rect.top +
 					value._rect.height -
@@ -213,9 +215,7 @@ export function occupiedRows( value ) {
 					value._canvas.gap -
 					0.01 ) /
 					rowPitch( value._canvas )
-			),
-			1,
-			MAX_ROWS
+			)
 		);
 	}
 
@@ -331,7 +331,8 @@ export function mapCanvasPlacement(
 	if ( fillHeight ) {
 		needed = geometry.coreRows;
 	} else if ( rect ) {
-		needed = clamp(
+		needed = Math.max(
+			1,
 			Math.ceil(
 				( rect.top +
 					rect.height -
@@ -342,9 +343,7 @@ export function mapCanvasPlacement(
 					geometry.gap -
 					0.01 ) /
 					rowPitch( geometry )
-			),
-			1,
-			MAX_ROWS
+			)
 		);
 	} else {
 		needed = occupiedRows( { ...base, fillHeight: undefined } );
