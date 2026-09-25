@@ -239,7 +239,7 @@ export function useItemToolbar(
 		if ( [ 'core/image', 'core/video' ].includes( selectedBlockName ) ) {
 			labels.push( __( 'Add caption' ), __( 'Remove caption' ) );
 		}
-		if ( selectedBlockName === 'core/video' && editingId !== selectedId ) {
+		if ( selectedBlockName === 'core/video' ) {
 			labels.push( __( 'Text tracks' ) );
 		}
 		if ( ! labels.length ) {
