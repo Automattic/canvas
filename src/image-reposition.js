@@ -143,10 +143,7 @@ function createImageOverlay( item, id ) {
 	svg.append( defs, ghost );
 	const thirds = doc.createElement( 'div' );
 	thirds.className = 'canvas-image-reposition__thirds';
-	const hint = doc.createElement( 'span' );
-	hint.className = 'canvas-image-reposition__hint';
-	hint.textContent = 'Drag to reposition';
-	frame.append( svg, thirds, hint );
+	frame.append( svg, thirds );
 	root.append( frame );
 	item.after( root );
 	// CSSOM updates avoid waking the canvas's DOM observers on every drag frame.
@@ -179,7 +176,6 @@ function createImageOverlay( item, id ) {
 				top: `${ data.centerY / scale }px`,
 				transform: `translate(-50%, -50%) rotate(${ data.rotation }deg)`,
 			} );
-			frameStyle.setProperty( '--canvas-image-scale', scale );
 			svg.setAttribute( 'width', width );
 			svg.setAttribute( 'height', height );
 			const area = {
@@ -223,7 +219,6 @@ function createImageOverlay( item, id ) {
 			].forEach( ( key, index ) => {
 				thirdsStyle[ key ] = corners[ index ];
 			} );
-			hint.hidden = width * scale < 160 || height * scale < 72;
 		},
 	};
 }

@@ -769,20 +769,6 @@ body[data-canvas-drop-owner] .components-drop-zone {
 			box-shadow: 0 1px rgba(0, 0, 0, 0.25), 0 -1px rgba(0, 0, 0, 0.25);
 		}
 	}
-
-	&__hint {
-		position: absolute;
-		bottom: calc(12px / var(--canvas-image-scale));
-		left: 50%;
-		transform: translateX(-50%) scale(calc(1 / var(--canvas-image-scale)));
-		transform-origin: bottom center;
-		padding: 3px 7px;
-		border-radius: 3px;
-		background: var(--wp-admin-theme-color, #3858e9);
-		color: #fff;
-		font: 12px/1.3 sans-serif;
-		white-space: nowrap;
-	}
 }
 
 .canvas-shape-picker.canvas-shape-picker {
