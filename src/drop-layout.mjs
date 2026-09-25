@@ -1,3 +1,5 @@
+import { resolveCanvasLayouts } from './canvas-groups.mjs';
+import { unrotatedRectangles } from './sibling-guides.mjs';
 import {
 	ATTRIBUTE,
 	MAX_ROWS,
@@ -145,4 +147,28 @@ export function droppedLayouts( existing, incoming, mode, point, metrics ) {
 
 export function placementRectangle( placement, metrics ) {
 	return mapCanvasPlacement( placement, metrics.mode, metrics )._rect;
+}
+
+// Share committed drop frames with the overlay; never alter the drop solver.
+export function dropGuidePreview( layouts, existing, mode, metrics ) {
+	const dropPlacements = Object.fromEntries(
+		Object.entries( layouts ).map( ( [ id, layout ] ) => {
+			const placement = mapCanvasPlacement(
+				layout[ mode ],
+				mode,
+				metrics
+			);
+			return [
+				id,
+				{ _rect: placement._rect, rotation: placement.rotation },
+			];
+		} )
+	);
+	const current = resolveCanvasLayouts( existing, metrics.geometry );
+	const siblings = unrotatedRectangles(
+		existing
+			.filter( ( block ) => ! Object.hasOwn( layouts, block.clientId ) )
+			.map( ( block ) => current[ block.clientId ]?.[ mode ] )
+	);
+	return { dropPlacements, siblings };
 }

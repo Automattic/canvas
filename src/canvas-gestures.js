@@ -149,6 +149,16 @@ export function useCanvasGestures( {
 			) {
 				return;
 			}
+			const siblings = Object.entries( layouts )
+				.filter(
+					( [ key, layout ] ) =>
+						! ids.includes( key ) &&
+						store.getBlockRootClientId( key ) ===
+							store.getBlockRootClientId( id ) &&
+						! layout[ mode ]?.rotation &&
+						layout[ mode ]?._rect
+				)
+				.map( ( [ , layout ] ) => layout[ mode ]._rect );
 			let scroll;
 			let selectionEnabled;
 			const fitArea = layouts[ id ]?.fitArea;
@@ -321,6 +331,7 @@ export function useCanvasGestures( {
 						placements,
 						dropPlacement: dropPlacements[ id ],
 						dropPlacements,
+						siblings,
 					} );
 				} else if ( kind === 'rotate' && center ) {
 					finalValue = {
@@ -408,6 +419,7 @@ export function useCanvasGestures( {
 						id,
 						placement: finalValue,
 						dropPlacement: dropPlacement(),
+						siblings,
 						fitArea,
 						resizing: kind !== 'move',
 					} );
@@ -563,6 +575,7 @@ export function useCanvasGestures( {
 								id,
 								placement: finalValue,
 								dropPlacement: dropPlacement(),
+								siblings,
 								fitArea,
 								transforming: true,
 							} );

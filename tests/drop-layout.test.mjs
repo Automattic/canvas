@@ -79,3 +79,27 @@ test('drops reach the canvas edge while respecting its column limit', () => {
   assert.equal(next.mobile, undefined);
   assert.ok(reopened.mobile.column + reopened.mobile.columnSpan - 1 <= reopened.mobile.gridColumns);
 });
+
+test('incoming drops share exact snapped frames and eligible sibling targets with guides',async()=>{
+ const {dropGuidePreview}=await import('../src/drop-layout.mjs');
+ const {siblingGuideRectangles,alignedSiblingGuides}=await import('../src/sibling-guides.mjs');
+ const existing=[block('old','core/image',{canvas:{desktop:{column:1,row:1,columnSpan:4,rowSpan:4}}}),block('rotated','core/image',{canvas:{desktop:{column:8,row:1,columnSpan:4,rowSpan:4,rotation:45}}})];
+ const incoming=[block('new')];
+ const layouts=droppedLayouts(existing,incoming,'desktop',{x:500,y:0},metrics);
+ const before=JSON.stringify(layouts);
+ const preview=dropGuidePreview(layouts,existing,'desktop',metrics);
+ assert.equal(JSON.stringify(layouts),before);
+ assert.equal(preview.siblings.length,1);
+ assert.deepEqual(preview.dropPlacements.new._rect,placementRectangle(layouts.new.desktop,metrics));
+ assert.ok(alignedSiblingGuides(siblingGuideRectangles(preview),preview.siblings).some(guide=>guide.axis==='y'&&guide.position===0));
+});
+
+test('moving an existing block through native drag never guides against itself',async()=>{
+ const {dropGuidePreview}=await import('../src/drop-layout.mjs');
+ const existing=[block('old'),block('other')];
+ const layouts=droppedLayouts(existing,[existing[0]],'desktop',{x:500,y:0},metrics);
+ const preview=dropGuidePreview(layouts,existing,'desktop',metrics);
+ assert.equal(preview.siblings.length,1);
+ const other=resolveLayouts(existing,metrics.geometry).other.desktop._rect;
+ assert.deepEqual(preview.siblings,[other]);
+});
