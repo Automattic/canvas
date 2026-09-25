@@ -1,9 +1,12 @@
-import { MAX_ROWS, rowPitch } from './placement.mjs';
+import { rowPitch } from './placement.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 
+// Rendered rows follow content. MAX_ROWS bounds authored placements; rows are
+// fluid, so a fixed count would cap narrow canvases at a few thousand pixels
+// and let readable growth spill past the canvas.
 export function automaticCanvasRows( occupied, minimum = 1 ) {
-	return Math.min( MAX_ROWS, Math.max( minimum, occupied ) );
+	return Math.max( minimum, occupied );
 }
 
 // Readability is the only automatic exception to proportional placement. Keep

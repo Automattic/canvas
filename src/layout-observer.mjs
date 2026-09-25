@@ -535,13 +535,10 @@ export function observeCanvasLayout( grid, onChange ) {
 			const resolved = resolveCanvasLayouts( blocks, geometry, flat );
 			// Absolutely placed groups still contribute to the canvas height.
 			if ( geometry[ mode ] ) {
-				const rows = Math.min(
-					MAX_ROWS,
-					Math.max(
-						geometry[ mode ].coreRows,
-						...blocks.map( ( block ) =>
-							occupiedRows( resolved[ block.clientId ][ mode ] )
-						)
+				const rows = Math.max(
+					geometry[ mode ].coreRows,
+					...blocks.map( ( block ) =>
+						occupiedRows( resolved[ block.clientId ][ mode ] )
 					)
 				);
 				geometry[ mode ] = {

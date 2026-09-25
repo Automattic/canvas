@@ -45,8 +45,8 @@ test('only natural minimum content width expands a frame and keeps its center or
   close(rects[0].left+rects[0].width/2,195); close(rects[1].left+rects[1].width,360);
 });
 
-test('authored empty rows survive and readable content can add rows up to the limit',()=>{
- assert.equal(automaticCanvasRows(7,12),12); assert.equal(automaticCanvasRows(20,12),20); assert.equal(automaticCanvasRows(600,12),500);
+test('authored empty rows survive and readable content adds the rows it needs',()=>{
+ assert.equal(automaticCanvasRows(7,12),12); assert.equal(automaticCanvasRows(20,12),20); assert.equal(automaticCanvasRows(600,12),600);
 });
 
 test('canvas-edge text keeps its authored width when readable content already fits',()=>{
