@@ -1,3 +1,4 @@
+import { isFrameMedia } from './content-fill.mjs';
 import { compactCanvas, compactCanvasAttributes } from './serialization.mjs';
 import { ImageShapeMenu } from './image-shape-controls';
 import {
@@ -5,13 +6,22 @@ import {
 	saveGroupMove,
 	sourcePlacement,
 } from './canvas-groups.mjs';
-import { useCallback, useContext } from '@wordpress/element';
+import {
+	cloneElement,
+	createContext,
+	useCallback,
+	useContext,
+	useLayoutEffect,
+	useRef,
+} from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import {
 	BlockControls,
+	MediaReplaceFlow,
+	MediaUpload,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { MenuItem, ToolbarButton, ToolbarGroup } from '@wordpress/components';
+import { MenuItem, ToolbarButton } from '@wordpress/components';
 import { addFilter } from '@wordpress/hooks';
 import {
 	ALLOWED_BLOCKS,
@@ -32,6 +42,120 @@ import { CanvasSubmenu } from './canvas-menu';
 import { normalizeRotation } from './rotation.mjs';
 import { imageWasReplaced } from './image-position.mjs';
 import { RadiusSettings } from './radius-settings';
+import { __ } from '@wordpress/i18n';
+
+const EmptyMediaContext = createContext( false );
+
+function MediaPlaceholderIcon( { icon } ) {
+	const ref = useRef( null );
+	useLayoutEffect( () => {
+		const element = ref.current;
+		const doc = element.ownerDocument;
+		const view = doc.defaultView;
+		const ancestors = [];
+		for (
+			let node = element.parentElement;
+			node;
+			node = node.parentElement
+		) {
+			ancestors.push( node );
+		}
+		const update = () => {
+			// Transparent media wrappers inherit the visible surface behind them.
+			const background = ancestors
+				.map(
+					( node ) => view.getComputedStyle( node ).backgroundColor
+				)
+				.find(
+					( color ) =>
+						color !== 'transparent' &&
+						! /(?:,\s*0|\/\s*0(?:%)?)\s*\)$/.test( color )
+				);
+			element.style.setProperty(
+				'--canvas-placeholder-surface',
+				background || 'Canvas'
+			);
+		};
+		const observer = new view.MutationObserver( update );
+		ancestors.forEach( ( node ) =>
+			observer.observe( node, {
+				attributes: true,
+				attributeFilter: [ 'class', 'style' ],
+			} )
+		);
+		observer.observe( doc.head, {
+			childList: true,
+			subtree: true,
+			characterData: true,
+		} );
+		update();
+		return () => observer.disconnect();
+	}, [] );
+	return (
+		<span
+			ref={ ref }
+			className="canvas__media-placeholder-icon"
+			aria-hidden="true"
+		>
+			{ icon }
+		</span>
+	);
+}
+
+addFilter(
+	'editor.MediaPlaceholder',
+	'tabor/canvas-empty-media',
+	( Original ) =>
+		function CanvasMediaPlaceholder( props ) {
+			const emptyMedia = useContext( EmptyMediaContext );
+			if (
+				! emptyMedia ||
+				props.disableMediaButtons ||
+				! props.placeholder
+			) {
+				return <Original { ...props } />;
+			}
+			// Reuse Core's illustration and upload handling without the inline form.
+			const placeholder = cloneElement( props.placeholder( null ), {
+				withIllustration: true,
+				icon: null,
+				label: null,
+				instructions: null,
+				children: (
+					<>
+						<Original { ...props } disableMediaButtons />
+						{ emptyMedia === 'video' && (
+							<MediaPlaceholderIcon icon={ props.icon } />
+						) }
+					</>
+				),
+			} );
+			return (
+				<>
+					<MediaUpload
+						allowedTypes={ props.allowedTypes }
+						onSelect={ props.onSelect }
+						render={ ( { open } ) =>
+							cloneElement( placeholder, { onDoubleClick: open } )
+						}
+					/>
+					{ emptyMedia === 'video' && (
+						<BlockControls group="other">
+							<MediaReplaceFlow
+								name={ __( 'Add video' ) }
+								allowedTypes={ props.allowedTypes }
+								accept={ props.accept }
+								onSelect={ props.onSelect }
+								onSelectURL={ props.onSelectURL }
+								onError={ props.onError }
+								variant="toolbar"
+							/>
+						</BlockControls>
+					) }
+				</>
+			);
+		}
+);
 const TEXT_SIZING_OPTIONS = [
 	{
 		value: 'default',
@@ -273,6 +397,20 @@ function ItemMenuItems( {
 				</Menu.Item>
 				<Menu.Separator />
 			</Menu.Group>
+			{ name === 'core/video' && (
+				<Menu.CheckboxItem
+					name="video-fill"
+					hideOnClick={ hideOnClick }
+					checked={ fill }
+					disabled={ ! editable }
+					aria-description="Crop the video to fill its area. Turn off to show the whole video."
+					onChange={ () =>
+						changeFit( menu.id, fill ? 'contain' : 'cover' )
+					}
+				>
+					<Menu.ItemLabel>Fit area</Menu.ItemLabel>
+				</Menu.CheckboxItem>
+			) }
 			{ image && (
 				<CanvasSubmenu>
 					<Menu.SubmenuTriggerItem>
@@ -434,19 +572,31 @@ export function ItemMenu( {
 		</>
 	);
 }
-function ItemImageRepositionControl( { clientId } ) {
-	const { editingId, finishImageReposition } = useContext( CanvasContext );
+function ItemMediaEditingControl( { clientId, name } ) {
+	const { editingId, finishImageReposition, finishEditing } =
+		useContext( CanvasContext );
 	return (
 		editingId === clientId && (
 			<BlockControls group="other">
-				<ToolbarGroup className="canvas__media-done">
-					<ToolbarButton
-						data-canvas-image-done
-						onClick={ finishImageReposition }
-					>
-						Done
-					</ToolbarButton>
-				</ToolbarGroup>
+				{ name === 'core/video' && (
+					<div
+						className="canvas__media-divider"
+						role="separator"
+						aria-orientation="vertical"
+					/>
+				) }
+				<ToolbarButton
+					data-canvas-image-done={
+						name === 'core/image' ? '' : undefined
+					}
+					onClick={
+						name === 'core/image'
+							? finishImageReposition
+							: finishEditing
+					}
+				>
+					Done
+				</ToolbarButton>
 			</BlockControls>
 		)
 	);
@@ -507,15 +657,23 @@ function CanvasItem( { Original, ...props } ) {
 	let description;
 	if ( props.name === 'core/image' && ! props.attributes.url ) {
 		description =
-			'Empty image. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches upload controls. Shift+F10 opens Canvas options.';
+			'Empty image. Double-click to open the media library. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches Add image in the toolbar. Shift+F10 opens Canvas options.';
 	} else if ( props.name === 'core/image' && shown.fit === 'cover' ) {
 		if ( canvas.editingId === props.clientId ) {
 			description =
 				'Reposition image. Drag or use arrow keys. Shift uses larger steps. Home centers. Tab reaches Done. Escape finishes.';
 		} else {
 			description =
-				'Drag to move the block. Double-click or press Enter to reposition the image inside its frame.';
+				'Drag to move the block. Click the selected block again or press Enter to reposition the image inside its frame.';
 		}
+	} else if ( props.name === 'core/video' && ! props.attributes.src ) {
+		description =
+			'Empty video. Double-click to open the media library. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches Add video in the toolbar. Shift+F10 opens Canvas options.';
+	} else if ( props.name === 'core/video' && props.attributes.src ) {
+		description =
+			canvas.editingId === props.clientId
+				? 'Video editing. Use playback controls. Choose Done or press Escape to return to moving.'
+				: 'Drag to move the block. Click the selected block again or press Enter to use video controls.';
 	} else if ( layout.group ) {
 		description =
 			'Group. Drag or use arrow keys to move. Enter edits children. Escape exits the group.';
@@ -527,6 +685,8 @@ function CanvasItem( { Original, ...props } ) {
 	let itemClass;
 	if ( props.name === 'core/image' ) {
 		itemClass = ' canvas__image';
+	} else if ( props.name === 'core/video' ) {
+		itemClass = ' canvas__video';
 	} else if ( props.name === 'core/group' ) {
 		itemClass = ' canvas__container';
 	} else {
@@ -602,12 +762,23 @@ export function registerItemControls() {
 					direct &&
 					[ 'core/heading', 'core/paragraph' ].includes( props.name );
 				const image = direct && props.name === 'core/image';
-				const context = image
-					? {
-							...props.context,
-							allowResize: false,
-						}
-					: props.context;
+				let emptyMedia = false;
+				if ( image && ! props.attributes.url ) {
+					emptyMedia = 'image';
+				} else if (
+					direct &&
+					props.name === 'core/video' &&
+					! props.attributes.src
+				) {
+					emptyMedia = 'video';
+				}
+				const context =
+					direct && isFrameMedia( props.name )
+						? {
+								...props.context,
+								allowResize: false,
+							}
+						: props.context;
 				// Supply the default on the first render, before Core Image starts uploading.
 				// Core resolves the Large URL and falls back when that size is unavailable.
 				const container = !! canvas && props.name === 'core/group';
@@ -705,10 +876,11 @@ export function registerItemControls() {
 					]
 				);
 				let inspectorControls;
-				if ( props.name === 'core/image' ) {
+				if ( isFrameMedia( props.name ) ) {
 					inspectorControls = (
-						<ItemImageRepositionControl
+						<ItemMediaEditingControl
 							clientId={ props.clientId }
+							name={ props.name }
 						/>
 					);
 				} else {
@@ -727,12 +899,14 @@ export function registerItemControls() {
 									name={ props.name }
 								/>
 							) }
-						<Original
-							{ ...props }
-							attributes={ attributes }
-							context={ context }
-							setAttributes={ setAttributes }
-						/>
+						<EmptyMediaContext.Provider value={ emptyMedia }>
+							<Original
+								{ ...props }
+								attributes={ attributes }
+								context={ context }
+								setAttributes={ setAttributes }
+							/>
+						</EmptyMediaContext.Provider>
 						{ props.isSelected && direct && inspectorControls }
 					</>
 				);

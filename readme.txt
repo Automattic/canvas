@@ -12,7 +12,7 @@ Move, resize, rotate, and layer WordPress blocks to create responsive layouts.
 
 == Description ==
 
-Canvas adds a block for composing responsive layouts with WordPress headings, paragraphs, images, buttons, and groups. Arrange content on a grid while keeping text and images editable with the native block editor.
+Canvas adds a block for composing responsive layouts with WordPress headings, paragraphs, images, videos, buttons, and groups. Arrange content on a grid while keeping text and images editable with the native block editor.
 
 * Move, resize, rotate, and layer blocks directly on the canvas.
 * Start with automatic tablet and mobile layouts, then adjust each view when needed.
@@ -57,7 +57,7 @@ On touch screens, tap to select, drag with one finger to move, or pinch and twis
 
 In the right-click menu, use Text sizing to choose Default, Fit area, or Fit width, and Content alignment to position text or buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
-Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. Shapes can have preferred proportions and resize locks. Image → Stretch shape overrides that behavior for an individual image while preserving its frame and crop. Image → Lock aspect ratio controls proportional resizing. Double-click a filled image to reposition its crop, then click outside or press Escape to finish.
+Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. Shapes can have preferred proportions and resize locks. Image → Stretch shape overrides that behavior for an individual image while preserving its frame and crop. Image → Lock aspect ratio controls proportional resizing. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
 
 = Groups and spacing =
 
@@ -79,11 +79,15 @@ Canvas uses the active theme's layout and style settings. Available widths and s
 
 = What happens if I deactivate Canvas? =
 
-The headings, paragraphs, images, buttons, and groups remain saved as core WordPress blocks. Canvas positioning and responsive behavior require the plugin to be active.
+The headings, paragraphs, images, videos, buttons, and groups remain saved as core WordPress blocks. Canvas positioning and responsive behavior require the plugin to be active.
 
 = Can an agent create or edit Canvas sections? =
 
 Yes. Canvas exposes WordPress abilities for reading context, validating sections, and creating or updating pages. An MCP client also needs the separate WordPress MCP Adapter or a local Playground bridge. The bundled AUTHORING.md describes the format and authoring workflow; the repository README covers connections. No AI provider account is required to use Canvas itself.
+
+= Videos =
+
+Videos use the same movement and resize controls as images. Fit area is enabled by default; turn it off to show the whole video. Click a selected video again or press Enter to access playback controls and Text tracks. Choose Done or press Escape to pause playback and return to moving. WordPress provides the video source, poster, captions, and playback settings.
 
 == Changelog ==
 

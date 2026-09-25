@@ -47,7 +47,7 @@ test('move locks and destination restrictions reject native drops', () => {
 });
 
 test('unsupported blocks, self-drops, ancestors, and empty payloads are rejected', () => {
-  const unsupported = { clientId: 'video', name: 'core/video', attributes: {} };
+  const unsupported = { clientId: 'audio', name: 'core/audio', attributes: {} };
   assert.equal(canDropBlocks({ blocks: [image('image'), unsupported], move: true }, 'canvas', store()), false);
   assert.equal(canDropBlocks(payload('canvas'), 'canvas', store()), false);
   assert.equal(canDropBlocks(payload('ancestor'), 'canvas', store({ ancestors: ['ancestor'] })), false);

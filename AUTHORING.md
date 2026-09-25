@@ -18,7 +18,7 @@ Choose normal content alignment for narrow reading sections, `align: "wide"` for
 
 ## Format
 
-The container is `tabor/canvas`; placements are stored on child blocks in `canvas`. Supported content: `core/heading`, `core/paragraph`, `core/image`, `core/buttons` containing `core/button`, and `core/group`. Nested Canvas, raw HTML blocks, synced blocks, and bindings are not supported by these authoring tools.
+The container is `tabor/canvas`; placements are stored on child blocks in `canvas`. Supported content: `core/heading`, `core/paragraph`, `core/image`, `core/video`, `core/buttons` containing `core/button`, and `core/group`. Nested Canvas, raw HTML blocks, synced blocks, and bindings are not supported by these authoring tools.
 
 Desktop grid density is 24 columns at full width, 18 at wide width, and 12 at content width. Tablet and mobile both use 12 columns. Save `gridColumns` with authored placements. Columns and rows start at 1; spans must stay inside the authored grid. Maximum row count is 500. Use `canvas.layers` for stacking overrides keyed by viewport; omit it for source order. Layer changes do not require a placement. Use the runtime-provided block schemas for other attributes.
 
@@ -80,3 +80,5 @@ Use existing media attachment IDs with their actual URLs and meaningful alt text
 Writes operate on saved content, not the live editor buffer. Save and leave an actively edited page before server-side updates, then reopen it. Recovery uses native WordPress revisions, not editor Undo. Tool results include the pre-change revision ID. If the page is actively locked, retry after its editor lock expires. Do not clear another editor's lock.
 
 For headings and paragraphs, use native `style["@tablet"].typography.textAlign` and `style["@mobile"].typography.textAlign` for independent viewport alignment. The native toolbar edits alignment for the active Canvas viewport, including when WordPress’s Responsive styles toggle is off. Desktop alignment stays in `style.typography.textAlign`. Omit a viewport alignment to inherit the desktop value. Core generates the responsive editor and frontend CSS; alignment never creates a Canvas grid placement.
+
+Video uses native `core/video` markup and settings, including poster, caption, and text tracks. Canvas owns its frame and placement. `canvas.fill` defaults to true for video; false shows the entire video within the frame. Video does not support image shapes, image repositioning, or fill-height. Use an HTTP(S) or site-relative video source and a video attachment ID when supplied.

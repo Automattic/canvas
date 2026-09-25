@@ -11,7 +11,7 @@ function fixture() {
   let items = Object.freeze([
     item('core/group'), item('core/heading', { id: 'core/heading/h1' }),
     item('core/paragraph'), item('core/buttons', { isDisabled: true }),
-    item('core/image'), item('core/heading'),
+    item('core/image'), item('core/video'), item('core/heading'),
     item('core/heading', { id: 'core/heading/h2', isSearchOnly: true }),
     item('core/block', { id: 'pattern/example' }),
   ]);
@@ -31,14 +31,14 @@ function fixture() {
   return { plugin, scoped, selectors, marker, otherSelectors, calls, settings, listSettings, setItems: (next) => { items = next; } };
 }
 
-test('native Inserter receives only the four base entries in intentional order', () => {
+test('native Inserter receives only the five base entries in intentional order', () => {
   const { scoped, selectors, calls } = fixture();
   const options = { filtering: true };
   const result = scoped.getInserterItems('canvas', options);
-  assert.deepEqual(result.map(({ id }) => id), ['core/heading', 'core/image', 'core/paragraph', 'core/buttons']);
-  assert.equal(result[3].isDisabled, true);
+  assert.deepEqual(result.map(({ id }) => id), ['core/heading', 'core/image', 'core/video', 'core/paragraph', 'core/buttons']);
+  assert.equal(result[4].isDisabled, true);
   assert.deepEqual(calls[0], ['canvas', options]);
-  assert.equal(selectors.getInserterItems('canvas').length, 8);
+  assert.equal(selectors.getInserterItems('canvas').length, 9);
   assert.strictEqual(result, scoped.getInserterItems('canvas', options));
 });
 
@@ -86,7 +86,7 @@ test('Browse all is omitted only from the local settings without changing editor
 test('local priorities preserve insertion permissions and do not alter other block lists', () => {
   const { scoped, listSettings } = fixture();
   const local = scoped.getBlockListSettings('canvas');
-  assert.deepEqual(local.prioritizedInserterBlocks, ['core/heading', 'core/image', 'core/paragraph', 'core/buttons']);
+  assert.deepEqual(local.prioritizedInserterBlocks, ['core/heading', 'core/image', 'core/video', 'core/paragraph', 'core/buttons']);
   assert.strictEqual(local.allowedBlocks, listSettings.allowedBlocks);
   assert.equal(local.templateLock, false);
   assert.equal('prioritizedInserterBlocks' in listSettings, false);

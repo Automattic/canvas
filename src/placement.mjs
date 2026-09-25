@@ -18,6 +18,7 @@ export const BLOCK_NAME = 'tabor/canvas';
 export const ATTRIBUTE = 'canvas';
 export const ALLOWED_BLOCKS = [
 	'core/image',
+	'core/video',
 	'core/heading',
 	'core/paragraph',
 	'core/buttons',

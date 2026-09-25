@@ -198,7 +198,8 @@ export function useItemToolbar(
 	directSelected,
 	selectedBlockName,
 	hasCanvasParent,
-	selectedImageHasSource
+	selectedImageHasSource,
+	editingId
 ) {
 	useLayoutEffect( () => {
 		if ( ! selectedId ) {
@@ -235,14 +236,17 @@ export function useItemToolbar(
 		if ( selectedBlockName === 'core/image' && ! selectedImageHasSource ) {
 			labels.push( __( 'Link' ) );
 		}
-		if ( selectedBlockName === 'core/image' ) {
+		if ( [ 'core/image', 'core/video' ].includes( selectedBlockName ) ) {
 			labels.push( __( 'Add caption' ), __( 'Remove caption' ) );
+		}
+		if ( selectedBlockName === 'core/video' && editingId !== selectedId ) {
+			labels.push( __( 'Text tracks' ) );
 		}
 		if ( ! labels.length ) {
 			return;
 		}
 		// Hide redundant block alignment, inherited Buttons, and image controls.
-		// Images at any depth also omit caption controls. Duotone uses Core settings.
+		// Images and videos at any depth omit caption controls. Duotone uses Core settings.
 		const hidden = new Set();
 		const update = () => {
 			for ( const node of hidden ) {
@@ -250,9 +254,14 @@ export function useItemToolbar(
 			}
 			hidden.clear();
 			for ( const node of document.querySelectorAll(
-				'.block-editor-block-toolbar button[aria-label]'
+				'.block-editor-block-toolbar button'
 			) ) {
-				if ( labels.includes( node.getAttribute( 'aria-label' ) ) ) {
+				if (
+					labels.includes(
+						node.getAttribute( 'aria-label' ) ||
+							node.textContent.trim()
+					)
+				) {
 					node.setAttribute( 'data-canvas-hidden-control', '' );
 					hidden.add( node );
 				}
@@ -278,5 +287,7 @@ export function useItemToolbar(
 		selectedBlockName,
 		selectedImageHasSource,
 		hasCanvasParent,
+		editingId,
+		selectedId,
 	] );
 }

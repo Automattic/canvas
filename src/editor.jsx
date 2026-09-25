@@ -223,14 +223,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const selectedName = blocks.find(
 		( block ) => block.clientId === selectedId
 	)?.name;
-	useItemToolbar(
-		selectedId,
-		selectedName,
-		directSelected,
-		selectedBlockName,
-		rootBlocks.some( ( block ) => block.clientId === selectedId ),
-		selectedImageHasSource
-	);
+
 	const layouts = useMemo(
 		() => resolveCanvasLayouts( rootBlocks, geometry ),
 		[ rootBlocks, geometry ]
@@ -629,7 +622,9 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				[ id ]: {
 					[ ATTRIBUTE ]: {
 						...saved,
-						fit,
+						...( store.getBlockName( id ) === 'core/video'
+							? { fill: fit === 'cover' }
+							: { fit } ),
 					},
 				},
 			} );
@@ -1110,6 +1105,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const {
 		editingId,
 		exitEditing,
+		finishEditing,
 		selectInsertedBlock,
 		contextMenu,
 		closeContextMenu,
@@ -1130,6 +1126,15 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		announce,
 		canInsert: !! insertion.allowed.length,
 	} );
+	useItemToolbar(
+		selectedId,
+		selectedName,
+		directSelected,
+		selectedBlockName,
+		rootBlocks.some( ( block ) => block.clientId === selectedId ),
+		selectedImageHasSource,
+		editingId
+	);
 	const finishImageReposition = useImageReposition( {
 		gridRef,
 		editingId,
@@ -1226,6 +1231,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			preview,
 			editingId,
 			finishImageReposition,
+			finishEditing,
 			changeFit,
 			changeShape,
 			layer,
@@ -1242,6 +1248,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			preview,
 			editingId,
 			finishImageReposition,
+			finishEditing,
 			changeFit,
 			changeShape,
 			layer,

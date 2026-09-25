@@ -85,6 +85,9 @@ function compact_canvas( $value ) {
 	if ( true === ( $value['fitArea'] ?? false ) ) {
 		$result['fitArea'] = true;
 	}
+	if ( isset( $value['fill'] ) && is_bool( $value['fill'] ) ) {
+		$result['fill'] = $value['fill'];
+	}
 	$layers = array();
 	foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
 		$layer = ( (array) ( $value['layers'] ?? array() ) )[ $mode ] ?? null;

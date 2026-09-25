@@ -1,3 +1,4 @@
+import { isFrameMedia } from './content-fill.mjs';
 import {
 	imageShape,
 	imageFit,
@@ -159,6 +160,8 @@ export function resolveLayouts( blocks, geometry = {} ) {
 			let fit;
 			if ( block.name === 'core/image' ) {
 				fit = imageFit( saved );
+			} else if ( block.name === 'core/video' ) {
+				fit = saved.fill === false ? 'contain' : 'cover';
 			} else if ( saved.fit === 'contain' ) {
 				fit = 'contain';
 			} else {
@@ -168,6 +171,7 @@ export function resolveLayouts( blocks, geometry = {} ) {
 				block.clientId,
 				{
 					image: block.name === 'core/image',
+					video: block.name === 'core/video',
 					shape:
 						block.name === 'core/image'
 							? imageShape( saved.shape )
@@ -215,12 +219,12 @@ export function resolveLayouts( blocks, geometry = {} ) {
 											fromTablet ? 'tablet' : 'desktop'
 										],
 										minimum,
-										block.name === 'core/image'
+										isFrameMedia( block.name )
 									),
 								];
 							}
 							if (
-								block.name === 'core/image' &&
+								isFrameMedia( block.name ) &&
 								geometry[ mode ]?.canvas &&
 								! (
 									mode !== 'desktop' &&
@@ -345,7 +349,7 @@ export function savePlacement(
 	const next = savedCanvasPlacement(
 		changeViewport( resolved, mode, placement, minimum )[ mode ]
 	);
-	if ( resolved.image && placement._rect?.height > 0 ) {
+	if ( ( resolved.image || resolved.video ) && placement._rect?.height > 0 ) {
 		const before = resolved[ mode ]._rect;
 		const edited =
 			before &&
@@ -353,7 +357,12 @@ export function savePlacement(
 				( key ) =>
 					Math.abs( before[ key ] - placement._rect[ key ] ) > 0.001
 			);
-		if ( inferFillHeight && edited && ! resolved.parents?.length ) {
+		if (
+			resolved.image &&
+			inferFillHeight &&
+			edited &&
+			! resolved.parents?.length
+		) {
 			const { top, height } = placement._rect;
 			if (
 				Math.abs( top ) < 0.001 &&

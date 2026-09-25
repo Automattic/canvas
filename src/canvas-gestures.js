@@ -1,3 +1,4 @@
+import { isFrameMedia } from './content-fill.mjs';
 import { constrainReadableResize } from './readable-resize.mjs';
 import {
 	canResizeReadableContent,
@@ -372,8 +373,9 @@ export function useCanvasGestures( {
 											layouts[ id ],
 											start,
 											e.shiftKey &&
-												store.getBlockName( id ) ===
-													'core/image'
+												isFrameMedia(
+													store.getBlockName( id )
+												)
 										),
 										fromCenter
 									);

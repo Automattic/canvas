@@ -184,6 +184,8 @@
 	}
 
 	.canvas__image,
+	.canvas__video,
+	.canvas__video > .wp-block-video,
 	.canvas__image > .wp-block-image {
 		min-height: 0;
 		height: 100%;
@@ -191,11 +193,13 @@
 		flex-direction: column;
 	}
 
+	.canvas__video > .wp-block-video,
 	.canvas__image > .wp-block-image {
 		width: 100%;
 		margin: 0;
 	}
 
+	.canvas__grid .canvas__video,
 	.canvas__grid .canvas__image {
 		width: var(--canvas-free-width, auto);
 		height: var(--canvas-free-height, 100%);
@@ -203,6 +207,7 @@
 		top: var(--canvas-free-top, 0px);
 	}
 
+	.canvas__video video,
 	.canvas__image img {
 		display: block;
 		width: 100%;
@@ -220,6 +225,7 @@
 		min-height: 0;
 	}
 
+	.canvas__video figcaption,
 	.canvas__image figcaption {
 		flex: none;
 	}

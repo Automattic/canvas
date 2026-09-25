@@ -176,3 +176,18 @@ test('insertion defaults preserve authored layouts and supplied heading text and
   const emptyRichText = { toString: () => '' };
   assert.equal(withInsertionDefaults({ ...incoming, attributes: { content: emptyRichText } }, 'desktop', metrics).attributes.content, 'This is a heading');
 });
+
+
+test('video insertion uses a landscape frame without image attributes and preserves authored video settings', () => {
+  const incoming = { clientId: 'video', name: 'core/video', attributes: { src: '/movie.mp4', poster: '/poster.jpg', controls: true, tracks: [{ src: '/captions.vtt', kind: 'captions' }] } };
+  const inserted = withInsertionDefaults(incoming, 'desktop', metrics);
+  assert.ok(Math.abs(inserted.attributes.canvas.desktop.frameRatio - 16 / 9) < 0.00001);
+  assert.equal(inserted.attributes.sizeSlug, undefined);
+  assert.equal(inserted.attributes.src, incoming.attributes.src);
+  assert.deepEqual(inserted.attributes.tracks, incoming.attributes.tracks);
+  assert.deepEqual(withInsertionDefaults(inserted, 'mobile', metrics), inserted);
+  const layout = resolveLayouts([inserted], metrics.geometry).video;
+  assert.equal(layout.fit, 'cover');
+  assert.equal(layout.shape, 'none');
+  assert.equal(layout.video, true);
+});

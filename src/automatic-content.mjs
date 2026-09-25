@@ -67,6 +67,7 @@ export function canResizeReadableContent( element ) {
 	return (
 		!! element &&
 		! element.classList.contains( 'canvas__image' ) &&
+		! element.classList.contains( 'canvas__video' ) &&
 		element.getAttribute( 'data-canvas-text-fit' ) !== 'true' &&
 		! textElement( element )?.classList.contains( 'has-fit-text' )
 	);
@@ -98,7 +99,10 @@ export function resolveAutomaticContent(
 		let kind;
 		if ( container ) {
 			kind = 'container';
-		} else if ( element.classList.contains( 'canvas__image' ) ) {
+		} else if (
+			element.classList.contains( 'canvas__image' ) ||
+			element.classList.contains( 'canvas__video' )
+		) {
 			kind = 'image';
 		} else if ( text?.matches( 'h1,h2,h3,h4,h5,h6' ) ) {
 			kind = 'heading';

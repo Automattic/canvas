@@ -10,7 +10,7 @@ namespace PlaygroundPlugin\Abilities;
 defined( 'ABSPATH' ) || exit;
 
 const VERSION = 1;
-const BLOCKS  = array( 'tabor/canvas', 'core/group', 'core/heading', 'core/paragraph', 'core/image', 'core/buttons', 'core/button' );
+const BLOCKS  = array( 'tabor/canvas', 'core/group', 'core/heading', 'core/paragraph', 'core/image', 'core/video', 'core/buttons', 'core/button' );
 
 /**
  * Create a structured authoring error with an HTTP status.
@@ -308,7 +308,7 @@ function validate_layout( $layout ) {
 	if ( ! is_array( $layout ) ) {
 		return failure( 'canvas must be an object.' );
 	}
-	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fitArea', 'shape', 'shapeStretch', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
+	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fill', 'fitArea', 'shape', 'shapeStretch', 'fit', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
 	foreach ( $layout as $key => $value ) {
 		if ( ! in_array( $key, $known, true ) ) {
 			return failure( "Unknown canvas field: $key" );
@@ -360,6 +360,9 @@ function validate_layout( $layout ) {
 				}
 			}
 		}
+	}
+	if ( array_key_exists( 'fill', $layout ) && ! is_bool( $layout['fill'] ) ) {
+		return failure( 'canvas.fill must be a boolean.' );
 	}
 	if ( isset( $layout['fitArea'] ) && ! is_bool( $layout['fitArea'] ) ) {
 		return failure( 'canvas.fitArea must be a boolean.' );
@@ -535,6 +538,15 @@ function validate_block( $block, $parent_name = null, $depth = 0 ) {
 	}
 	if ( 'core/image' === $name && isset( $attrs['id'] ) && ! wp_attachment_is_image( $attrs['id'] ) ) {
 		return failure( 'Image attachment does not exist.' );
+	}
+	if ( 'core/video' === $name ) {
+		$video = new \WP_HTML_Tag_Processor( $block['innerHTML'] );
+		if ( ! $video->next_tag( 'VIDEO' ) || ! preg_match( '#^(https?://|/)#i', (string) $video->get_attribute( 'src' ) ) ) {
+			return failure( 'Video needs an HTTP(S) or site-relative source URL.' );
+		}
+		if ( isset( $attrs['id'] ) && 'video' !== strtok( (string) get_post_mime_type( $attrs['id'] ), '/' ) ) {
+			return failure( 'Video attachment does not exist.' );
+		}
 	}
 	foreach ( $block['innerBlocks'] as $child ) {
 		$valid = validate_block( $child, $name, $depth + 1 );

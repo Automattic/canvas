@@ -232,7 +232,7 @@
 		cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 15a7 7 0 1 1 12 3M5 15V8m0 7h7' fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 15a7 7 0 1 1 12 3M5 15V8m0 7h7' fill='none' stroke='%231e1e1e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, grab !important;
 	}
 	// Upload controls stay interactive while the empty frame is in movement mode.
-	.canvas__image .block-editor-media-placeholder {
+	:is(.canvas__image, .canvas__video) .block-editor-media-placeholder {
 
 		:is(button, a[href], label, [role="button"]) {
 
@@ -529,20 +529,57 @@
 		display: block;
 	}
 
-	.canvas__grid > .canvas__image .components-resizable-box__container {
+	.canvas__grid > :is(.canvas__image, .canvas__video) .components-resizable-box__container {
 		width: 100% !important;
 		height: 100% !important;
 		min-height: 0 !important;
 	}
 
-	.canvas__grid > .canvas__image > .components-drop-zone {
+	.canvas__grid > :is(.canvas__image, .canvas__video) > .components-drop-zone {
 		position: absolute;
 	}
 
-	.canvas__grid > .canvas__image .block-editor-media-placeholder {
+	.canvas__grid > :is(.canvas__image, .canvas__video) .block-editor-media-placeholder {
 		height: 100%;
 		min-height: 0;
 		box-sizing: border-box;
+	}
+
+	.canvas__grid > :is(.canvas__image, .canvas__video) .block-editor-media-placeholder.has-illustration {
+		min-width: 0;
+		padding: 0;
+		overflow: hidden;
+	}
+
+	.canvas__grid .block-editor-media-placeholder .canvas__media-placeholder-icon {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		display: flex;
+		width: 32px;
+		height: 32px;
+		min-width: 0;
+		min-height: 0;
+		max-width: 60%;
+		max-height: 60%;
+		box-sizing: border-box;
+		padding: 4px;
+		border-radius: 4px;
+		background: currentcolor;
+		pointer-events: none;
+
+		svg {
+			fill: var(--canvas-placeholder-surface);
+		}
+
+		.block-editor-block-icon,
+		svg {
+			width: 100%;
+			height: 100%;
+			min-width: 0;
+			min-height: 0;
+		}
 	}
 
 	.canvas__grid > .canvas__image > a {
@@ -658,6 +695,12 @@ body[data-canvas-drop-owner] .components-drop-zone {
 	display: none;
 }
 
+// Separate video editing actions without nesting padded toolbar groups.
+.canvas__media-divider {
+	border-inline-start: 1px solid #1e1e1e;
+	margin-inline: 6px;
+}
+
 // The reposition overlay shares its image's layer and clips to the viewport.
 .canvas-image-reposition {
 	position: absolute;
@@ -771,7 +814,7 @@ body[data-canvas-drop-owner] .components-drop-zone {
 	}
 }
 
-// Separate Done from Replace when the shared slot retains the media controls.
-.block-editor-block-toolbar__slot:not(:has([data-canvas-image-done])) .components-toolbar-group.canvas__media-done {
-	border-inline-start: 1px solid #1e1e1e;
+// Native video controls receive pointer input only while editing the content.
+.wp-block-tabor-canvas .canvas__video:not([data-canvas-editing]) video {
+	pointer-events: none;
 }

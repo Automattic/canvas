@@ -118,6 +118,9 @@ export function compactCanvas( value = {} ) {
 	if ( value.fitArea === true ) {
 		result.fitArea = true;
 	}
+	if ( typeof value.fill === 'boolean' ) {
+		result.fill = value.fill;
+	}
 	const layers = Object.fromEntries(
 		Object.keys( COLUMNS )
 			.filter( ( mode ) => Number.isFinite( value.layers?.[ mode ] ) )

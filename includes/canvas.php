@@ -18,7 +18,7 @@ const GRID_COLUMNS   = array(
 	'tablet'  => 12,
 	'mobile'  => 12,
 );
-const ALLOWED_BLOCKS = array( 'core/image', 'core/heading', 'core/paragraph', 'core/buttons' );
+const ALLOWED_BLOCKS = array( 'core/image', 'core/video', 'core/heading', 'core/paragraph', 'core/buttons' );
 
 // Match inheritedGap/resolveGap in cell-gap.mjs, retaining unresolved presets
 // so the browser measures each axis in this canvas's own style context.
@@ -460,8 +460,11 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 			unset( $saved[ $mode ]['fillHeight'] );
 		}
 	}
-	$shape   = 'core/image' === $child->name ? image_shape( $saved['shape'] ?? null ) : 'none';
-	$fit     = 'none' === $shape && 'contain' === ( $saved['fit'] ?? '' ) ? 'contain' : 'cover';
+	$shape = 'core/image' === $child->name ? image_shape( $saved['shape'] ?? null ) : 'none';
+	$fit   = 'none' === $shape && 'contain' === ( $saved['fit'] ?? '' ) ? 'contain' : 'cover';
+	if ( 'core/video' === $child->name ) {
+		$fit = false === ( $saved['fill'] ?? true ) ? 'contain' : 'cover';
+	}
 	$css     = '--canvas-fit:' . $fit . ';';
 	$stretch = image_shape_stretch( $shape, $saved['shapeStretch'] ?? null );
 	if ( 'none' !== $shape ) {
@@ -494,10 +497,13 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 		}
 	}
 	$image_class = 'core/image' === $child->name ? ' canvas__image' : ( 'core/group' === $child->name ? ' canvas__container' : '' );
-	$auto_modes  = array_filter( array( 'tablet', 'mobile' ), static fn( $mode ) => ! isset( $saved[ $mode ] ) );
-	$auto        = ' data-canvas-auto="' . esc_attr( implode( ' ', $auto_modes ) ) . '" data-canvas-layout="' . esc_attr( wp_json_encode( compact_canvas( $saved ) ) ) . '"';
-	$text_fit    = true === ( $saved['fitArea'] ?? false ) && in_array( $child->name, array( 'core/heading', 'core/paragraph' ), true ) ? ' data-canvas-text-fit="true"' : '';
-	$alignment   = '';
+	if ( 'core/video' === $child->name ) {
+		$image_class = ' canvas__video';
+	}
+	$auto_modes = array_filter( array( 'tablet', 'mobile' ), static fn( $mode ) => ! isset( $saved[ $mode ] ) );
+	$auto       = ' data-canvas-auto="' . esc_attr( implode( ' ', $auto_modes ) ) . '" data-canvas-layout="' . esc_attr( wp_json_encode( compact_canvas( $saved ) ) ) . '"';
+	$text_fit   = true === ( $saved['fitArea'] ?? false ) && in_array( $child->name, array( 'core/heading', 'core/paragraph' ), true ) ? ' data-canvas-text-fit="true"' : '';
+	$alignment  = '';
 	foreach ( alignment_attributes( $child->name, $child->attributes ) as $key => $value ) {
 		$alignment .= ' ' . $key . '="' . esc_attr( $value ) . '"';
 	}
