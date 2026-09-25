@@ -27,9 +27,11 @@ export function measureBox( element, width, buttons = false ) {
 		}
 	}
 	try {
+		// Layout height only: scrollHeight also counts transformed overflow, so an
+		// entrance offset such as translateY() would read as taller content.
 		return {
 			width: clone.getBoundingClientRect().width,
-			height: Math.max( clone.offsetHeight, clone.scrollHeight, 48 ),
+			height: Math.max( clone.offsetHeight, 48 ),
 		};
 	} finally {
 		clone.remove();
