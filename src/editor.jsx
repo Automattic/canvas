@@ -143,6 +143,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		rootBlocks,
 		selectedId,
 		selectedBlockName,
+		selectedImageHasSource,
 		directSelected,
 		locked,
 		canResetMobile,
@@ -197,6 +198,10 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				selectedBlockName: selected
 					? store.getBlockName( selectedClientId )
 					: null,
+				selectedImageHasSource: !! (
+					selected &&
+					store.getBlockAttributes( selectedClientId )?.url
+				),
 				directSelected: !! selected && selected === selectedClientId,
 				canResetMobile: canReset( 'mobile' ),
 				canResetTablet: canReset( 'tablet' ),
@@ -223,7 +228,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		selectedName,
 		directSelected,
 		selectedBlockName,
-		rootBlocks.some( ( block ) => block.clientId === selectedId )
+		rootBlocks.some( ( block ) => block.clientId === selectedId ),
+		selectedImageHasSource
 	);
 	const layouts = useMemo(
 		() => resolveCanvasLayouts( rootBlocks, geometry ),

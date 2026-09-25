@@ -197,7 +197,8 @@ export function useItemToolbar(
 	selectedName,
 	directSelected,
 	selectedBlockName,
-	hasCanvasParent
+	hasCanvasParent,
+	selectedImageHasSource
 ) {
 	useLayoutEffect( () => {
 		if ( ! selectedId ) {
@@ -230,6 +231,9 @@ export function useItemToolbar(
 		}
 		if ( directSelected && selectedName === 'core/image' ) {
 			labels.push( __( 'Crop' ), __( 'Edit image' ) );
+		}
+		if ( selectedBlockName === 'core/image' && ! selectedImageHasSource ) {
+			labels.push( __( 'Link' ) );
 		}
 		if ( selectedBlockName === 'core/image' ) {
 			labels.push( __( 'Add caption' ), __( 'Remove caption' ) );
@@ -268,5 +272,11 @@ export function useItemToolbar(
 				node.removeAttribute( 'data-canvas-hidden-control' );
 			}
 		};
-	}, [ selectedName, directSelected, selectedBlockName, hasCanvasParent ] );
+	}, [
+		selectedName,
+		directSelected,
+		selectedBlockName,
+		selectedImageHasSource,
+		hasCanvasParent,
+	] );
 }
