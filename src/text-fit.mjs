@@ -60,7 +60,13 @@ export const textElement = ( item ) =>
 
 // Measure original typography independently of the current fitted size. Both
 // responsive layout and area fitting use the same browser line-breaking rules.
-export function measureText( item, width, callback, includeBox = false ) {
+export function measureText(
+	item,
+	width,
+	callback,
+	includeBox = false,
+	cache
+) {
 	const text = textElement( item );
 	if ( ! text ) {
 		return null;
@@ -88,48 +94,86 @@ export function measureText( item, width, callback, includeBox = false ) {
 			px( 'borderTopWidth' ) +
 			px( 'borderBottomWidth' )
 		: 0;
-	const probe = text.cloneNode( true );
-	for ( const element of [ probe, ...probe.querySelectorAll( '*' ) ] ) {
-		element.removeAttribute( 'id' );
-		element.removeAttribute( 'contenteditable' );
-	}
-	probe
-		.querySelectorAll( '[data-rich-text-placeholder]' )
-		.forEach( ( element ) => element.remove() );
-	probe.className = 'canvas-measure-text';
-	probe.setAttribute( 'aria-hidden', 'true' );
-	probe.inert = true;
-	probe.lang =
-		text.closest( '[lang]' )?.lang ||
-		text.ownerDocument.documentElement.lang;
-	probe.removeAttribute( 'style' );
-	for ( const property of TYPOGRAPHY ) {
-		probe.style[ property ] = css[ property ];
-	}
+	// Snapshot computed typography before restoring the live fitted styles.
+	const styles = Object.fromEntries(
+		TYPOGRAPHY.map( ( property ) => [ property, css[ property ] ] )
+	);
 	// Emergency character wrapping must not count as a successful text fit.
-	probe.style.overflowWrap =
+	styles.overflowWrap =
 		item.hasAttribute( 'data-canvas-text-fit' ) || width === 'min-content'
 			? 'normal'
 			: css.overflowWrap;
-	probe.style.removeProperty( 'word-break' );
-	probe.style.removeProperty( 'hyphens' );
-	probe.style.width =
+	delete styles.wordBreak;
+	delete styles.hyphens;
+	styles.width =
 		width === 'min-content'
 			? 'min-content'
 			: `${ Math.max( 1, width - insetX ) }px`;
-	probe.style.lineHeight = String( leading );
+	styles.lineHeight = String( leading );
+	const language =
+		text.closest( '[lang]' )?.lang ||
+		text.ownerDocument.documentElement.lang;
 	if ( fitted ) {
 		item.setAttribute( 'data-canvas-text-fitted', '' );
 	}
 	if ( automatic ) {
 		item.setAttribute( 'data-canvas-auto-active', automatic );
 	}
-	text.ownerDocument.body.append( probe );
-	const range = text.ownerDocument.createRange();
-	range.selectNodeContents( probe );
+	let measurements;
+	// Plain text has no descendant styling or replaced content to invalidate.
+	// Keep a few widths for responsive min-content/height passes, bounded during
+	// continuous resizing. The owner clears the cache when fonts/styles change.
+	if ( cache && ! text.childElementCount ) {
+		let entries = cache.get( text );
+		if ( ! entries ) {
+			entries = new Map();
+			cache.set( text, entries );
+		}
+		const key = JSON.stringify( [
+			text.textContent,
+			language,
+			styles,
+			insetX,
+			insetY,
+		] );
+		measurements = entries.get( key );
+		if ( ! measurements ) {
+			if ( entries.size >= 8 ) {
+				entries.delete( entries.keys().next().value );
+			}
+			measurements = new Map();
+			entries.set( key, measurements );
+		}
+	}
+	let probe, range;
+	const prepare = () => {
+		probe = text.cloneNode( true );
+		for ( const element of [ probe, ...probe.querySelectorAll( '*' ) ] ) {
+			element.removeAttribute( 'id' );
+			element.removeAttribute( 'contenteditable' );
+		}
+		probe
+			.querySelectorAll( '[data-rich-text-placeholder]' )
+			.forEach( ( element ) => element.remove() );
+		probe.className = 'canvas-measure-text';
+		probe.setAttribute( 'aria-hidden', 'true' );
+		probe.inert = true;
+		probe.lang = language;
+		probe.removeAttribute( 'style' );
+		Object.assign( probe.style, styles );
+		text.ownerDocument.body.append( probe );
+		range = text.ownerDocument.createRange();
+		range.selectNodeContents( probe );
+	};
 	try {
 		return callback(
 			( size ) => {
+				if ( measurements?.has( size ) ) {
+					return { ...measurements.get( size ) };
+				}
+				if ( ! probe ) {
+					prepare();
+				}
 				probe.style.setProperty(
 					'font-size',
 					`${ size }px`,
@@ -137,17 +181,22 @@ export function measureText( item, width, callback, includeBox = false ) {
 				);
 				// scrollWidth rounds to an integer and can accept a word a fraction too
 				// wide. Range keeps subpixel precision at the exact wrap boundary.
-				return {
+				const result = {
 					width: range.getBoundingClientRect().width + insetX,
 					height:
 						Math.max( probe.offsetHeight, probe.scrollHeight ) +
 						insetY,
 				};
+				if ( measurements?.size >= 32 ) {
+					measurements.clear();
+				}
+				measurements?.set( size, result );
+				return { ...result };
 			},
 			{ fontSize, leading }
 		);
 	} finally {
-		probe.remove();
+		probe?.remove();
 	}
 }
 
