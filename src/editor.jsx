@@ -74,7 +74,7 @@ import {
 } from './canvas-overlays';
 import { ItemMenu, ItemLayerMenu } from './item-controls';
 import { CanvasMenu } from './canvas-menu';
-import { CanvasContext } from './editor-context';
+import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { owningGridItem } from './drop-layout.mjs';
 import {
 	resizeCanvasWithKey,
@@ -1217,7 +1217,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			previewShape,
 			clearShapePreview,
 			mode,
-			preview,
 			editingId,
 			finishImageReposition,
 			changeFit,
@@ -1233,7 +1232,6 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			previewShape,
 			clearShapePreview,
 			mode,
-			preview,
 			editingId,
 			finishImageReposition,
 			changeFit,
@@ -1417,7 +1415,9 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 							attributes.mobileRows || 1
 						}
 					>
-						{ children }
+						<CanvasPreviewContext.Provider value={ preview }>
+							{ children }
+						</CanvasPreviewContext.Provider>
 					</div>
 					<GridGuidelines
 						gridRef={ gridRef }

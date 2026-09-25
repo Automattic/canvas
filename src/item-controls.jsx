@@ -5,7 +5,7 @@ import {
 	saveGroupMove,
 	sourcePlacement,
 } from './canvas-groups.mjs';
-import { useCallback, useContext } from '@wordpress/element';
+import { memo, useCallback, useContext } from '@wordpress/element';
 import { useSelect } from '@wordpress/data';
 import {
 	BlockControls,
@@ -26,7 +26,7 @@ import {
 	responsiveAlignmentUpdates,
 } from './alignment.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
-import { CanvasContext } from './editor-context';
+import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { Menu } from './core-menu';
 import { CanvasSubmenu } from './canvas-menu';
 import { normalizeRotation } from './rotation.mjs';
@@ -451,11 +451,42 @@ function ItemImageRepositionControl( { clientId } ) {
 }
 function CanvasItem( { Original, ...props } ) {
 	const canvas = useContext( CanvasContext );
+	const preview = useContext( CanvasPreviewContext );
 	const layout = canvas?.shapeLayouts[ props.clientId ];
 	const shapeAttributes =
 		canvas?.shapePreview?.id === props.clientId
 			? canvas.shapePreview.attributes
 			: null;
+	const placement =
+		preview?.placements?.[ props.clientId ] ||
+		( preview?.id === props.clientId ? preview.placement : null );
+	const fitArea = preview?.placements ? layout?.fitArea : preview?.fitArea;
+	return (
+		<CanvasItemPlacement
+			{ ...props }
+			Original={ Original }
+			canvasLayout={ layout }
+			canvasShapeAttributes={ shapeAttributes }
+			canvasPlacement={ placement }
+			canvasFitArea={ placement ? fitArea : undefined }
+			canvasMode={ canvas?.mode }
+			canvasEditing={ canvas?.editingId === props.clientId }
+		/>
+	);
+}
+
+// Context still reaches each small subscriber, but unchanged items can skip
+// serialization, style generation, and rendering Gutenberg's block subtree.
+const CanvasItemPlacement = memo( function ItemPlacement( {
+	Original,
+	canvasLayout: layout,
+	canvasShapeAttributes: shapeAttributes,
+	canvasPlacement: placement,
+	canvasFitArea: fitArea,
+	canvasMode: mode,
+	canvasEditing: editing,
+	...props
+} ) {
 	const attributes = shapeAttributes
 		? {
 				...props.attributes,
@@ -465,11 +496,6 @@ function CanvasItem( { Original, ...props } ) {
 	if ( ! layout ) {
 		return <Original { ...props } />;
 	}
-	const { preview, mode } = canvas;
-	const placement =
-		preview?.placements?.[ props.clientId ] ||
-		( preview?.id === props.clientId ? preview.placement : null );
-	const fitArea = preview?.placements ? layout.fitArea : preview?.fitArea;
 	// Core width fitting keeps ownership during a drag, so a preview never
 	// runs two fitting engines.
 	const shown = placement
@@ -507,7 +533,7 @@ function CanvasItem( { Original, ...props } ) {
 		description =
 			'Empty image. Drag or use arrow keys to move. Tab reaches layout handles. Enter reaches upload controls. Shift+F10 opens Canvas options.';
 	} else if ( props.name === 'core/image' && shown.fit === 'cover' ) {
-		if ( canvas.editingId === props.clientId ) {
+		if ( editing ) {
 			description =
 				'Reposition image. Drag or use arrow keys. Shift uses larger steps. Home centers. Tab reaches Done. Escape finishes.';
 		} else {
@@ -517,7 +543,7 @@ function CanvasItem( { Original, ...props } ) {
 	} else if ( layout.group ) {
 		description =
 			'Group. Drag or use arrow keys to move. Enter edits children. Escape exits the group.';
-	} else if ( canvas.editingId === props.clientId ) {
+	} else if ( editing ) {
 		description = 'Editing mode. Escape returns to moving.';
 	} else {
 		description = `Column ${ shown[ mode ].column }, row ${ shown[ mode ].row }. Arrow keys move one cell. Tab reaches resize, radius when available, rotation, and canvas height. Enter edits. Shift+F10 opens Canvas options.`;
@@ -551,8 +577,7 @@ function CanvasItem( { Original, ...props } ) {
 							! ( placement && viewport === mode )
 					)
 					.join( ' ' ),
-				'data-canvas-editing':
-					canvas.editingId === props.clientId ? 'true' : undefined,
+				'data-canvas-editing': editing ? 'true' : undefined,
 				'data-canvas-transforming': placement?.free
 					? 'true'
 					: undefined,
@@ -579,7 +604,7 @@ function CanvasItem( { Original, ...props } ) {
 			className={ `${ props.className || '' } canvas__item${ itemClass }` }
 		/>
 	);
-}
+} );
 export function registerItemControls() {
 	addFilter(
 		'editor.BlockListBlock',

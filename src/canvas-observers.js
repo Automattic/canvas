@@ -120,6 +120,7 @@ export function useSelectionBox(
 	attributes
 ) {
 	const [ box, setBox ] = useState( null );
+	const updateRef = useRef( null );
 	useLayoutEffect( () => {
 		const stage = stageRef.current;
 		const grid = gridRef.current;
@@ -175,6 +176,7 @@ export function useSelectionBox(
 					: next
 			);
 		};
+		updateRef.current = update;
 		update();
 		const observer = new view.ResizeObserver( update );
 		observer.observe( grid );
@@ -183,12 +185,18 @@ export function useSelectionBox(
 		view.addEventListener( 'scroll', update, true );
 		grid.addEventListener( 'canvas-layout-change', update );
 		return () => {
+			updateRef.current = null;
 			observer.disconnect();
 			view.removeEventListener( 'resize', update );
 			view.removeEventListener( 'scroll', update, true );
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
-	}, [ stageRef, gridRef, selectedId, preview, layouts, mode, attributes ] );
+	}, [ stageRef, gridRef, selectedId, layouts, mode, attributes ] );
+	// Measure the new placement without reconnecting observers and scheduling
+	// another initial ResizeObserver notification for every pointer movement.
+	useLayoutEffect( () => {
+		updateRef.current?.();
+	}, [ preview ] );
 	return box;
 }
 
