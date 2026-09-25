@@ -47,6 +47,11 @@
 
 .wp-block-tabor-canvas {
 	--canvas-accent: var(--wp-admin-theme-color, #3858e9);
+	// Keep Gutenberg's invisible-space markers out of the visual composition.
+	.non-breaking-space {
+		outline: none;
+		opacity: 1;
+	}
 	// Core applies an inline scale to shrink tall blocks during native dragging.
 	// Keep this canvas and its draggable contents at their full editing size.
 	&.is-dragging {
