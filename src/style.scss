@@ -157,8 +157,6 @@
 	// The editor uses the Buttons block as the grid item; the frontend wraps it.
 	.canvas__item.wp-block-buttons,
 	.canvas__item:not(.wp-block-group) > .wp-block-buttons {
-		width: 100%;
-		height: 100%;
 		align-items: var(--canvas-button-cross, stretch);
 		align-content: var(--canvas-button-cross, stretch);
 
@@ -176,6 +174,13 @@
 			}
 		}
 	}
+	// Only the frontend's inner Buttons fills its wrapper. The editor's
+	// Buttons is the frame itself and must retain precise/measured dimensions.
+	.canvas__item:not(.wp-block-group) > .wp-block-buttons {
+		width: 100%;
+		height: 100%;
+	}
+
 	// Natural-size buttons use their contents as their flex basis. A zero basis
 	// is reserved for the original fill behavior.
 	[data-canvas-orientation="horizontal"]:not([data-canvas-justify="stretch"]),
