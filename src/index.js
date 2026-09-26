@@ -32,6 +32,25 @@ addFilter(
 
 registerItemControls();
 
+// Freeform spacing is authored by placement. Keep the stored gap available
+// for grid mode without changing geometry or nested Row/Stack controls.
+addFilter(
+	'blockEditor.useSetting.before',
+	'tabor/canvas-freeform-spacing',
+	( value, path, clientId, name ) => {
+		if (
+			name === metadata.name &&
+			path === 'spacing.blockGap' &&
+			clientId &&
+			select( blockEditorStore ).getBlockAttributes( clientId )?.cells ===
+				false
+		) {
+			return false;
+		}
+		return value;
+	}
+);
+
 // Contextual settings let Core omit duotone controls before rendering them,
 // while preserving Image controls outside Canvas and existing saved styles.
 const emptyPresets = [];

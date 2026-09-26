@@ -9,7 +9,7 @@ export function centerInSection(
 	placement,
 	mode,
 	axis = 'both',
-	{ minimum = minimumSpans(), preserveSize = false } = {}
+	{ minimum = minimumSpans(), preserveSize = false, cells = true } = {}
 ) {
 	if ( ! preserveSize ) {
 		const centered = centerCanvasPlacement(
@@ -34,6 +34,9 @@ export function centerInSection(
 	// the composition intact, just like ordinary group movement.
 	const { _rect: rect, _canvas: canvas } = placement;
 	const destination = ( tracks, center, size ) => {
+		if ( ! cells ) {
+			return Math.max( 0, center - size / 2 );
+		}
 		const starts = tracks
 			.map( ( track ) => track.start )
 			.filter(

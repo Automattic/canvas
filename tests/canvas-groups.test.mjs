@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ATTRIBUTE, COLUMNS, minimumSpans } from '../src/placement.mjs';
-import { canvasColumns, canvasRows, dragMovePlacement, dragResizePlacement, nudgeCanvasPlacement, resizeCanvasWithKey, savedCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
+import { canvasColumns, canvasRows, dragMovePlacement, dragResizePlacement, nudgeCanvasPlacement, resizeCanvasWithKey, savedCanvasPlacement, settleCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { resolveCanvasLayouts, saveGroupMove, releaseCanvasGroup, releaseGroupSiblings, sourcePlacement, rotatedBounds, groupingConflict, groupingLayers, paintLayers, layoutLeaves, nudgeGroupPlacement, translateGroupPlacement } from '../src/canvas-groups.mjs';
 const padding = { top: 24, right: 24, bottom: 24, left: 24 };
 const geometry = Object.fromEntries(Object.keys(COLUMNS).map(mode => [mode, {
@@ -50,31 +50,24 @@ test('child edits convert from visible coordinates without double-applying paren
   assert.equal(source.rotation,29);
 });
 
-test('pointer and keyboard edits of a translated child snap visibly and reopen at the same position', () => {
+test('edits of a translated child preserve untouched geometry and reopen at the same position', () => {
   const child = leaf('a', 5, 4), container = group('g', [child], { offset: { desktop: { x: .0235, y: 1.125 } } });
   const start = resolveCanvasLayouts([container], geometry).a.desktop;
   const minimum = minimumSpans(child.name);
-  assert.ok(start.free);
-  const edits = [
-    ...[[17, 0], [0, 19], [17, 19]].map(([x, y]) => {
-      const preview = dragMovePlacement(start, 'desktop', x, y, minimum);
-      almost(preview._rect.left, start._rect.left + x);
-      almost(preview._rect.top, start._rect.top + y);
-      const next = snapCanvasPlacement(preview, 'desktop', minimum, start);
-      assert.equal(next.columnSpan, start.columnSpan);
-      assert.equal(next.rowSpan, start.rowSpan);
-      return next;
-    }),
-    ...[[1, 0], [0, 1], [-1, 0], [0, -1]].map(([x, y]) => nudgeCanvasPlacement(start, 'desktop', x, y, minimum)),
-    snapCanvasPlacement(dragResizePlacement(start, 'desktop', 'e', 65, 0, minimum), 'desktop', minimum),
-    resizeCanvasWithKey(start, 'desktop', 1, 0, minimum),
-  ];
-  for (const next of edits) {
-    assert.equal(savedCanvasPlacement(next).free, undefined);
-    const { _rect: r, _canvas: g } = next;
-    for (const [tracks, edge, position] of [[g.columns, 'start', r.left], [g.columns, 'end', r.left + r.width], [g.rows, 'start', r.top], [g.rows, 'end', r.top + r.height]]) {
-      assert.ok(tracks.some(track => Math.abs(track[edge] - position) < 1e-7));
-    }
+  const moves = [[17, 0], [0, 19], [17, 19]].map(([x, y]) => {
+    const preview = dragMovePlacement(start, 'desktop', x, y, minimum);
+    return settleCanvasPlacement(preview, 'desktop', minimum, start);
+  });
+  moves.push(...[[1, 0], [0, 1], [-1, 0], [0, -1]].map(([x, y]) => nudgeCanvasPlacement(start, 'desktop', x, y, minimum)));
+  for (const next of moves) {
+    almost(next._rect.width, start._rect.width);
+    almost(next._rect.height, start._rect.height);
+  }
+  const resize = resizeCanvasWithKey(start, 'desktop', 1, 0, minimum);
+  almost(resize._rect.left, start._rect.left);
+  almost(resize._rect.top, start._rect.top);
+  almost(resize._rect.height, start._rect.height);
+  for (const next of [...moves, resize]) {
     const saved = savedCanvasPlacement(sourcePlacement(next, 'desktop', start));
     const edited = { ...child, attributes: { ...child.attributes, [ATTRIBUTE]: { ...child.attributes[ATTRIBUTE], desktop: saved } } };
     const reopened = resolveCanvasLayouts(JSON.parse(JSON.stringify([{ ...container, innerBlocks: [edited] }])), geometry).a.desktop;

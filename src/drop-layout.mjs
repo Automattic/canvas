@@ -34,7 +34,14 @@ export function owningGridItem(
 	return null;
 }
 
-export function droppedLayouts( existing, incoming, mode, point, metrics ) {
+export function droppedLayouts(
+	existing,
+	incoming,
+	mode,
+	point,
+	metrics,
+	cells = true
+) {
 	if ( ! incoming.length || ! metrics?.canvas ) {
 		return null;
 	}
@@ -96,11 +103,13 @@ export function droppedLayouts( existing, incoming, mode, point, metrics ) {
 				point.x - start._rect.left,
 				point.y - start._rect.top,
 				minimumSpans( block.name ),
-				6 * ( metrics.scale || 1 )
+				6 * ( metrics.scale || 1 ),
+				cells
 			);
 			// Center snapping can adjust the span. Size a new image from its
 			// destination cells, not the span it was initially created with.
 			if (
+				cells &&
 				block.name === 'core/image' &&
 				! authored.get( block.clientId )?.desktop
 			) {

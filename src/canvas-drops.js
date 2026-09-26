@@ -24,6 +24,7 @@ function transferBlocks( transfer ) {
 	}
 }
 export function useCanvasDrops( {
+	cells,
 	stageRef,
 	gridRef,
 	clientId,
@@ -206,7 +207,8 @@ export function useCanvasDrops( {
 					x: ( event.clientX - bounds.left ) * scale,
 					y: ( event.clientY - bounds.top ) * scale,
 				},
-				metrics
+				metrics,
+				cells
 			);
 			return {
 				layouts,
@@ -420,6 +422,6 @@ export function useCanvasDrops( {
 			} );
 			doc.defaultView.removeEventListener( 'blur', clear );
 		};
-	}, [ stageRef, gridRef, clientId, mode, registry ] );
+	}, [ stageRef, gridRef, clientId, mode, registry, cells ] );
 	return preview;
 }

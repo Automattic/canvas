@@ -25,6 +25,10 @@
     }
   ],
   "attributes": {
+    "cells": {
+      "type": "boolean",
+      "default": true
+    },
     "desktopRows": {
       "type": "number",
       "default": 12

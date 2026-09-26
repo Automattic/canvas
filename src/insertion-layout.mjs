@@ -10,7 +10,14 @@ import { occupiedRows, savedCanvasPlacement } from './canvas-geometry.mjs';
 import { droppedLayouts } from './drop-layout.mjs';
 import { withInsertionDefaults } from './insertion-defaults.mjs';
 
-export function insertionLayout( existing, block, mode, metrics, point ) {
+export function insertionLayout(
+	existing,
+	block,
+	mode,
+	metrics,
+	point,
+	cells = true
+) {
 	if ( ! metrics ) {
 		return null;
 	}
@@ -19,9 +26,14 @@ export function insertionLayout( existing, block, mode, metrics, point ) {
 		( item ) => item.clientId !== block.clientId
 	);
 	if ( point ) {
-		return droppedLayouts( siblings, [ block ], mode, point, metrics )?.[
-			block.clientId
-		];
+		return droppedLayouts(
+			siblings,
+			[ block ],
+			mode,
+			point,
+			metrics,
+			cells
+		)?.[ block.clientId ];
 	}
 	const incoming = withInsertionDefaults( block, mode, metrics );
 	const layouts = resolveLayouts(

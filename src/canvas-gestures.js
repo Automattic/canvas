@@ -18,7 +18,8 @@ import {
 	mapCanvasPlacement,
 	savedCanvasPlacement,
 	dragMovePlacement,
-	snapCanvasPlacement,
+	settleCanvasPlacement,
+	alignFreeCanvasPlacement,
 	transformCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { gridMetrics } from './canvas-metrics.mjs';
@@ -33,6 +34,7 @@ import { centerResizeModifier } from './resize-modifiers.mjs';
 import { observeTouchSession } from './touch-session.mjs';
 import { translateGroupPlacement } from './canvas-groups.mjs';
 export function useCanvasGestures( {
+	cells,
 	gridRef,
 	mode,
 	layouts,
@@ -221,22 +223,65 @@ export function useCanvasGestures( {
 			let finished = false;
 			let pairStart, pairOrigin;
 			let fromCenter = false;
+			let resizeRatio;
+			const alignFree = ( value ) => {
+				const aligned = alignFreeCanvasPlacement( value, mode, {
+					siblings,
+					kind,
+					minimum,
+					tolerance: 8 * ( metrics.scale || 1 ),
+					ratio: resizeRatio,
+					fromCenter,
+				} );
+				if ( ! layouts[ id ]?.widthFit || kind === 'move' ) {
+					return aligned;
+				}
+				return mapCanvasPlacement(
+					{
+						...savedCanvasPlacement( aligned ),
+						free: freeFrameFromRect(
+							{
+								...aligned._rect,
+								height: measureResize( aligned._rect.width ),
+							},
+							aligned._canvas
+						),
+					},
+					mode,
+					aligned._canvas
+				);
+			};
 			// Guidelines and the completed edit must use the same snapped destination.
 			// Only a plain move retains the original span, not a pinch/twist.
-			const dropPlacement = () =>
-				finalValue !== start &&
-				! layouts[ id ]?.group &&
-				kind !== 'rotate' &&
-				finalValue?.free
-					? snapCanvasPlacement(
+			const dropPlacement = () => {
+				if (
+					! cells &&
+					finalValue !== start &&
+					finalValue &&
+					kind !== 'rotate' &&
+					kind !== 'canvas' &&
+					! pairStart
+				) {
+					return alignFree( finalValue );
+				}
+				return finalValue !== start &&
+					! layouts[ id ]?.group &&
+					kind !== 'rotate' &&
+					finalValue?.free
+					? settleCanvasPlacement(
 							finalValue,
 							mode,
 							minimum,
 							kind === 'move' && ! pairStart ? start : undefined,
 							6 * ( metrics.scale || 1 ),
-							fromCenter ? start._rect : undefined
+							fromCenter ? start._rect : undefined,
+							cells,
+							pairStart ? undefined : start,
+							kind,
+							imageResizeRatio( layouts[ id ], start )
 						)
 					: finalValue;
+			};
 			const stopNative = ( e ) => {
 				e.preventDefault();
 				e.stopImmediatePropagation();
@@ -332,11 +377,27 @@ export function useCanvasGestures( {
 						dx,
 						dy,
 						{
-							snap: true,
+							snap: cells,
 							minimum: minimumSpans( store.getBlockName( id ) ),
 							tolerance: 6 * ( metrics.scale || 1 ),
 						}
 					);
+					if ( ! cells ) {
+						const aligned = alignFreeCanvasPlacement(
+							placements[ id ],
+							mode,
+							{ siblings, tolerance: 8 * ( metrics.scale || 1 ) }
+						);
+						dropPlacements = moveSelection(
+							layouts,
+							ids,
+							mode,
+							id,
+							aligned._rect.left - start._rect.left,
+							aligned._rect.top - start._rect.top
+						);
+					}
+
 					setPreview( {
 						id,
 						placement: placements[ id ],
@@ -381,6 +442,12 @@ export function useCanvasGestures( {
 							localY
 						);
 					} else if ( kind !== 'move' ) {
+						resizeRatio = imageResizeRatio(
+							layouts[ id ],
+							start,
+							e.shiftKey &&
+								isFrameMedia( store.getBlockName( id ) )
+						);
 						const resize = ( progress ) =>
 							progress === 0
 								? start
@@ -391,28 +458,28 @@ export function useCanvasGestures( {
 										localX * progress,
 										localY * progress,
 										minimum,
-										imageResizeRatio(
-											layouts[ id ],
-											start,
-											e.shiftKey &&
-												isFrameMedia(
-													store.getBlockName( id )
-												)
-										),
+										resizeRatio,
 										fromCenter
 									);
 						finalValue = readableResize
 							? constrainReadableResize(
 									resize,
 									( value ) =>
-										snapCanvasPlacement(
-											value,
-											mode,
-											minimum,
-											undefined,
-											6 * ( metrics.scale || 1 ),
-											fromCenter ? start._rect : undefined
-										),
+										cells
+											? settleCanvasPlacement(
+													value,
+													mode,
+													minimum,
+													undefined,
+													6 * ( metrics.scale || 1 ),
+													fromCenter
+														? start._rect
+														: undefined,
+													cells,
+													start,
+													kind
+												)
+											: alignFree( value ),
 									measureResize
 								)
 							: resize( 1 );
@@ -441,13 +508,28 @@ export function useCanvasGestures( {
 							localX,
 							localY,
 							minimum,
-							metrics.scale || 1
+							metrics.scale || 1,
+							cells
 						);
 					}
+					const drop = dropPlacement();
+					// Fit text follows the snapped width, not the snapped row height.
+					const dropPreview =
+						layouts[ id ]?.widthFit && kind !== 'move'
+							? {
+									...drop,
+									_rect: {
+										...drop._rect,
+										height: measureResize(
+											drop._rect.width
+										),
+									},
+								}
+							: drop;
 					setPreview( {
 						id,
 						placement: finalValue,
-						dropPlacement: dropPlacement(),
+						dropPlacement: dropPreview,
 						siblings,
 						resizing: kind !== 'move',
 					} );
@@ -623,6 +705,7 @@ export function useCanvasGestures( {
 			);
 		},
 		[
+			cells,
 			gridRef,
 			mode,
 			layouts,

@@ -7,8 +7,8 @@ import {
 import { __ } from '@wordpress/i18n';
 import { COLUMNS } from './geometry.mjs';
 
-// Briefly preview the grid for native spacing changes.
-// Track spacing settings, since measured gaps also change with viewport size.
+// Briefly preview the grid when its mode or native spacing settings change.
+// Track authored settings, since measured gaps also change with viewport size.
 export function useGridPreview( spacing, isSelected, gridRef ) {
 	const previousSpacing = useRef( spacing );
 	const timeout = useRef( null );

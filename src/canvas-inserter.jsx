@@ -45,7 +45,13 @@ function getInserterRegistry( parent ) {
 	return inserterRegistries.get( parent );
 }
 
-export function useCanvasInsertion( { clientId, gridRef, mode, registry } ) {
+export function useCanvasInsertion( {
+	clientId,
+	gridRef,
+	mode,
+	registry,
+	cells,
+} ) {
 	const allowed = useSelect(
 		( select ) => {
 			const store = select( blockEditorStore );
@@ -70,13 +76,14 @@ export function useCanvasInsertion( { clientId, gridRef, mode, registry } ) {
 				block,
 				mode,
 				metrics,
-				point
+				point,
+				cells
 			);
 			return layout
 				? { ...incoming.attributes, [ ATTRIBUTE ]: layout }
 				: null;
 		},
-		[ clientId, gridRef, mode, registry ]
+		[ clientId, gridRef, mode, registry, cells ]
 	);
 	const onSelect = useCallback(
 		( block ) => {

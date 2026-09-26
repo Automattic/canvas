@@ -91,7 +91,13 @@ export function GridHandle( {
 	} );
 	return <button ref={ ref } { ...props } />;
 }
-export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
+export function GridGuidelines( {
+	gridRef,
+	active,
+	showAlignment,
+	preview,
+	cellsEnabled = true,
+} ) {
 	const [ lines, setLines ] = useState( null );
 	const previewRef = useRef( preview );
 	const updateRef = useRef( null );
@@ -235,7 +241,9 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 	const guidelines = [
 		{
 			axis: 'x',
-			position: lines.center ?? lines.width / 2,
+			position: cellsEnabled
+				? ( lines.center ?? lines.width / 2 )
+				: lines.width / 2,
 			kind: 'center',
 		},
 		{
@@ -243,7 +251,7 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 			position: lines.height / 2,
 			kind: 'center',
 		},
-		...( lines.hasWide === false
+		...( ! cellsEnabled || lines.hasWide === false
 			? []
 			: [
 					{
@@ -275,7 +283,8 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 		<>
 			<div
 				className={
-					'canvas__guidelines' + ( active ? ' is-visible' : '' )
+					'canvas__guidelines' +
+					( active && cellsEnabled ? ' is-visible' : '' )
 				}
 				aria-hidden="true"
 			>

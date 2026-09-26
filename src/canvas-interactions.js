@@ -26,6 +26,7 @@ function isPlaceholderControl( target ) {
 	return !! placeholder && !! control && placeholder.contains( control );
 }
 export function useCanvasInteractions( {
+	cells,
 	gridRef,
 	clientId,
 	selectedId,
@@ -249,6 +250,7 @@ export function useCanvasInteractions( {
 		return () => view.cancelAnimationFrame( insertionFocus.current );
 	}, [ gridRef ] );
 	const latest = useRef( {
+		cells,
 		gesture,
 		moveWithKey,
 		rotateWithKey,
@@ -258,6 +260,7 @@ export function useCanvasInteractions( {
 	} );
 	useLayoutEffect( () => {
 		latest.current = {
+			cells,
 			gesture,
 			moveWithKey,
 			rotateWithKey,
@@ -265,7 +268,15 @@ export function useCanvasInteractions( {
 			mode,
 			canInsert,
 		};
-	}, [ gesture, moveWithKey, rotateWithKey, selectedId, mode, canInsert ] );
+	}, [
+		gesture,
+		moveWithKey,
+		rotateWithKey,
+		selectedId,
+		mode,
+		canInsert,
+		cells,
+	] );
 	useLayoutEffect( () => {
 		setContextMenu( ( menu ) =>
 			menu && ( menu.mode !== mode || ( ! menu.id && ! canInsert ) )
@@ -977,7 +988,7 @@ export function useCanvasInteractions( {
 			if (
 				selection.current.length <= 1 ||
 				! event.key.startsWith( 'Arrow' ) ||
-				event.shiftKey ||
+				( latest.current.cells && event.shiftKey ) ||
 				event.altKey ||
 				event.ctrlKey ||
 				event.metaKey

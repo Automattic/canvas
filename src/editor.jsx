@@ -18,6 +18,7 @@ import {
 	saveGroupMove,
 	sourcePlacement,
 	nudgeGroupPlacement,
+	translateGroupPlacement,
 } from './canvas-groups.mjs';
 import {
 	useCallback,
@@ -28,12 +29,16 @@ import {
 	useState,
 } from '@wordpress/element';
 import { useSelect, useDispatch, useRegistry } from '@wordpress/data';
-import { Path, SVG, ToolbarButton } from '@wordpress/components';
+import {
+	PanelBody,
+	__experimentalToggleGroupControl as ToggleGroupControl,
+	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
+} from '@wordpress/components';
 import {
 	store as blockEditorStore,
 	useBlockProps,
 	useInnerBlocksProps,
-	BlockControls,
+	InspectorControls,
 	BlockSettingsMenuControls,
 	__unstableBlockSettingsMenuFirstItem as BlockSettingsMenuFirstItem,
 } from '@wordpress/block-editor';
@@ -79,6 +84,8 @@ import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { owningGridItem } from './drop-layout.mjs';
 import {
 	resizeCanvasWithKey,
+	dragMovePlacement,
+	dragResizePlacement,
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { useCanvasKeyboard, useLayoutAnnouncement } from './canvas-keyboard';
@@ -92,7 +99,12 @@ import {
 } from './canvas-inserter';
 import { RadiusHandle } from './radius-control';
 import { useCanvasGap } from './use-canvas-gap';
-export default function Edit( { clientId, attributes, isSelected } ) {
+export default function Edit( {
+	clientId,
+	attributes,
+	isSelected,
+	setAttributes,
+} ) {
 	const gap = useCanvasGap( attributes );
 	const stageRef = useRef( null );
 	const gridRef = useRef( null );
@@ -100,13 +112,17 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const mounted = useRef( false );
 	const announce = useLayoutAnnouncement();
 	const [ preview, setPreview ] = useState( null );
-	const [ showCells, setShowCells ] = useState( false );
+	const cells = attributes.cells !== false;
 	const [ shapePreview, setShapePreview ] = useState( null );
 	const clearShapePreview = useCallback( () => setShapePreview( null ), [] );
 	const [ geometry, setGeometry ] = useState( {} );
 	const mode = useCanvasViewport( gridRef );
 	const gridPreview = useGridPreview(
-		JSON.stringify( [ gap.effective, attributes.style?.spacing?.padding ] ),
+		JSON.stringify( [
+			cells,
+			gap.effective,
+			attributes.style?.spacing?.padding,
+		] ),
 		isSelected,
 		gridRef
 	);
@@ -448,7 +464,8 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				id,
 				centerInSection( layouts[ id ][ mode ], mode, axis, {
 					minimum: minimumSpans( store.getBlockName( id ) ),
-					preserveSize: layouts[ id ].group,
+					preserveSize: layouts[ id ].group || ! cells,
+					cells,
 				} )
 			);
 			let announcement;
@@ -461,7 +478,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			}
 			announce( announcement );
 		},
-		[ registry, layouts, mode, clientId, commit, announce ]
+		[ registry, layouts, mode, clientId, commit, announce, cells ]
 	);
 	const commitRows = useCallback(
 		( rows, offset = 0 ) => {
@@ -821,6 +838,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		[ registry, commitUpdates ]
 	);
 	const gesture = useCanvasGestures( {
+		cells,
 		gridRef,
 		mode,
 		layouts,
@@ -854,7 +872,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			};
 			if ( ids.length > 1 ) {
 				if (
-					event.shiftKey ||
+					( cells && event.shiftKey ) ||
 					event.altKey ||
 					event.ctrlKey ||
 					event.metaKey ||
@@ -874,15 +892,25 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				}
 				const [ x, y ] = offsets[ event.key ];
 				const start = layouts[ anchorId ][ mode ];
-				const next = layouts[ anchorId ].group
-					? nudgeGroupPlacement( start, mode, x, y )
-					: nudge(
-							start,
-							mode,
-							x,
-							y,
-							minimumSpans( store.getBlockName( anchorId ) )
-						);
+				let next;
+				if ( ! cells ) {
+					next = translateGroupPlacement(
+						start,
+						mode,
+						x * ( event.shiftKey ? 10 : 1 ),
+						y * ( event.shiftKey ? 10 : 1 )
+					);
+				} else {
+					next = layouts[ anchorId ].group
+						? nudgeGroupPlacement( start, mode, x, y )
+						: nudge(
+								start,
+								mode,
+								x,
+								y,
+								minimumSpans( store.getBlockName( anchorId ) )
+							);
+				}
 				commitSelection(
 					moveSelection(
 						layouts,
@@ -897,7 +925,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 				return;
 			}
 			if (
-				event.shiftKey ||
+				( cells && event.shiftKey ) ||
 				event.altKey ||
 				event.ctrlKey ||
 				event.metaKey ||
@@ -911,15 +939,31 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			event.stopPropagation();
 			const [ x, y ] = offsets[ event.key ];
 			const start = layouts[ selectedId ][ mode ];
-			const next = layouts[ selectedId ].group
-				? nudgeGroupPlacement( start, mode, x, y )
-				: nudge( start, mode, x, y, minimumSpans( selectedName ) );
+			let next;
+			if ( ! cells ) {
+				next = dragMovePlacement(
+					start,
+					mode,
+					x * ( event.shiftKey ? 10 : 1 ),
+					y * ( event.shiftKey ? 10 : 1 ),
+					minimumSpans( selectedName ),
+					1,
+					false
+				);
+			} else {
+				next = layouts[ selectedId ].group
+					? nudgeGroupPlacement( start, mode, x, y )
+					: nudge( start, mode, x, y, minimumSpans( selectedName ) );
+			}
 			commit( selectedId, next );
 			announce(
-				`${ next.column === start.column && next.row === start.row ? 'Movement limit reached. ' : '' }Column ${ next.column }, row ${ next.row }.`
+				cells
+					? `${ next.column === start.column && next.row === start.row ? 'Movement limit reached. ' : '' }Column ${ next.column }, row ${ next.row }.`
+					: `Position ${ Math.round( next._rect.left ) }, ${ Math.round( next._rect.top ) } pixels.`
 			);
 		},
 		[
+			cells,
 			announce,
 			commit,
 			commitSelection,
@@ -981,7 +1025,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 			locked ||
 			layouts[ selectedId ]?.group ||
 			! layouts[ selectedId ] ||
-			event.shiftKey ||
+			( cells && event.shiftKey ) ||
 			event.altKey ||
 			event.ctrlKey ||
 			event.metaKey ||
@@ -996,17 +1040,29 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		if ( widthFitSelected && ! x ) {
 			return;
 		}
-		const next = resizeCanvasWithKey(
-			start,
-			mode,
-			x,
-			y,
-			minimumSpans( selectedName ),
-			imageResizeRatio( layouts[ selectedId ], start )
-		);
+		const next = ! cells
+			? dragResizePlacement(
+					start,
+					mode,
+					keyboardResizeDirection,
+					x * ( event.shiftKey ? 10 : 1 ),
+					y * ( event.shiftKey ? 10 : 1 ),
+					minimumSpans( selectedName ),
+					imageResizeRatio( layouts[ selectedId ], start )
+				)
+			: resizeCanvasWithKey(
+					start,
+					mode,
+					x,
+					y,
+					minimumSpans( selectedName ),
+					imageResizeRatio( layouts[ selectedId ], start )
+				);
 		commit( selectedId, next );
 		announce(
-			`${ next.columnSpan === start.columnSpan && next.rowSpan === start.rowSpan ? 'Size limit reached. ' : '' }Width ${ next.columnSpan } columns, height ${ next.rowSpan } rows.`
+			cells
+				? `${ next.columnSpan === start.columnSpan && next.rowSpan === start.rowSpan ? 'Size limit reached. ' : '' }Width ${ next.columnSpan } columns, height ${ next.rowSpan } rows.`
+				: `Width ${ Math.round( next._rect.width ) }, height ${ Math.round( next._rect.height ) } pixels.`
 		);
 	};
 	const heightWithKey = ( event ) => {
@@ -1034,6 +1090,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		);
 	};
 	const insertion = useCanvasInsertion( {
+		cells,
 		clientId,
 		gridRef,
 		mode,
@@ -1051,6 +1108,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		selectedIds,
 		afterGrouping,
 	} = useCanvasInteractions( {
+		cells,
 		gridRef,
 		clientId,
 		selectedId,
@@ -1098,6 +1156,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 		mode,
 	} );
 	const dropPreview = useCanvasDrops( {
+		cells,
 		stageRef,
 		gridRef,
 		clientId,
@@ -1265,22 +1324,30 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 	const active = ! editingId && !! ( isSelected || selectedId );
 	return (
 		<div { ...innerProps }>
-			{ isSelected && (
-				<BlockControls group="block">
-					<ToolbarButton
-						label="Show cells"
-						icon={
-							<SVG viewBox="0 0 24 24" width="24" height="24">
-								<Path d="M4 4h4v4H4V4Zm6 0h4v4h-4V4Zm6 0h4v4h-4V4ZM4 10h4v4H4v-4Zm6 0h4v4h-4v-4Zm6 0h4v4h-4v-4ZM4 16h4v4H4v-4Zm6 0h4v4h-4v-4Zm6 0h4v4h-4v-4Z" />
-							</SVG>
-						}
-						isPressed={ showCells }
-						onClick={ () =>
-							setShowCells( ( visible ) => ! visible )
-						}
-					/>
-				</BlockControls>
-			) }
+			<InspectorControls group="settings">
+				<PanelBody title="Settings">
+					<ToggleGroupControl
+						label="Layout"
+						value={ cells ? 'grid' : 'freeform' }
+						isBlock
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+						onChange={ ( value ) => {
+							const nextCells = value === 'grid';
+							if ( nextCells === cells ) {
+								return;
+							}
+							setAttributes( { cells: nextCells } );
+						} }
+					>
+						<ToggleGroupControlOption value="grid" label="Grid" />
+						<ToggleGroupControlOption
+							value="freeform"
+							label="Freeform"
+						/>
+					</ToggleGroupControl>
+				</PanelBody>
+			</InspectorControls>
 			{ ! preview &&
 				mode !== 'mobile' &&
 				!! insertion.allowed.length &&
@@ -1370,13 +1437,11 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 						</CanvasPreviewContext.Provider>
 					</div>
 					<GridGuidelines
+						cellsEnabled={ cells }
 						gridRef={ gridRef }
 						active={
 							! dropPreview?.replacing &&
-							( ! blocks.length ||
-								( showCells &&
-									( isSelected || !! selectedId ) ) ||
-								gridPreview ||
+							( ( cells && ( ! blocks.length || gridPreview ) ) ||
 								!! dropPreview ||
 								( active && !! preview && ! preview.rotating ) )
 						}
@@ -1445,7 +1510,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 														? 'resize'
 														: undefined
 												}
-												aria-description={ `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows. ${ widthFitSelected ? 'Left and right change width; height follows the text.' : 'Left and right change width; up and down change height.' } Hold Shift + Command/Ctrl while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.` }
+												aria-description={ `${ cells ? `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows.` : `Width ${ Math.round( layouts[ selectedId ][ mode ]._rect.width ) }, height ${ Math.round( layouts[ selectedId ][ mode ]._rect.height ) } pixels. Arrow keys resize by 1 pixel, or 10 with Shift.` } ${ widthFitSelected ? 'Left and right change width; height follows the text.' : 'Left and right change width; up and down change height.' } Hold Shift + Command/Ctrl while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.` }
 												title={
 													widthFitSelected
 														? 'Resize width · Height follows text'
@@ -1485,7 +1550,7 @@ export default function Edit( { clientId, attributes, isSelected } ) {
 										<span className="canvas__dimensions">
 											{ preview.rotating
 												? `${ normalizeRotation( preview.placement.rotation ) }°`
-												: `${ preview.placement.columnSpan } × ${ preview.placement.rowSpan }${ preview.transforming ? ` · ${ normalizeRotation( preview.placement.rotation ) }°` : '' }` }
+												: `${ cells ? `${ preview.placement.columnSpan } × ${ preview.placement.rowSpan }` : `${ Math.round( preview.placement._rect.width ) } × ${ Math.round( preview.placement._rect.height ) } px` }${ preview.transforming ? ` · ${ normalizeRotation( preview.placement.rotation ) }°` : '' }` }
 										</span>
 									) }
 							</div>

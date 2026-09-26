@@ -39,7 +39,7 @@ A source checkout needs a production build before installation. Run npm ci and n
 
 Use Add block inside a Canvas to insert a heading, paragraph, image, video, or buttons. New headings start vertically centered in their frames; paragraphs start at the top. Click a block to select it, then drag to move it. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Command (Mac) or Shift + Ctrl (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
 
-Select the Canvas block and toggle Show cells in its toolbar to keep the grid visible while working inside it. This editor-only guide does not change the published page.
+Select the Canvas block and choose Grid or Freeform under Settings → Layout. Grid shows cells during moves, resizes, and drops and snaps edits to them. Freeform preserves precise positions and aligns to parent-center and sibling guides. Arrow keys move or resize by 1px in Freeform, or 10px with Shift. Switching modes preserves existing placements.
 
 Move an existing heading, paragraph, image, or Buttons block into Canvas using its toolbar drag handle or by dragging it from List View onto the canvas. The preview shows its grid position; release to move the original block there. Dropping an existing image over another image adds it to the composition. Undo restores the block to its original location. Blocks locked against moving or leaving their current parent cannot be dropped into Canvas.
 

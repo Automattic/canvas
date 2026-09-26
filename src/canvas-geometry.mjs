@@ -1,3 +1,4 @@
+import { siblingMatches } from './sibling-guides.mjs';
 import {
 	COLUMNS,
 	MAX_ROWS,
@@ -1039,6 +1040,158 @@ export function snapCanvasPlacement(
 
 // Both gestures and drops use these measured cells and semantic edge anchors.
 // Saved anchors contain no viewport pixel measurements.
+// Freeform alignment is magnetic to visible guides, never to cell boundaries.
+// Return the same destination to both the overlay and pointer release.
+export function alignFreeCanvasPlacement(
+	value,
+	mode,
+	{
+		siblings = [],
+		kind = 'move',
+		minimum = { columnSpan: 1, rowSpan: 1 },
+		tolerance = 8,
+		ratio,
+		fromCenter = false,
+	} = {}
+) {
+	if ( value.rotation ) {
+		return value;
+	}
+	const g = value._canvas;
+	const targets = [
+		...siblings,
+		{ left: g.width / 2, top: g.height / 2, width: 0, height: 0 },
+	];
+	const matches = siblingMatches( value._rect, targets, tolerance, kind );
+	let result = value;
+	const aligned = new Set();
+	const proportional = kind !== 'move' && ( ratio || fromCenter );
+	if ( fromCenter ) {
+		ratio = value._rect.width / value._rect.height;
+	}
+	for ( const match of matches ) {
+		if ( aligned.has( match.axis ) ) {
+			continue;
+		}
+		let dx = match.axis === 'x' ? match.delta : 0;
+		let dy = match.axis === 'y' ? match.delta : 0;
+		if ( proportional ) {
+			const xSign = kind.includes( 'w' ) ? -1 : 1;
+			const ySign = kind.includes( 'n' ) ? -1 : 1;
+			const widthDelta =
+				match.axis === 'x' ? dx * xSign : dy * ySign * ratio;
+			dx = widthDelta * xSign;
+			dy = ( widthDelta / ratio ) * ySign;
+		}
+		const candidate =
+			kind === 'move'
+				? dragMovePlacement( result, mode, dx, dy, minimum, 1, false )
+				: dragResizePlacement(
+						result,
+						mode,
+						kind,
+						dx,
+						dy,
+						minimum,
+						ratio,
+						fromCenter
+					);
+		const rect = candidate._rect;
+		const edge =
+			match.axis === 'x'
+				? rect.left + rect.width * match.edge
+				: rect.top + rect.height * match.edge;
+		// Bounds, minimum dimensions, or ratio constraints may prevent alignment.
+		if ( Math.abs( edge - match.position ) > 0.01 ) {
+			continue;
+		}
+		result = candidate;
+		aligned.add( match.axis );
+		if ( proportional ) {
+			break;
+		}
+	}
+	return result;
+}
+
+// Cells control subsequent edits only. Precise frames retain untouched edges
+// and dimensions when an off-grid block returns to grid-based editing.
+export function settleCanvasPlacement(
+	value,
+	mode,
+	minimum,
+	span,
+	tolerance = 6,
+	resizeCenter,
+	cells = true,
+	start = span,
+	kind = 'move',
+	ratio
+) {
+	if ( ! cells ) {
+		return value;
+	}
+	const snapped = snapCanvasPlacement(
+		value,
+		mode,
+		minimum,
+		span,
+		tolerance,
+		resizeCenter
+	);
+	if ( ! start?.free || resizeCenter ) {
+		return snapped;
+	}
+	const rect = { ...snapped._rect };
+	if ( kind === 'move' ) {
+		rect.width = start._rect.width;
+		rect.height = start._rect.height;
+		rect.left = Math.max(
+			0,
+			Math.min( rect.left, value._canvas.width - rect.width )
+		);
+	} else {
+		const original = start._rect;
+		if ( ! kind.includes( 'w' ) ) {
+			rect.left = original.left;
+		}
+		if ( ! kind.includes( 'n' ) ) {
+			rect.top = original.top;
+		}
+		rect.width =
+			( kind.includes( 'e' )
+				? snapped._rect.left + snapped._rect.width
+				: original.left + original.width ) - rect.left;
+		rect.height =
+			( kind.includes( 's' )
+				? snapped._rect.top + snapped._rect.height
+				: original.top + original.height ) - rect.top;
+	}
+	if ( kind !== 'move' && ratio ) {
+		return dragResizePlacement(
+			start,
+			mode,
+			kind,
+			kind.includes( 'w' )
+				? rect.left - start._rect.left
+				: rect.width - start._rect.width,
+			kind.includes( 'n' )
+				? rect.top - start._rect.top
+				: rect.height - start._rect.height,
+			minimum,
+			ratio
+		);
+	}
+	if (
+		Object.keys( rect ).every(
+			( key ) => Math.abs( rect[ key ] - snapped._rect[ key ] ) < 0.0001
+		)
+	) {
+		return snapped;
+	}
+	return placementWithFreeFrame( start, mode, rect, minimum );
+}
+
 export function dragCanvasPlacement(
 	start,
 	mode,
@@ -1046,12 +1199,10 @@ export function dragCanvasPlacement(
 	dx,
 	dy,
 	minimum,
-	tolerance = 6
+	tolerance = 6,
+	cells = true
 ) {
 	// Keyboard edits and external drops commit through the same solver as pointer release.
-	if ( start.free ) {
-		start = snapCanvasPlacement( start, mode, minimum, undefined, 0 );
-	}
 	const moving = kind === 'move';
 	let g = start._canvas;
 	const targetBottom = start._rect.top + start._rect.height + dy;
@@ -1079,7 +1230,7 @@ export function dragCanvasPlacement(
 		start = { ...start, _canvas: g };
 	}
 	const preview = moving
-		? dragMovePlacement( start, mode, dx, dy, minimum )
+		? dragMovePlacement( start, mode, dx, dy, minimum, 1, cells )
 		: dragResizePlacement(
 				{ ...start, rotation: 0 },
 				mode,
@@ -1091,12 +1242,16 @@ export function dragCanvasPlacement(
 	if ( dx || ( ! moving && /[ew]/.test( kind ) ) ) {
 		delete preview._snapHorizontal;
 	}
-	const snapped = snapCanvasPlacement(
+	const snapped = settleCanvasPlacement(
 		preview,
 		mode,
 		minimum,
 		moving ? start : undefined,
-		tolerance
+		tolerance,
+		undefined,
+		cells,
+		start,
+		kind
 	);
 	return {
 		...snapped,
@@ -1296,7 +1451,15 @@ export function dragAspectRatioPlacement(
 ) {
 	return dragResizePlacement( start, mode, kind, dx, dy, minimum, ratio );
 }
-export function dragMovePlacement( start, mode, dx, dy, minimum, scale = 1 ) {
+export function dragMovePlacement(
+	start,
+	mode,
+	dx,
+	dy,
+	minimum,
+	scale = 1,
+	cells = true
+) {
 	const g = start._canvas,
 		rect = start._rect;
 	const height = g.padding.top + MAX_ROWS * rowPitch( g ) - g.gap;
@@ -1309,6 +1472,7 @@ export function dragMovePlacement( start, mode, dx, dy, minimum, scale = 1 ) {
 	const approach = Math.max( 6 * scale, rowPitch( g ) / 2 );
 	const growthThreshold = Math.max( 24 * scale, rowPitch( g ) * 0.75 );
 	if (
+		cells &&
 		rect.height <= g.height &&
 		overshoot >= -approach &&
 		overshoot <= growthThreshold
@@ -1470,9 +1634,6 @@ export function nudgeCanvasPlacement(
 		rowSpan: 1,
 	}
 ) {
-	if ( value.free ) {
-		value = snapCanvasPlacement( value, mode, minimum );
-	}
 	const g = value._canvas;
 	const a =
 		g.columns[ clamp( value.column - 1 + x, 0, g.columns.length - 1 ) ];
@@ -1498,9 +1659,6 @@ export function nudgeCanvasPlacement(
 
 // Resize in local block axes, using logical cell ends rather than pixel nudges.
 export function resizeCanvasWithKey( value, mode, x, y, minimum, ratio ) {
-	if ( value.free ) {
-		value = snapCanvasPlacement( value, mode, minimum );
-	}
 	const g = value._canvas;
 	if ( ! g ) {
 		return value;
@@ -1537,7 +1695,15 @@ export function resizeCanvasWithKey( value, mode, x, y, minimum, ratio ) {
 		return value;
 	}
 	if ( ! ratio ) {
-		return dragCanvasPlacement( value, mode, 'se', dx, dy, minimum, 0 );
+		return dragCanvasPlacement(
+			value,
+			mode,
+			[ y ? 's' : '', x ? 'e' : '' ].join( '' ),
+			dx,
+			dy,
+			minimum,
+			0
+		);
 	}
 	// Feed the ratio diagonal so a one-axis key retains its full movement.
 	// Rotation is preserved, while keyboard sizing fixes the logical top-left.
@@ -1554,7 +1720,18 @@ export function resizeCanvasWithKey( value, mode, x, y, minimum, ratio ) {
 		ratio,
 		minimum
 	);
-	const result = snapCanvasPlacement( fitted, mode, minimum );
+	const result = settleCanvasPlacement(
+		fitted,
+		mode,
+		minimum,
+		undefined,
+		6,
+		undefined,
+		true,
+		start,
+		'se',
+		ratio
+	);
 	return {
 		...result,
 		rotation: value.rotation,
