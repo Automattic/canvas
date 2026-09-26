@@ -80,6 +80,7 @@ import {
 } from './canvas-overlays';
 import { ItemMenu, ItemLayerMenu } from './item-controls';
 import { CanvasMenu } from './canvas-menu';
+import { ArrangeBlocksMenu } from './arrange-blocks-menu';
 import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { owningGridItem } from './drop-layout.mjs';
 import {
@@ -1371,6 +1372,17 @@ export default function Edit( {
 						selectedClientIds?.length === 1
 							? selectedClientIds[ 0 ]
 							: null;
+					if ( canEdit && id === clientId ) {
+						return (
+							<ArrangeBlocksMenu
+								clientId={ clientId }
+								registry={ registry }
+								gridRef={ gridRef }
+								mode={ mode }
+								onClose={ onClose }
+							/>
+						);
+					}
 					// The regular slot identifies the actual menu target, including List View.
 					// The first-item slot supplies placement without exposing that target.
 					return canEdit && layouts[ id ] ? (
@@ -1413,7 +1425,16 @@ export default function Edit( {
 							)
 						}
 						onClose={ closeContextMenu }
-					/>
+					>
+						<ArrangeBlocksMenu
+							clientId={ clientId }
+							registry={ registry }
+							gridRef={ gridRef }
+							mode={ mode }
+							onClose={ closeContextMenu }
+							contextMenu
+						/>
+					</CanvasContextMenu>
 				) }
 			<CanvasContext.Provider value={ context }>
 				<div className="canvas__stage" ref={ stageRef }>

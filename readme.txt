@@ -69,7 +69,7 @@ Use Block spacing under Styles → Dimensions to adjust the space between Canvas
 
 Use WordPress's Desktop, Tablet, and Mobile previews. Automatic layouts preserve desktop proportions, image sizes, and spacing. Smaller views inherit the section's row count, including empty space, while row heights and cell gaps scale together. The simpler tablet and mobile grids are for editing; automatic block edges can fall between those larger cells. Readable text and buttons can grow when their content needs more room, and paragraphs do not automatically become full width. Moving, resizing, or aligning an individual block resolves its frame to that view’s grid and creates an override; content and typography stay shared. Use Reset responsive layouts in the Canvas Settings panel to restore automatic placement.
 
-Review reading order, text fit, images, and overlaps at several widths before publishing. List View controls the content's reading order. Nested Canvases and arbitrary third-party blocks are outside the supported scope.
+Review reading order, text fit, images, and overlaps at several widths before publishing. List View controls the content's reading order. Select Arrange blocks in the Canvas block's options menu to order its contents from top to bottom, then left to right in the current preview. Headings come before nearby content in the same column when their top edges are within one grid row. Groups stay together, and positions and layers remain unchanged at every screen size. Use Undo to restore the previous order. Nested Canvases and arbitrary third-party blocks are outside the supported scope.
 
 == Frequently Asked Questions ==
 

@@ -215,6 +215,7 @@ function CanvasInsertionMenu( { allowed, onSelect } ) {
 }
 
 export function CanvasContextMenu( {
+	children,
 	menu,
 	allowed,
 	insertAt,
@@ -231,6 +232,7 @@ export function CanvasContextMenu( {
 					insertAt( name, menu.point );
 				} }
 			/>
+			{ children }
 			<Menu.Item
 				disabled={ ! canReset }
 				onClick={ () => {
