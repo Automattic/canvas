@@ -189,18 +189,11 @@ export function GridGuidelines( { gridRef, active, showAlignment, preview } ) {
 	if ( ! lines ) {
 		return null;
 	}
-	// Temporarily limit visible cells to wide width; keep the placement grid intact.
-	const columns = lines.columns.filter(
-		( column ) =>
-			lines.hasWide === false ||
-			( column.start >= lines.wideLeft - 0.001 &&
-				column.end <= lines.width - lines.wideRight + 0.001 )
-	);
 	// Leave vertical padding clear so the cells show the content area's bounds.
 	const cells = lines.rows
 		.slice( lines.before, lines.before + lines.visibleRows )
 		.flatMap( ( row, rowIndex ) =>
-			columns.map( ( column, columnIndex ) => {
+			lines.columns.map( ( column, columnIndex ) => {
 				if (
 					column.end - column.start < 1 ||
 					row.end - row.start < 1
