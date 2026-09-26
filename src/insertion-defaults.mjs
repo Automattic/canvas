@@ -159,6 +159,8 @@ export function withInsertionDefaults( block, mode, metrics ) {
 	let sizingAttributes;
 	if ( text ) {
 		sizingAttributes = {
+			verticalAlign:
+				saved.verticalAlign ?? ( heading ? 'center' : undefined ),
 			fill:
 				saved.fill ??
 				( heading && ! attributes.fitText ? true : undefined ),

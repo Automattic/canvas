@@ -37,7 +37,7 @@ A source checkout needs a production build before installation. Run npm ci and n
 
 = Arrange content =
 
-Use Add block inside a Canvas to insert a heading, paragraph, image, video, or buttons. Click a block to select it, then drag to move it. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Command (Mac) or Shift + Ctrl (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
+Use Add block inside a Canvas to insert a heading, paragraph, image, video, or buttons. New headings start vertically centered in their frames; paragraphs start at the top. Click a block to select it, then drag to move it. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Command (Mac) or Shift + Ctrl (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
 
 Select the Canvas block and toggle Show cells in its toolbar to keep the grid visible while working inside it. This editor-only guide does not change the published page.
 
