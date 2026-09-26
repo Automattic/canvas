@@ -17,11 +17,11 @@ export const validAnchor = ( value, key ) =>
 export const BLOCK_NAME = 'tabor/canvas';
 export const ATTRIBUTE = 'canvas';
 export const ALLOWED_BLOCKS = [
-	'core/image',
-	'core/video',
 	'core/heading',
 	'core/paragraph',
+	'core/image',
 	'core/buttons',
+	'core/video',
 ];
 export const COLUMNS = {
 	desktop: 24,

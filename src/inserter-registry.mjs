@@ -1,17 +1,11 @@
-import { BLOCK_NAME } from './placement.mjs';
+import { ALLOWED_BLOCKS, BLOCK_NAME } from './placement.mjs';
 import {
 	DEFAULT_HEADING_CONTENT,
 	DEFAULT_PARAGRAPH_CONTENT,
 } from './insertion-defaults.mjs';
 
 // Discovery is intentionally narrower than the blocks Canvas can contain.
-const INSERTER_BLOCKS = [
-	'core/heading',
-	'core/image',
-	'core/video',
-	'core/paragraph',
-	'core/buttons',
-];
+const INSERTER_BLOCKS = ALLOWED_BLOCKS;
 
 export function canvasInserterPlugin( registry ) {
 	const cache = new WeakMap();
