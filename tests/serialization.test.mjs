@@ -66,7 +66,7 @@ test('layer-only overrides remain independent from automatic geometry and duplic
   const saved = { desktop, layers: { desktop: 8.5, mobile: -0.5 } };
   const before = structuredClone(saved), layouts = resolveLayouts([block(saved), block({desktop},'b')]);
   assert.equal(layouts.a.desktop.layer,8.5);
-  assert.equal(layouts.a.tablet.layer,1);
+  assert.equal(layouts.a.tablet.layer,8.5);
   assert.equal(layouts.a.mobile.layer,-.5);
   assert.equal(layouts.b.mobile.layer,2);
   const moved=savePlacement(saved,layouts.a,'desktop',{...layouts.a.desktop,row:8});
@@ -77,6 +77,29 @@ test('layer-only overrides remain independent from automatic geometry and duplic
     assert.equal(value.desktop.layer,undefined);
   }
   assert.deepEqual(saved,before);
+});
+
+test('FLOWER stays above the later image on inherited mobile layers without saving overrides', () => {
+  const blocks = [block({desktop, layers:{desktop:1,tablet:1}}, 'power'), block({desktop, layers:{desktop:5,tablet:4}}, 'flower'), block({desktop, layers:{desktop:2,tablet:3}}, 'image')];
+  const before = structuredClone(blocks);
+  const layouts = resolveLayouts(blocks);
+  for (const mode of ['desktop','tablet','mobile']) assert.ok(layouts.flower[mode].layer > layouts.image[mode].layer);
+  assert.equal(layouts.flower.mobile.layer,4);
+  assert.deepEqual(blocks,before);
+});
+
+test('layer inheritance respects zero, fractional and explicit overrides independently of placements', () => {
+  for (const [layers, expected] of [
+    [{desktop:5}, [5,5,5]],
+    [{desktop:5,tablet:0}, [5,0,0]],
+    [{desktop:5,mobile:-.5}, [5,5,-.5]],
+    [{desktop:5,tablet:3,mobile:2}, [5,3,2]],
+    [{tablet:3}, [1,3,3]],
+    [{}, [1,1,1]],
+  ]) {
+    const layouts=resolveLayouts([block({desktop,tablet:{...desktop},mobile:{...desktop},layers})]);
+    assert.deepEqual(['desktop','tablet','mobile'].map(mode=>layouts.a[mode].layer),expected);
+  }
 });
 
 test('zero rotation is omitted without losing an explicit responsive reset', () => {
@@ -118,12 +141,12 @@ test('PHP and JavaScript compact the same schema, including fractional layers an
   for(const value of cases) for(const [mode,p] of Object.entries(compactCanvas(value)).filter(([key])=>['desktop','tablet','mobile'].includes(key))) assert.deepEqual(serializePlacement(p,mode),p);
 });
 
-test('PHP paint ranks match JavaScript fractional layers, source order, and grouped viewports', async () => {
+for (const groupLayers of [undefined, {desktop: 0}, {desktop: 0, tablet: 4}, {desktop: 0, tablet: 4, mobile: -1}]) test(`PHP paint ranks match inherited and explicit group layers ${JSON.stringify(groupLayers)}`, async () => {
   const {resolveCanvasLayouts,paintLayers}=await import('../src/canvas-groups.mjs');
   const a=block({desktop,layers:{desktop:-.5,mobile:9},order:0},'a');
   const b=block({desktop,layers:{desktop:2.5,mobile:1},order:1},'b');
   const outside=block({desktop,layers:{desktop:1.5,mobile:3},order:2},'outside');
-  const group={clientId:'group',name:'core/group',attributes:{canvas:{group:1}},innerBlocks:[a,b]};
+  const group={clientId:'group',name:'core/group',attributes:{canvas:{group:1,layers:groupLayers}},innerBlocks:[a,b]};
   const blocks=[group,outside], g=Object.fromEntries(['desktop','tablet','mobile'].map(mode=>[mode,geometry(1200,mode,mode==='desktop'?24:mode==='tablet'?12:8)]));
   const resolved=resolveCanvasLayouts(blocks,g);
   const expected=Object.fromEntries(Object.keys(g).map(mode=>[mode,paintLayers(blocks,resolved,mode)]));

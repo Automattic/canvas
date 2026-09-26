@@ -417,7 +417,8 @@ function canvas_paint_layers( $blocks ) {
 						$children[] = $values[ spl_object_id( $child ) ][ $mode ];
 					}
 				}
-				$values[ spl_object_id( $block ) ][ $mode ] = $block->attributes[ ATTRIBUTE ]['layers'][ $mode ] ?? ( $is_group( $block ) ? max( array_merge( array( 1 ), $children ) ) : $defaults[ spl_object_id( $block ) ] );
+				$layers                                     = $block->attributes[ ATTRIBUTE ]['layers'] ?? array();
+				$values[ spl_object_id( $block ) ][ $mode ] = $layers[ $mode ] ?? ( 'mobile' === $mode ? ( $layers['tablet'] ?? null ) : null ) ?? $layers['desktop'] ?? ( $is_group( $block ) ? max( array_merge( array( 1 ), $children ) ) : $defaults[ spl_object_id( $block ) ] );
 			}
 		}
 	};

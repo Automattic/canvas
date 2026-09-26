@@ -9,7 +9,7 @@ import {
 	mapCanvasPlacement,
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
-import { resolveLayouts } from './geometry.mjs';
+import { layerAt, resolveLayouts } from './geometry.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 
 export const isCanvasGroup = ( block ) =>
@@ -150,7 +150,7 @@ export function resolveCanvasLayouts(
 					g.groupInsets?.[ block.clientId ]
 				);
 				const layer =
-					saved.layers?.[ mode ] ??
+					layerAt( saved, mode ) ??
 					Math.max( 1, ...children.map( ( p ) => p.layer ) );
 				layout[ mode ] = exactPlacement( rect, mode, g, {
 					layer,
@@ -171,13 +171,13 @@ export function resolveCanvasLayouts(
 					);
 				}
 			}
-			if ( Number.isFinite( saved.layers?.[ mode ] ) ) {
+			if ( Number.isFinite( layerAt( saved, mode ) ) ) {
 				layout[ mode ] = {
 					...layout[ mode ],
-					layer: saved.layers[ mode ],
+					layer: layerAt( saved, mode ),
 					_base: {
 						...layout[ mode ]._base,
-						layer: saved.layers[ mode ],
+						layer: layerAt( saved, mode ),
 					},
 				};
 			}

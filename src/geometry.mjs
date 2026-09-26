@@ -42,6 +42,15 @@ export function mapPlacement(
 		: normalizePlacement( value, mode, {}, minimum );
 }
 
+// Layers inherit independently of authored placement geometry.
+export function layerAt( saved = {}, mode ) {
+	return (
+		saved.layers?.[ mode ] ??
+		( mode === 'mobile' ? saved.layers?.tablet : undefined ) ??
+		saved.layers?.desktop
+	);
+}
+
 // Resolve inheritance without writing it back into the post. PHP mirrors this
 // fallback for blocks pasted without metadata and for rendering without JS.
 export function resolveLayouts( blocks, geometry = {} ) {
@@ -186,7 +195,7 @@ export function resolveLayouts( blocks, geometry = {} ) {
 						} ).map( ( [ mode, placement ] ) => {
 							placement = {
 								...placement,
-								layer: saved.layers?.[ mode ] ?? index + 1,
+								layer: layerAt( saved, mode ) ?? index + 1,
 							};
 							if (
 								! saved[ mode ] &&
