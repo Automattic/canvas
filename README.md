@@ -102,6 +102,8 @@ Canvas uses `tabor/canvas` and stores authored child settings in `canvas`. Core 
 
 ## Agent connections
 
+For page and section editing, use the portable [Canvas editor skill](.agents/skills/canvas-editor/SKILL.md). It reads the connected site's current authoring contract instead of bundling a second copy. To make it available across local Codex projects, link its folder into `~/.codex/skills/canvas-editor`; other skill-capable agents can install the same folder. The skill still needs an authenticated site connection. Use the [pattern builder skill](.agents/skills/pattern-builder/SKILL.md) for reusable patterns in this repository.
+
 Canvas supplies six WordPress abilities: `get-context`, `get-sections`, `validate-sections`, `create-page`, `insert-sections`, and `update-section`, all prefixed with `canvas/`. `get-context` returns the bundled authoring instructions, registered schemas, and site styles. No separate AI provider key is needed. Canvas remains usable without MCP Adapter.
 
 ### Local development
