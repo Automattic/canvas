@@ -330,8 +330,9 @@ function ItemMenuItems( {
 	const video = name === 'core/video';
 	const fill = layouts[ menu.id ].fill;
 	const shaped = layouts[ menu.id ].shape !== 'none';
+	const emptyUnshapedImage = emptyImage && ! shaped;
 	const fillArea =
-		emptyImage ||
+		emptyUnshapedImage ||
 		( image && shaped ? layouts[ menu.id ].shapeStretch : fill );
 	const text = [ 'core/heading', 'core/paragraph' ].includes( name );
 	let fillDescription =
@@ -409,9 +410,9 @@ function ItemMenuItems( {
 				<CanvasMenuToggle
 					hideOnClick={ hideOnClick }
 					checked={ fillArea }
-					disabled={ ! editable || emptyImage }
+					disabled={ ! editable || emptyUnshapedImage }
 					aria-description={
-						emptyImage ? undefined : fillDescription
+						emptyUnshapedImage ? undefined : fillDescription
 					}
 					onChange={ () =>
 						image && shaped

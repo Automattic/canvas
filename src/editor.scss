@@ -577,6 +577,14 @@
 		overflow: hidden;
 	}
 
+	// Preview the silhouette before media is chosen; keep the frame intact.
+	.canvas__grid > .canvas__image[data-canvas-shape] .block-editor-media-placeholder {
+		border-radius: 0;
+		mask-image: var(--canvas-image-mask);
+		mask-size: 100% 100%;
+		mask-repeat: no-repeat;
+	}
+
 	.canvas__grid .block-editor-media-placeholder .canvas__media-placeholder-icon {
 		position: absolute;
 		top: 50%;

@@ -56,7 +56,7 @@ export function ImageShapeMenu( {
 			} }
 		>
 			<Menu.SubmenuTriggerItem disabled={ ! editable }>
-				<Menu.ItemLabel>Shape</Menu.ItemLabel>
+				<Menu.ItemLabel>Add shape</Menu.ItemLabel>
 			</Menu.SubmenuTriggerItem>
 			<Menu.Popover
 				className="canvas-shape-picker"
