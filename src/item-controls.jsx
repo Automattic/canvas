@@ -160,35 +160,44 @@ addFilter(
 );
 export function ItemLayerMenu( {
 	clientId,
+	clientIds,
 	layouts,
 	mode,
 	layer,
 	onClose,
 	contextMenu = false,
 } ) {
+	const selected = clientIds || [ clientId ];
 	const locked = useSelect(
 		( select ) => {
+			const selection = clientIds || [ clientId ];
 			const store = select( blockEditorStore );
 			return (
-				!! store.getTemplateLock(
-					store.getBlockRootClientId( clientId )
-				) ||
-				!! store.getBlockAttributes( clientId )?.lock?.move ||
-				store.getBlockEditingMode( clientId ) !== 'default'
+				! store.canMoveBlocks( selection ) ||
+				selection.some(
+					( id ) =>
+						store.getBlockRootClientId( id ) !==
+							store.getBlockRootClientId( selection[ 0 ] ) ||
+						!! store.getTemplateLock(
+							store.getBlockRootClientId( id )
+						) ||
+						!! store.getBlockAttributes( id )?.lock?.move ||
+						store.getBlockEditingMode( id ) !== 'default'
+				)
 			);
 		},
-		[ clientId ]
+		[ clientId, clientIds ]
 	);
 	const ids = Object.keys( layouts )
 		.filter(
 			( id ) =>
 				layouts[ id ].parents?.at( -1 ) ===
-				layouts[ clientId ]?.parents?.at( -1 )
+				layouts[ selected[ 0 ] ]?.parents?.at( -1 )
 		)
 		.sort(
 			( a, b ) => layouts[ a ][ mode ].layer - layouts[ b ][ mode ].layer
 		);
-	const index = ids.indexOf( clientId );
+	const count = selected.length;
 	const Item = contextMenu ? Menu.Item : MenuItem;
 	return (
 		<>
@@ -201,11 +210,17 @@ export function ItemLayerMenu( {
 					disabled={
 						locked ||
 						( direction < 0
-							? index === 0
-							: index === ids.length - 1 )
+							? ids
+									.slice( 0, count )
+									.every( ( id ) => selected.includes( id ) )
+							: ids
+									.slice( -count )
+									.every( ( id ) =>
+										selected.includes( id )
+									) )
 					}
 					onClick={ () => {
-						layer( clientId, direction );
+						layer( clientIds || clientId, direction );
 						if ( ! contextMenu ) {
 							onClose();
 						}
@@ -485,7 +500,17 @@ export function ItemMenu( {
 					grouping={ grouping }
 				/>
 			) : (
-				grouping
+				<>
+					<ItemLayerMenu
+						clientId={ menu.id }
+						clientIds={ menu.ids }
+						layouts={ layouts }
+						mode={ mode }
+						layer={ layer }
+						contextMenu
+					/>
+					{ grouping }
+				</>
 			) }
 		</>
 	);

@@ -145,3 +145,24 @@ test('canvas edges falling in gutters remain reachable', () => {
   assert.equal(full._rect.left,0);
   assert.equal(full._rect.width,400);
 });
+
+test('multiple layers move together in paint order without changing geometry or other viewports', () => {
+  const layouts = resolveLayouts(['a', 'b', 'c', 'd', 'e'].map((clientId) => ({ clientId, attributes: {} })));
+  const order = (values) => Object.keys(values).sort((a, b) => values[a].desktop.layer - values[b].desktop.layer);
+  const front = reorderLayer(layouts, ['d', 'b'], 'desktop', 5);
+  const back = reorderLayer(layouts, ['d', 'b'], 'desktop', -5);
+  assert.deepEqual(order(front), ['a', 'c', 'e', 'b', 'd']);
+  assert.deepEqual(order(back), ['b', 'd', 'a', 'c', 'e']);
+  for (const result of [front, back]) {
+    for (const id of Object.keys(layouts)) {
+      assert.deepEqual(result[id].mobile, layouts[id].mobile);
+      assert.deepEqual(result[id].tablet, layouts[id].tablet);
+      assert.deepEqual({ ...result[id].desktop, layer: layouts[id].desktop.layer }, layouts[id].desktop);
+    }
+  }
+  assert.equal(reorderLayer(front, ['b', 'd'], 'desktop', 5), front);
+  assert.equal(reorderLayer(back, ['b', 'd'], 'desktop', -5), back);
+  assert.equal(reorderLayer(layouts, Object.keys(layouts), 'desktop', 5), layouts);
+  assert.equal(reorderLayer(layouts, ['b', 'missing'], 'desktop', 5), layouts);
+  assert.deepEqual(order(layouts), ['a', 'b', 'c', 'd', 'e']);
+});

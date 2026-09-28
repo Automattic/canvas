@@ -25,6 +25,7 @@ import {
 	groupingLayers,
 } from './canvas-groups.mjs';
 import { Menu } from './core-menu';
+import { CanvasSubmenu } from './canvas-menu';
 export function useContainerSettings( clientId, registry ) {
 	const containerSelected = useSelect( () => {
 		const store = registry.select( blockEditorStore );
@@ -146,6 +147,7 @@ export function ContainerActions( {
 	onClose,
 	onComplete,
 	onDistribute,
+	onCenter,
 } ) {
 	const status = useSelect( () => {
 		const store = registry.select( blockEditorStore );
@@ -400,6 +402,48 @@ export function ContainerActions( {
 		<>
 			<Menu.Group>
 				{ showGroup && (
+					<CanvasSubmenu>
+						<Menu.SubmenuTriggerItem
+							disabled={ ! status.distributable }
+						>
+							<Menu.ItemLabel>Align</Menu.ItemLabel>
+						</Menu.SubmenuTriggerItem>
+						<Menu.Popover aria-label="Align">
+							{ [
+								[ 'both', 'Center' ],
+								[ 'horizontal', 'Center horizontally' ],
+								[ 'vertical', 'Center vertically' ],
+							].map( ( [ axis, label ] ) => (
+								<Menu.Item
+									key={ axis }
+									disabled={ ! status.distributable }
+									onClick={ () => {
+										onCenter( status.ids, axis );
+										onClose();
+									} }
+								>
+									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
+								</Menu.Item>
+							) ) }
+							<Menu.Separator />
+							<Menu.Item
+								disabled={ ! distribution }
+								onClick={ () => {
+									if ( distribution ) {
+										onDistribute( distribution );
+										onClose();
+									}
+								} }
+							>
+								<Menu.ItemLabel>
+									Distribute horizontally
+								</Menu.ItemLabel>
+							</Menu.Item>
+						</Menu.Popover>
+					</CanvasSubmenu>
+				) }
+				{ showGroup && <Menu.Separator /> }
+				{ showGroup && (
 					<Menu.Item
 						disabled={ ! status.editable || ! status.canGroup }
 						onClick={ wrap }
@@ -410,19 +454,6 @@ export function ContainerActions( {
 								{ status.conflict }
 							</Menu.ItemHelpText>
 						) }
-					</Menu.Item>
-				) }
-				{ showGroup && (
-					<Menu.Item
-						disabled={ ! distribution }
-						onClick={ () => {
-							if ( distribution ) {
-								onDistribute( distribution );
-								onClose();
-							}
-						} }
-					>
-						<Menu.ItemLabel>Distribute horizontally</Menu.ItemLabel>
 					</Menu.Item>
 				) }
 				{ showUngroup && (

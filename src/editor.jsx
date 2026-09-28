@@ -453,22 +453,26 @@ export default function Edit( {
 		[ commitSelection ]
 	);
 	const centerBlock = useCallback(
-		( id, axis = 'both' ) => {
+		( selection, axis = 'both' ) => {
+			const ids = Array.isArray( selection ) ? selection : [ selection ];
 			const store = registry.select( blockEditorStore );
 			if (
-				! layouts[ id ]?.[ mode ]?._canvas ||
-				! canMoveSelection( store, [ id ], clientId )
+				ids.some( ( id ) => ! layouts[ id ]?.[ mode ]?._canvas ) ||
+				! canMoveSelection( store, ids, clientId )
 			) {
 				return;
 			}
-			commit(
-				id,
-				centerInSection( layouts[ id ][ mode ], mode, axis, {
-					minimum: minimumSpans( store.getBlockName( id ) ),
-					preserveSize: layouts[ id ].group || ! cells,
-					cells,
-				} )
+			const placements = Object.fromEntries(
+				ids.map( ( id ) => [
+					id,
+					centerInSection( layouts[ id ][ mode ], mode, axis, {
+						minimum: minimumSpans( store.getBlockName( id ) ),
+						preserveSize: layouts[ id ].group || ! cells,
+						cells,
+					} ),
+				] )
 			);
+			commitSelection( placements );
 			let announcement;
 			if ( axis === 'horizontal' ) {
 				announcement = 'Block centered horizontally.';
@@ -477,9 +481,13 @@ export default function Edit( {
 			} else {
 				announcement = 'Block centered in section.';
 			}
-			announce( announcement );
+			announce(
+				ids.length > 1
+					? announcement.replace( 'Block', 'Blocks' )
+					: announcement
+			);
 		},
-		[ registry, layouts, mode, clientId, commit, announce, cells ]
+		[ registry, layouts, mode, clientId, commitSelection, announce, cells ]
 	);
 	const commitRows = useCallback(
 		( rows, offset = 0 ) => {
@@ -538,24 +546,21 @@ export default function Edit( {
 		]
 	);
 	const layer = useCallback(
-		( id, direction ) => {
+		( selection, direction ) => {
+			const ids = Array.isArray( selection ) ? selection : [ selection ];
 			const store = registry.select( blockEditorStore );
-			if (
-				store.getTemplateLock( clientId ) ||
-				store.getBlockAttributes( id )?.lock?.move ||
-				store.getBlockEditingMode( id ) !== 'default'
-			) {
+			if ( ! canMoveSelection( store, ids, clientId ) ) {
 				return;
 			}
 			const siblings = Object.fromEntries(
 				Object.entries( layouts ).filter(
 					( [ key ] ) =>
 						store.getBlockRootClientId( key ) ===
-						store.getBlockRootClientId( id )
+						store.getBlockRootClientId( ids[ 0 ] )
 				)
 			);
-			const next = reorderLayer( siblings, id, mode, direction );
-			if ( next === layouts ) {
+			const next = reorderLayer( siblings, selection, mode, direction );
+			if ( next === siblings ) {
 				return;
 			}
 			const updates = Object.fromEntries(
@@ -1191,6 +1196,7 @@ export default function Edit( {
 						onClose={ onClose }
 						onComplete={ afterGrouping }
 						onDistribute={ commitSelection }
+						onCenter={ centerBlock }
 					/>
 				}
 			/>
