@@ -5,7 +5,7 @@ import {
 } from './grid-placement.mjs';
 import { translateGroupPlacement } from './canvas-groups.mjs';
 import { centerInSection, centerSelection } from './selection-movement.mjs';
-import { selectionBounds } from './selection-resize.mjs';
+import { selectionBounds } from './rectangle-bounds.mjs';
 
 export function positionSelection(
 	layouts,

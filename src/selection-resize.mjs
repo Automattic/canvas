@@ -1,3 +1,4 @@
+import { selectionBounds } from './rectangle-bounds.mjs';
 import { freeFrameFromRect, resizeAspectRect } from './aspect-ratio.mjs';
 import {
 	mapCanvasPlacement,
@@ -5,38 +6,6 @@ import {
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { MAX_ROWS, rowPitch } from './placement.mjs';
-
-export function selectionBounds( placements ) {
-	const rectangles = placements.map( ( { _rect: rect, rotation = 0 } ) => {
-		const angle = ( rotation * Math.PI ) / 180;
-		const width =
-			Math.abs( rect.width * Math.cos( angle ) ) +
-			Math.abs( rect.height * Math.sin( angle ) );
-		const height =
-			Math.abs( rect.width * Math.sin( angle ) ) +
-			Math.abs( rect.height * Math.cos( angle ) );
-		return {
-			left: rect.left + ( rect.width - width ) / 2,
-			top: rect.top + ( rect.height - height ) / 2,
-			width,
-			height,
-		};
-	} );
-	const left = Math.min( ...rectangles.map( ( rect ) => rect.left ) );
-	const top = Math.min( ...rectangles.map( ( rect ) => rect.top ) );
-	return {
-		left,
-		top,
-		width:
-			Math.max(
-				...rectangles.map( ( rect ) => rect.left + rect.width )
-			) - left,
-		height:
-			Math.max(
-				...rectangles.map( ( rect ) => rect.top + rect.height )
-			) - top,
-	};
-}
 
 // Scale the composition uniformly, including rotated frames and their spacing.
 // Individual frames stay precise so snapping cannot distort the composition.

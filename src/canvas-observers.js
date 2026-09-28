@@ -1,3 +1,4 @@
+import { enclosingRect } from './rectangle-bounds.mjs';
 import {
 	useEffect,
 	useLayoutEffect,
@@ -148,27 +149,12 @@ export function useSelectionBox(
 					node.getBoundingClientRect()
 				);
 				const scale = stage.offsetWidth / parent.width || 1;
-				const left = Math.min(
-					...rectangles.map( ( rect ) => rect.left )
-				);
-				const top = Math.min(
-					...rectangles.map( ( rect ) => rect.top )
-				);
+				const bounds = enclosingRect( rectangles );
 				const next = {
-					left: ( left - parent.left ) * scale,
-					top: ( top - parent.top ) * scale,
-					width:
-						( Math.max(
-							...rectangles.map( ( rect ) => rect.right )
-						) -
-							left ) *
-						scale,
-					height:
-						( Math.max(
-							...rectangles.map( ( rect ) => rect.bottom )
-						) -
-							top ) *
-						scale,
+					left: ( bounds.left - parent.left ) * scale,
+					top: ( bounds.top - parent.top ) * scale,
+					width: bounds.width * scale,
+					height: bounds.height * scale,
 				};
 				setBox( ( old ) =>
 					old &&

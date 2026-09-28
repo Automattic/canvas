@@ -1,9 +1,10 @@
+import { rotatedBounds } from '../src/rectangle-bounds.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ATTRIBUTE, COLUMNS, minimumSpans } from '../src/placement.mjs';
 import { replaceSelection } from '../src/grouping.mjs';
 import { canvasColumns, canvasRows, dragMovePlacement, dragResizePlacement, nudgeCanvasPlacement, resizeCanvasWithKey, savedCanvasPlacement, settleCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
-import { resolveCanvasLayouts, saveGroupMove, releaseCanvasGroup, releaseGroupSiblings, sourcePlacement, rotatedBounds, prepareCanvasGroup, paintLayers, layoutLeaves, nudgeGroupPlacement, translateGroupPlacement } from '../src/canvas-groups.mjs';
+import { resolveCanvasLayouts, saveGroupMove, releaseCanvasGroup, releaseGroupSiblings, sourcePlacement, prepareCanvasGroup, paintLayers, layoutLeaves, preserveCanvasOrder, nudgeGroupPlacement, translateGroupPlacement } from '../src/canvas-groups.mjs';
 const padding = { top: 24, right: 24, bottom: 24, left: 24 };
 const geometry = Object.fromEntries(Object.keys(COLUMNS).map(mode => [mode, {
   ...canvasColumns(1200, padding, 100, 1100, 12, mode), ...canvasRows(24, 24, 24, 12), gap: 12,
@@ -178,4 +179,21 @@ test('ungroup after changing the group layer preserves internal and external pai
     assert.ok(after.a[mode].layer<after.b[mode].layer);
     assert.equal(after.a[mode].layer>after.outside[mode].layer,before.g[mode].layer>before.outside[mode].layer);
   }
+});
+
+
+test('regrouping preserves interleaved reading order for nested leaves', () => {
+  const a = leaf('a', 2, 2, { order: 0 });
+  const b = leaf('b', 7, 3, { order: 1 });
+  const c = leaf('c', 12, 4, { order: 2 });
+  const roots = [group('outer', [group('inner', [a, c])]), b];
+  const original = structuredClone(roots);
+  const ordered = preserveCanvasOrder(roots);
+  const nested = ordered[0].innerBlocks[0].innerBlocks;
+  assert.equal(nested[0].attributes.canvas.order, 0);
+  assert.equal(ordered[1].attributes.canvas.order, 1);
+  assert.equal(nested[1].attributes.canvas.order, 2);
+  assert.deepEqual(layoutLeaves(ordered).map(block => block.clientId), ['a', 'b', 'c']);
+  assert.deepEqual(preserveCanvasOrder(ordered), ordered);
+  assert.deepEqual(roots, original);
 });

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { positionSelection, alignSelection } from '../src/selection-alignment.mjs';
-import { selectionBounds } from '../src/selection-resize.mjs';
+import { selectionBounds } from '../src/rectangle-bounds.mjs';
 import { exactPlacement } from '../src/canvas-groups.mjs';
 import { canvasColumns, canvasRows, mapCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { gridAlignedPlacement } from '../src/grid-placement.mjs';

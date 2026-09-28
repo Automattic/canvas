@@ -22,13 +22,14 @@ import {
 } from './grouping.mjs';
 import {
 	isCanvasGroup,
-	layoutLeaves,
+	canvasBlocks,
+	preserveCanvasOrder,
 	resolveCanvasLayouts,
 	releaseGroupSiblings,
 	prepareCanvasGroup,
 } from './canvas-groups.mjs';
 import { Menu } from './core-menu';
-import { CanvasSubmenu } from './canvas-menu';
+import { CanvasSubmenu, PositionMenu } from './canvas-menu';
 export function useContainerSettings( clientId, registry ) {
 	const containerSelected = useSelect( () => {
 		const store = registry.select( blockEditorStore );
@@ -240,33 +241,11 @@ export function ContainerActions( {
 		}
 		// Stable source order retains automatic layouts for noncontiguous selections.
 		const roots = registry.select( blockEditorStore ).getBlocks( canvasId );
-		const leaves = layoutLeaves( roots );
-		const ordered = ( block ) =>
-			isCanvasGroup( block )
-				? {
-						...block,
-						innerBlocks: block.innerBlocks.map( ordered ),
-					}
-				: {
-						...block,
-						attributes: {
-							...block.attributes,
-							[ ATTRIBUTE ]: {
-								...block.attributes[ ATTRIBUTE ],
-								order: leaves.indexOf( block ),
-							},
-						},
-					};
-		const orderedRoots = roots.map( ordered );
-		const find = ( blocks ) =>
-			blocks.flatMap( ( block ) => [
-				block,
-				...( isCanvasGroup( block ) ? find( block.innerBlocks ) : [] ),
-			] );
+		const orderedRoots = preserveCanvasOrder( roots );
 		const orderedSiblings =
 			status.parent === canvasId
 				? orderedRoots
-				: find( orderedRoots ).find(
+				: canvasBlocks( orderedRoots ).find(
 						( block ) => block.clientId === status.parent
 					).innerBlocks;
 		const { siblings, layers } = prepareCanvasGroup(
@@ -415,31 +394,13 @@ export function ContainerActions( {
 		<>
 			<Menu.Group>
 				{ showGroup && (
-					<CanvasSubmenu>
-						<Menu.SubmenuTriggerItem
-							disabled={ ! status.distributable }
-						>
-							<Menu.ItemLabel>Position</Menu.ItemLabel>
-						</Menu.SubmenuTriggerItem>
-						<Menu.Popover aria-label="Position">
-							{ [
-								[ 'both', 'Center' ],
-								[ 'horizontal', 'Center horizontally' ],
-								[ 'vertical', 'Center vertically' ],
-							].map( ( [ axis, label ] ) => (
-								<Menu.Item
-									key={ axis }
-									disabled={ ! status.distributable }
-									onClick={ () => {
-										onCenter( status.ids, axis );
-										onClose();
-									} }
-								>
-									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
-								</Menu.Item>
-							) ) }
-						</Menu.Popover>
-					</CanvasSubmenu>
+					<PositionMenu
+						disabled={ ! status.distributable }
+						onSelect={ ( axis ) => {
+							onCenter( status.ids, axis );
+							onClose();
+						} }
+					/>
 				) }
 				{ showGroup && (
 					<CanvasSubmenu>

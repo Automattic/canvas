@@ -1,3 +1,4 @@
+import { rotatedBounds, enclosingRect } from './rectangle-bounds.mjs';
 import { compactCanvas } from './serialization.mjs';
 import {
 	ATTRIBUTE,
@@ -36,6 +37,31 @@ export function layoutLeaves( blocks, nested = false ) {
 				( b.attributes?.[ ATTRIBUTE ]?.order ?? Infinity )
 		);
 }
+// Grouping changes tree order, so retain each leaf's automatic-layout order.
+// Nested leaves are copied by layoutLeaves; match stable IDs, not references.
+export function preserveCanvasOrder( blocks ) {
+	const order = new Map(
+		layoutLeaves( blocks ).map( ( block, index ) => [
+			block.clientId,
+			index,
+		] )
+	);
+	const visit = ( block ) =>
+		isCanvasGroup( block )
+			? { ...block, innerBlocks: block.innerBlocks.map( visit ) }
+			: {
+					...block,
+					attributes: {
+						...block.attributes,
+						[ ATTRIBUTE ]: {
+							...block.attributes[ ATTRIBUTE ],
+							order: order.get( block.clientId ),
+						},
+					},
+				};
+	return blocks.map( visit );
+}
+
 function offsetAt( saved = {}, mode ) {
 	const value =
 		saved.offset?.[ mode ] ??
@@ -55,41 +81,6 @@ function addOffsets( saved = {}, addition = {} ) {
 		} )
 	);
 	return compactCanvas( { ...saved, offset } );
-}
-export function rotatedBounds( rect, degrees = 0 ) {
-	const angle = ( degrees * Math.PI ) / 180;
-	const width =
-		Math.abs( rect.width * Math.cos( angle ) ) +
-		Math.abs( rect.height * Math.sin( angle ) );
-	const height =
-		Math.abs( rect.width * Math.sin( angle ) ) +
-		Math.abs( rect.height * Math.cos( angle ) );
-	return {
-		left: rect.left + ( rect.width - width ) / 2,
-		top: rect.top + ( rect.height - height ) / 2,
-		width,
-		height,
-	};
-}
-function enclosingRect( rects, inset = {} ) {
-	if ( ! rects.length ) {
-		return { left: 0, top: 0, width: 48, height: 48 };
-	}
-	const left =
-		Math.min( ...rects.map( ( r ) => r.left ) ) - ( inset.left || 0 );
-	const top = Math.min( ...rects.map( ( r ) => r.top ) ) - ( inset.top || 0 );
-	return {
-		left,
-		top,
-		width:
-			Math.max( ...rects.map( ( r ) => r.left + r.width ) ) +
-			( inset.right || 0 ) -
-			left,
-		height:
-			Math.max( ...rects.map( ( r ) => r.top + r.height ) ) +
-			( inset.bottom || 0 ) -
-			top,
-	};
 }
 export function exactPlacement( rect, mode, geometry, base = {} ) {
 	const free = freeFrameFromRect( rect, geometry );

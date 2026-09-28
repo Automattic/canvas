@@ -1,6 +1,7 @@
+import { selectionBounds } from '../src/rectangle-bounds.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resizeSelection, selectionBounds } from '../src/selection-resize.mjs';
+import { resizeSelection } from '../src/selection-resize.mjs';
 import { canvasColumns, canvasRows, mapCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { resolveCanvasLayouts, sourcePlacement } from '../src/canvas-groups.mjs';
 import { savePlacement } from '../src/geometry.mjs';

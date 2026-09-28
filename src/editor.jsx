@@ -406,8 +406,10 @@ export default function Edit( {
 		geometry[ mode ]?.coreRows || 1
 	);
 	const commitSelection = useCallback(
-		( placements, additionalUpdates = {}, snap = cells ) => {
-			const updates = { ...additionalUpdates };
+		( placements, snap = cells ) => {
+			const updates = {};
+			// Preserve the current canvas height when a transform moves its lowest
+			// block upward, including any extra rows resolved by centering.
 			const rows = Math.max(
 				rowCount,
 				...Object.values( placements ).map(
@@ -417,7 +419,6 @@ export default function Edit( {
 			if ( rows > savedRowCount ) {
 				updates[ clientId ] = {
 					[ rowKey ]: rows,
-					...updates[ clientId ],
 				};
 			}
 			for ( const [ id, placement ] of Object.entries( placements ) ) {
@@ -494,8 +495,7 @@ export default function Edit( {
 	const commit = useCallback(
 		// Single gestures already resolve their destination, including precise
 		// edge attachments and constrained resize frames. Save that preview.
-		( id, placement ) =>
-			commitSelection( { [ id ]: placement }, {}, false ),
+		( id, placement ) => commitSelection( { [ id ]: placement }, false ),
 		[ commitSelection ]
 	);
 	const centerBlock = useCallback(
@@ -508,7 +508,7 @@ export default function Edit( {
 			) {
 				return;
 			}
-			const { placements, rows } = positionSelection(
+			const { placements } = positionSelection(
 				layouts,
 				ids,
 				mode,
@@ -523,14 +523,7 @@ export default function Edit( {
 					),
 				}
 			);
-			// Moving the lowest block up must not collapse rows that currently
-			// exist only because of its position. Persist the height we centered in.
-			commitSelection(
-				placements,
-				rows > savedRowCount
-					? { [ clientId ]: { [ rowKey ]: rows } }
-					: {}
-			);
+			commitSelection( placements );
 			let announcement;
 			if ( axis === 'horizontal' ) {
 				announcement = 'Block centered horizontally.';
@@ -545,17 +538,7 @@ export default function Edit( {
 					: announcement
 			);
 		},
-		[
-			registry,
-			layouts,
-			mode,
-			clientId,
-			commitSelection,
-			announce,
-			cells,
-			savedRowCount,
-			rowKey,
-		]
+		[ registry, layouts, mode, clientId, commitSelection, announce, cells ]
 	);
 	const alignBlocks = useCallback(
 		( ids, alignment ) => {
@@ -576,25 +559,11 @@ export default function Edit( {
 							minimumSpans( store.getBlockName( id ) ),
 						] )
 					),
-				} ),
-				rowCount > savedRowCount
-					? { [ clientId ]: { [ rowKey ]: rowCount } }
-					: {}
+				} )
 			);
 			announce( 'Blocks aligned within selection.' );
 		},
-		[
-			registry,
-			layouts,
-			mode,
-			clientId,
-			commitSelection,
-			rowCount,
-			savedRowCount,
-			rowKey,
-			announce,
-			cells,
-		]
+		[ registry, layouts, mode, clientId, commitSelection, announce, cells ]
 	);
 	const commitRows = useCallback(
 		( rows, offset = 0 ) => {
@@ -1025,7 +994,6 @@ export default function Edit( {
 						next._rect.left - start._rect.left,
 						next._rect.top - start._rect.top
 					),
-					{},
 					false
 				);
 				announce( `${ ids.length } blocks moved.` );
@@ -1155,7 +1123,6 @@ export default function Edit( {
 					y * ( cells ? canvas.rowHeight + canvas.gap : step ),
 					{ holdBottom: false }
 				),
-				{},
 				false
 			);
 			announce( `${ selectedIds.length } blocks resized.` );
@@ -1367,7 +1334,7 @@ export default function Edit( {
 						onClose={ onClose }
 						onComplete={ afterGrouping }
 						onDistribute={ ( placements ) =>
-							commitSelection( placements, {}, false )
+							commitSelection( placements, false )
 						}
 						onCenter={ centerBlock }
 						onAlign={ alignBlocks }

@@ -41,7 +41,7 @@ import {
 import { freeFrameStyles } from './aspect-ratio.mjs';
 import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { Menu } from './core-menu';
-import { CanvasMenuToggle, CanvasSubmenu } from './canvas-menu';
+import { CanvasMenuToggle, PositionMenu } from './canvas-menu';
 import { imageWasReplaced } from './image-position.mjs';
 import { RadiusSettings } from './radius-settings';
 import { __ } from '@wordpress/i18n';
@@ -381,29 +381,11 @@ function ItemMenuItems( {
 					layer={ layer }
 					contextMenu
 				/>
-				<CanvasSubmenu>
-					<Menu.SubmenuTriggerItem
-						disabled={ ! editable || rotationLocked }
-					>
-						<Menu.ItemLabel>Position</Menu.ItemLabel>
-					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Position">
-						{ [
-							[ 'both', 'Center' ],
-							[ 'horizontal', 'Center horizontally' ],
-							[ 'vertical', 'Center vertically' ],
-						].map( ( [ axis, label ] ) => (
-							<Menu.Item
-								key={ axis }
-								hideOnClick={ hideOnClick }
-								disabled={ ! editable || rotationLocked }
-								onClick={ () => centerBlock( menu.id, axis ) }
-							>
-								<Menu.ItemLabel>{ label }</Menu.ItemLabel>
-							</Menu.Item>
-						) ) }
-					</Menu.Popover>
-				</CanvasSubmenu>
+				<PositionMenu
+					disabled={ ! editable || rotationLocked }
+					hideOnClick={ hideOnClick }
+					onSelect={ ( axis ) => centerBlock( menu.id, axis ) }
+				/>
 				<Menu.Separator />
 			</Menu.Group>
 			{ ( text || image || video ) && (

@@ -44,6 +44,33 @@ export function CanvasSubmenu( props ) {
 	);
 }
 
+// Single blocks and selections share the same positioning commands.
+export function PositionMenu( { disabled, onSelect, hideOnClick } ) {
+	return (
+		<CanvasSubmenu>
+			<Menu.SubmenuTriggerItem disabled={ disabled }>
+				<Menu.ItemLabel>Position</Menu.ItemLabel>
+			</Menu.SubmenuTriggerItem>
+			<Menu.Popover aria-label="Position">
+				{ [
+					[ 'both', 'Center' ],
+					[ 'horizontal', 'Center horizontally' ],
+					[ 'vertical', 'Center vertically' ],
+				].map( ( [ axis, label ] ) => (
+					<Menu.Item
+						key={ axis }
+						hideOnClick={ hideOnClick }
+						disabled={ disabled }
+						onClick={ () => onSelect( axis ) }
+					>
+						<Menu.ItemLabel>{ label }</Menu.ItemLabel>
+					</Menu.Item>
+				) ) }
+			</Menu.Popover>
+		</CanvasSubmenu>
+	);
+}
+
 // Keep toggle state in the native suffix so checks do not widen the shared
 // prefix column and indent every label in the menu.
 export function CanvasMenuToggle( { checked, onChange, ...props } ) {
