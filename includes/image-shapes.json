@@ -6,6 +6,16 @@
     "lockAspectRatio": false
   },
   {
+    "value": "square",
+    "label": "Square",
+    "path": "M0 0H100V100H0Z",
+    "proportions": [
+      1,
+      1
+    ],
+    "lockAspectRatio": true
+  },
+  {
     "value": "circle",
     "label": "Circle",
     "path": "M50 0A50 50 0 1 1 50 100A50 50 0 1 1 50 0Z",
