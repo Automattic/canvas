@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gestureDocuments, gesturePoint, observeGesturePointer } from '../src/gesture-pointer.mjs';
 
-function fixture() {
+function fixture(autoFrame = true) {
   const document = () => {
     const doc = new EventTarget();
     doc.defaultView = new EventTarget();
@@ -11,6 +11,14 @@ function fixture() {
   };
   const outer = document();
   const inner = document();
+  const frames = new Map();
+  let frameId = 0;
+  outer.defaultView.requestAnimationFrame = callback => { frames.set(++frameId, callback); return frameId; };
+  outer.defaultView.cancelAnimationFrame = id => frames.delete(id);
+  const paint = () => {
+    const pending = [...frames.values()]; frames.clear();
+    pending.forEach(callback => callback());
+  };
   inner.defaultView.frameElement = {
     ownerDocument: outer, clientLeft: 2, clientTop: 4,
     offsetWidth: 1000, offsetHeight: 800,
@@ -23,8 +31,10 @@ function fixture() {
   target.hasPointerCapture = () => captured;
   target.releasePointerCapture = () => { captured = false; target.dispatchEvent(new Event('lostpointercapture')); };
   const emit = (doc, type, values = {}) => {
-    const event = Object.assign(new Event(type), { pointerId: 7, buttons: 1, clientX: 200, clientY: 300, view: doc.defaultView, ...values });
+    const event = Object.assign(new Event(type, { cancelable: true }), { pointerId: 7, buttons: 1, clientX: 200, clientY: 300, view: doc.defaultView, ...values });
     doc.dispatchEvent(event);
+    if (autoFrame) paint();
+    return event;
   };
   const calls = [];
   const observer = observeGesturePointer({ pointerId: 7 }, target, {
@@ -32,8 +42,48 @@ function fixture() {
     end: (e) => { calls.push(['end', e && gesturePoint(e, inner)]); observer.release(); },
     cancel: () => { calls.push(['cancel']); observer.release(); },
   });
-  return { outer, inner, target, observer, emit, calls };
+  return { outer, inner, target, observer, emit, calls, paint, frames };
 }
+
+test('high-frequency pointer samples do at most one update per frame using the latest position', () => {
+  const f = fixture(false);
+  for (let x = 0; x < 100; x++) {
+    assert.equal(f.emit(f.inner, 'pointermove', { clientX: x }).defaultPrevented, true);
+  }
+  assert.deepEqual(f.calls, []);
+  assert.equal(f.frames.size, 1);
+  f.paint();
+  assert.deepEqual(f.calls, [['move', { x: 99, y: 300 }]]);
+  f.observer.release();
+});
+
+test('release supersedes an unpainted sample and cancellation cannot replay it', () => {
+  const released = fixture(false);
+  released.emit(released.inner, 'pointermove');
+  released.emit(released.outer, 'pointerup', { clientX: 251, clientY: 282, buttons: 0 });
+  released.paint();
+  assert.deepEqual(released.calls, [['end', { x: 300, y: 400 }]]);
+  for (const external of [false, true]) {
+    const f = fixture(false);
+    f.emit(f.inner, 'pointermove');
+    if (external) f.observer.release();
+    else f.emit(f.inner, 'pointercancel');
+    f.paint();
+    assert.deepEqual(f.calls, external ? [] : [['cancel']]);
+    assert.equal(f.frames.size, 0);
+  }
+});
+
+test('a missed release or window blur flushes the last queued position before settling', () => {
+  for (const blur of [false, true]) {
+    const f = fixture(false);
+    f.emit(f.inner, 'pointermove', { clientX: 220 });
+    if (blur) f.outer.defaultView.dispatchEvent(new Event('blur'));
+    else f.emit(f.inner, 'pointermove', { buttons: 0, clientX: 900 });
+    f.paint();
+    assert.deepEqual(f.calls, [['move', { x: 220, y: 300 }], ['end', undefined]]);
+  }
+});
 
 test('losing capture while held does not cancel, and release uses the final pointer', () => {
   const { inner, target, observer, emit, calls } = fixture();

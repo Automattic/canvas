@@ -1,3 +1,5 @@
+import { gestureFrame } from './gesture-frame.mjs';
+
 // Keep listening above Gutenberg's canvas iframe as well as inside it. Losing
 // capture or crossing the iframe boundary must not discard a valid preview.
 export function gestureDocuments( doc ) {
@@ -48,6 +50,11 @@ export function gesturePoint( event, doc ) {
 export function observeGesturePointer( event, target, { move, end, cancel } ) {
 	const documents = gestureDocuments( target.ownerDocument );
 	const view = documents.at( -1 ).defaultView;
+	const updates = gestureFrame( view, move );
+	const settle = () => {
+		updates.flush();
+		end();
+	};
 	const captureOptions = { capture: true };
 	const matching = ( callback ) => ( next ) => {
 		if ( next.pointerId === event.pointerId ) {
@@ -58,16 +65,24 @@ export function observeGesturePointer( event, target, { move, end, cancel } ) {
 		// Recover a release missed outside the window when the pointer returns.
 		// eslint-disable-next-line no-bitwise -- PointerEvent.buttons is a bitmask.
 		if ( ! ( next.buttons & 1 ) ) {
-			end();
+			settle();
 		} else {
-			move( next );
+			// Default actions must be stopped during dispatch, before the frame runs.
+			next.preventDefault();
+			next.stopPropagation();
+			updates.push( next );
 		}
 	} );
-	const onEnd = matching( end );
-	const onCancel = matching( cancel );
+	const onEnd = matching( ( next ) => {
+		updates.cancel();
+		end( next );
+	} );
+	const onCancel = matching( () => {
+		updates.cancel();
+		cancel();
+	} );
 	// Focus moving between the iframe and editor chrome is not an interruption.
 	// Leaving the window settles the last preview instead of silently undoing it.
-	const settle = () => end();
 	const visibility = () => {
 		if ( view.document.hidden ) {
 			settle();
@@ -91,6 +106,7 @@ export function observeGesturePointer( event, target, { move, end, cancel } ) {
 			}
 		},
 		release() {
+			updates.cancel();
 			for ( const doc of documents ) {
 				doc.removeEventListener(
 					'pointermove',

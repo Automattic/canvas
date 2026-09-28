@@ -6,6 +6,14 @@ function fixture(options = {}) {
   const doc = new EventTarget(), view = new EventTarget();
   doc.defaultView = view;
   view.document = doc;
+  const frames = new Map();
+  let frameId = 0;
+  view.requestAnimationFrame = callback => { frames.set(++frameId, callback); return frameId; };
+  view.cancelAnimationFrame = id => frames.delete(id);
+  const paint = () => {
+    const pending = [...frames.values()]; frames.clear();
+    pending.forEach(callback => callback());
+  };
   let now = 0, timerId = 0;
   const timers = new Map(), captures = new Set();
   view.setTimeout = (callback, delay) => { timers.set(++timerId, { callback, at: now + delay }); return timerId; };
@@ -21,17 +29,61 @@ function fixture(options = {}) {
   const event = (type, values = {}) => Object.assign(new Event(type, { cancelable: true }), {
     pointerId: 1, pointerType: 'touch', isPrimary: true, buttons: 1, clientX: 100, clientY: 100, ...values,
   });
-  const calls = [];
+  const calls = [], samples = [];
   let session;
   const finish = name => () => { calls.push(name); session.release(); };
   session = observeTouchSession(event('pointerdown'), target, {
     canMove: options.canMove ?? true, canPair: e => e.sameBlock === true,
-    move: () => calls.push('move'), pair: () => calls.push('pair'), transform: () => calls.push('transform'),
+    move: e => { calls.push('move'); samples.push(e.clientX); },
+    pair: () => calls.push('pair'),
+    transform: events => { calls.push('transform'); samples.push(events.map(e => e.clientX)); },
     tap: finish('tap'), hold: finish('hold'), end: finish('end'), cancel: finish('cancel'),
   });
-  const emit = (type, values) => { const e = event(type, values); doc.dispatchEvent(e); return e; };
-  return { doc, view, session, calls, emit, tick, captures, timers };
+  const emit = (type, values) => { const e = event(type, values); doc.dispatchEvent(e); if (options.autoFrame !== false) paint(); return e; };
+  return { doc, view, session, calls, emit, tick, captures, timers, frames, paint, samples };
 }
+
+test('touch moves coalesce and release flushes the newest coordinate before committing', () => {
+  const f = fixture({ autoFrame: false });
+  for (let x = 120; x <= 150; x++) f.emit('pointermove', { clientX: x });
+  assert.deepEqual(f.calls, []);
+  assert.equal(f.frames.size, 1);
+  f.paint();
+  assert.deepEqual(f.samples, [150]);
+  f.emit('pointermove', { clientX: 160 });
+  f.emit('pointerup', { clientX: 180, buttons: 0 });
+  f.paint();
+  assert.deepEqual(f.samples, [150, 180]);
+  assert.deepEqual(f.calls, ['move', 'move', 'end']);
+});
+
+test('pair promotion flushes a pending move and coalesces both fingers into one transform', () => {
+  const f = fixture({ autoFrame: false });
+  f.emit('pointermove', { clientX: 120 });
+  f.emit('pointerdown', { pointerId: 2, isPrimary: false, clientX: 180, sameBlock: true });
+  assert.deepEqual(f.calls, ['move', 'pair']);
+  f.emit('pointermove', { clientX: 130 });
+  f.emit('pointermove', { pointerId: 2, clientX: 200 });
+  f.paint();
+  assert.deepEqual(f.samples, [120, [130, 200]]);
+  f.emit('pointerup', { pointerId: 2, clientX: 220, buttons: 0 });
+  assert.deepEqual(f.samples, [120, [130, 200], [130, 220]]);
+  assert.deepEqual(f.calls, ['move', 'pair', 'transform', 'transform', 'end']);
+  f.session.destroy();
+});
+
+test('touch cancellation and teardown discard pending animation frames', () => {
+  for (const finish of ['cancel', 'release', 'destroy']) {
+    const f = fixture({ autoFrame: false });
+    f.emit('pointermove', { clientX: 150 });
+    if (finish === 'cancel') f.emit('pointercancel');
+    else f.session[finish]();
+    f.paint();
+    assert.deepEqual(f.calls, finish === 'cancel' ? ['cancel'] : []);
+    assert.equal(f.frames.size, 0);
+    f.session.destroy();
+  }
+});
 
 test('a completed tap selects without starting a move or leaving a hold timer', () => {
   const f = fixture({ canMove: false });

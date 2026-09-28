@@ -1,4 +1,5 @@
 import { gestureDocuments } from './gesture-pointer.mjs';
+import { gestureFrame } from './gesture-frame.mjs';
 import { HOLD_DELAY, TOUCH_SLOP } from './touch-geometry.mjs';
 
 // A single owner arbitrates taps, holds, moves and two-pointer transforms.
@@ -10,6 +11,17 @@ export function observeTouchSession(
 ) {
 	const documents = gestureDocuments( target.ownerDocument );
 	const view = documents.at( -1 ).defaultView;
+	const updates = gestureFrame( view, ( sample ) => {
+		if ( sample.paired ) {
+			transform( sample.events );
+		} else {
+			move( sample.event );
+		}
+	} );
+	const finish = () => {
+		updates.flush();
+		end();
+	};
 	const points = new Map( [ [ event.pointerId, event ] ] );
 	let moving = false,
 		paired = false,
@@ -80,6 +92,7 @@ export function observeTouchSession(
 			return;
 		}
 		disposed = true;
+		updates.cancel();
 		clearHold();
 		for ( const doc of documents ) {
 			for ( const [ type, handler ] of Object.entries( handlers ) ) {
@@ -98,6 +111,7 @@ export function observeTouchSession(
 		settled = true;
 		clearHold();
 		callback?.();
+		updates.cancel();
 		releaseCapture();
 		if ( ! points.size ) {
 			dispose();
@@ -122,6 +136,7 @@ export function observeTouchSession(
 		for ( const id of points.keys() ) {
 			capture( id );
 		}
+		updates.flush();
 		pair( [ ...points.values() ] );
 	};
 	const update = ( e ) => {
@@ -131,7 +146,7 @@ export function observeTouchSession(
 		points.set( e.pointerId, e );
 		if ( paired ) {
 			stop( e );
-			transform( [ ...points.values() ] );
+			updates.push( { paired: true, events: [ ...points.values() ] } );
 			return;
 		}
 		if (
@@ -149,7 +164,7 @@ export function observeTouchSession(
 		moving = true;
 		stop( e );
 		capture( e.pointerId );
-		move( e );
+		updates.push( { event: e } );
 	};
 	const up = ( e ) => {
 		if ( ! points.has( e.pointerId ) ) {
@@ -159,7 +174,7 @@ export function observeTouchSession(
 			update( e );
 			stop( e );
 			// Release positions can be newer than the last delivered move.
-			settle( moving || paired ? end : () => tap?.( e ) );
+			settle( moving || paired ? finish : () => tap?.( e ) );
 		}
 		points.delete( e.pointerId );
 		if ( ! points.size ) {
@@ -182,7 +197,7 @@ export function observeTouchSession(
 		}
 	};
 	const blur = () => {
-		settle( moving || paired ? end : cancel );
+		settle( moving || paired ? finish : cancel );
 		points.clear();
 		dispose();
 	};

@@ -13,6 +13,7 @@ import {
 	dropGuidePreview,
 } from './drop-layout.mjs';
 import { gridMetrics } from './canvas-metrics.mjs';
+import { gestureFrame } from './gesture-frame.mjs';
 import { occupiedRows } from './canvas-geometry.mjs';
 import { canDropBlocks } from './drop-permissions.mjs';
 import { withInsertionDefaults } from './insertion-defaults.mjs';
@@ -41,6 +42,7 @@ export function useCanvasDrops( {
 		const actions = registry.dispatch( blockEditorStore );
 		let active = false;
 		const clear = () => {
+			updates.cancel();
 			if ( ! active ) {
 				return;
 			}
@@ -242,6 +244,9 @@ export function useCanvasDrops( {
 		const own = ( event ) => {
 			event.preventDefault();
 			event.stopImmediatePropagation();
+			if ( active ) {
+				return;
+			}
 			active = true;
 			documents.forEach( ( document ) => {
 				document.body.dataset.canvasDropOwner = clientId;
@@ -266,51 +271,66 @@ export function useCanvasDrops( {
 				event.dataTransfer.dropEffect = dropEffect;
 			}
 			if ( ! valid ) {
+				updates.cancel();
 				setPreview( null );
 				return;
 			}
-			const target = replacement( event, payload );
-			if ( target ) {
-				const bounds = grid.getBoundingClientRect();
-				const image = target.element.getBoundingClientRect();
-				const scale = grid.offsetWidth / bounds.width || 1;
-				setPreview( {
-					replacing: true,
-					rectangles: [
-						{
-							left: ( image.left - bounds.left ) * scale,
-							top: ( image.top - bounds.top ) * scale,
-							width: image.width * scale,
-							height: image.height * scale,
-						},
-					],
-					rows: 0,
-				} );
-				return;
-			}
-			const { layouts, metrics } = placement( event, payload.blocks );
-			const next = layouts
-				? {
-						...dropGuidePreview(
-							layouts,
-							store.getBlocks( clientId ),
-							mode,
-							metrics
-						),
-						rectangles: Object.values( layouts ).map( ( layout ) =>
-							placementRectangle( layout[ mode ], metrics )
-						),
-						rows: Math.max(
-							...Object.values( layouts ).map( ( layout ) =>
-								occupiedRows( layout[ mode ] )
-							)
-						),
-					}
-				: null;
-			setPreview( ( old ) =>
-				JSON.stringify( old ) === JSON.stringify( next ) ? old : next
-			);
+			// Read DataTransfer during dispatch; browsers protect it afterwards.
+			// Geometry and the React preview only need the newest hover per frame.
+			updates.push( { event, payload } );
 		};
+		const updates = gestureFrame(
+			doc.defaultView,
+			( { event, payload } ) => {
+				const target = replacement( event, payload );
+				if ( target ) {
+					const bounds = grid.getBoundingClientRect();
+					const image = target.element.getBoundingClientRect();
+					const scale = grid.offsetWidth / bounds.width || 1;
+					setPreview( {
+						replacing: true,
+						rectangles: [
+							{
+								left: ( image.left - bounds.left ) * scale,
+								top: ( image.top - bounds.top ) * scale,
+								width: image.width * scale,
+								height: image.height * scale,
+							},
+						],
+						rows: 0,
+					} );
+					return;
+				}
+				const { layouts, metrics } = placement( event, payload.blocks );
+				const next = layouts
+					? {
+							...dropGuidePreview(
+								layouts,
+								store.getBlocks( clientId ),
+								mode,
+								metrics
+							),
+							rectangles: Object.values( layouts ).map(
+								( layout ) =>
+									placementRectangle(
+										layout[ mode ],
+										metrics
+									)
+							),
+							rows: Math.max(
+								...Object.values( layouts ).map( ( layout ) =>
+									occupiedRows( layout[ mode ] )
+								)
+							),
+						}
+					: null;
+				setPreview( ( old ) =>
+					JSON.stringify( old ) === JSON.stringify( next )
+						? old
+						: next
+				);
+			}
+		);
 		const drop = ( event ) => {
 			own( event );
 			try {
