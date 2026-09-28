@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertHorizontalSnap } from './helpers/snapped-placement.mjs';
 import { resizeAspectRect, normalizeFreeFrame, freeFrameStyles } from '../src/aspect-ratio.mjs';
-import { canvasColumns, canvasRows, dragAspectRatioPlacement, mapCanvasPlacement, savedCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
+import { canvasColumns, canvasRows, dragAspectRatioPlacement, dragResizePlacement, resizeCanvasWithKey, mapCanvasPlacement, savedCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { ATTRIBUTE, resolveLayouts, savePlacement, normalizePlacement } from '../src/geometry.mjs';
+import { imageResizeRatio } from '../src/image-shapes.mjs';
+import { compactCanvas } from '../src/serialization.mjs';
 
 const rect = { left: 200, top: 200, width: 300, height: 200 };
 const bounds = { width: 1200, height: 18000 };
@@ -94,6 +96,33 @@ test('snapping retains the captured ratio and other viewport overrides', () => {
   close(result.aspectRatio, ratio);
   assert.deepEqual(result.mobile, saved.mobile);
   assert.equal(result.desktop.free, undefined);
+});
+
+test('video locks survive resizing and serialization across viewports', () => {
+  const saved = compactCanvas({ aspectRatio: 16 / 9, desktop: savedCanvasPlacement(initial()), mobile: { column: 1, row: 1, columnSpan: 4, rowSpan: 3 } });
+  const video = { clientId: 'video', name: 'core/video', attributes: { [ATTRIBUTE]: saved } };
+  for (const [mode, width] of [['desktop', 1200], ['tablet', 800], ['mobile', 390]]) {
+    const measured = { [mode]: geometry(width, 12, mode) };
+    const layout = resolveLayouts([video], measured).video;
+    const start = layout[mode];
+    const ratio = imageResizeRatio(layout, start);
+    close(ratio, start._rect.width / start._rect.height);
+    for (const handle of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
+      const next = dragResizePlacement(start, mode, handle, 31, 17, minimum, ratio);
+      close(next._rect.width / next._rect.height, ratio);
+    }
+    const next = resizeCanvasWithKey(start, mode, 1, 0, minimum, ratio);
+    const persisted = JSON.parse(JSON.stringify(compactCanvas(savePlacement(saved, layout, mode, next))));
+    assert.equal(persisted.aspectRatio, saved.aspectRatio);
+    for (const other of ['desktop', 'tablet', 'mobile'].filter(value => value !== mode)) {
+      assert.deepEqual(persisted[other], saved[other]);
+    }
+    const reopened = resolveLayouts([{ ...video, attributes: { [ATTRIBUTE]: persisted } }], measured).video;
+    assert.equal(reopened.aspectRatio, saved.aspectRatio);
+    const unlocked = resolveLayouts([{ ...video, attributes: { [ATTRIBUTE]: { ...persisted, aspectRatio: undefined } } }], measured).video;
+    assert.equal(imageResizeRatio(unlocked, unlocked[mode]), undefined);
+    close(imageResizeRatio(unlocked, unlocked[mode], true), unlocked[mode]._rect.width / unlocked[mode]._rect.height);
+  }
 });
 
 test('all handles release onto logical cells across viewports, gaps and limits', () => {

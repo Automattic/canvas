@@ -52,9 +52,30 @@ test('moves and save/reload retain authored fill including false without materia
   }
 });
 
+test('saved aspect locks apply to filled images and videos only', () => {
+  const resolve = (name, canvas) => resolveLayouts([{ clientId: 'media', name, attributes: { canvas } }]).media;
+  for (const name of ['core/image', 'core/video']) {
+    for (const fill of [undefined, true]) {
+      assert.equal(resolve(name, { fill, aspectRatio: 16 / 9 }).aspectRatio, 16 / 9);
+    }
+    const saved = { fill: false, aspectRatio: 16 / 9 };
+    assert.equal(resolve(name, saved).aspectRatio, undefined);
+    const enabled = fillUpdates(name, { canvas: saved }, true);
+    assert.equal(resolve(name, enabled.canvas).aspectRatio, 16 / 9);
+    for (const aspectRatio of [undefined, null, 0, -1, NaN, Infinity, '1.5']) {
+      assert.equal(resolve(name, { aspectRatio }).aspectRatio, undefined);
+    }
+  }
+  for (const name of ['core/heading', 'core/paragraph', 'core/buttons', 'core/group']) {
+    assert.equal(resolve(name, { fill: true, aspectRatio: 16 / 9 }).aspectRatio, undefined);
+  }
+  assert.equal(resolve('core/image', { shape: 'circle', fill: false, aspectRatio: 1.5 }).aspectRatio, 1.5);
+  assert.equal(resolve('core/video', { shape: 'circle', fill: false, aspectRatio: 1.5 }).aspectRatio, undefined);
+});
+
 test('PHP rendering and JavaScript share fill defaults, text fitting, shapes, and compact booleans', () => {
   const cases = ['core/image', 'core/video', 'core/heading', 'core/paragraph', 'core/group'].flatMap(name =>
-    [{}, { canvas: { fill: true } }, { canvas: { fill: false } }, { canvas: { fill: false, shape: 'circle' } }, { fitText: true, canvas: { fill: true } }].map(attributes => ({ name, attributes })));
+    [{}, { canvas: { fill: true } }, { canvas: { fill: false } }, { canvas: { fill: false, shape: 'circle' } }, { canvas: { aspectRatio: 16 / 9 } }, { canvas: { fill: false, aspectRatio: 16 / 9 } }, { fitText: true, canvas: { fill: true } }].map(attributes => ({ name, attributes })));
   const result = spawnSync('php', ['-r', String.raw`
     define('ABSPATH','/'); function add_action(){} function add_filter(){}
     function esc_attr($s){return htmlspecialchars((string)$s, ENT_QUOTES);} function wp_json_encode($s){return json_encode($s);}

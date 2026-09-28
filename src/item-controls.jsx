@@ -422,22 +422,15 @@ function ItemMenuItems( {
 					<Menu.ItemLabel>Fill area</Menu.ItemLabel>
 				</CanvasMenuToggle>
 			) }
-			{ image && (
-				<CanvasSubmenu>
-					<Menu.SubmenuTriggerItem>
-						<Menu.ItemLabel>Image</Menu.ItemLabel>
-					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Image">
-						<CanvasMenuToggle
-							hideOnClick={ hideOnClick }
-							checked={ !! layouts[ menu.id ].aspectRatio }
-							disabled={ ! editable || ! fill }
-							onChange={ () => changeAspectRatio( menu.id ) }
-						>
-							<Menu.ItemLabel>Lock aspect ratio</Menu.ItemLabel>
-						</CanvasMenuToggle>
-					</Menu.Popover>
-				</CanvasSubmenu>
+			{ ( image || video ) && (
+				<CanvasMenuToggle
+					hideOnClick={ hideOnClick }
+					checked={ !! layouts[ menu.id ].aspectRatio }
+					disabled={ ! editable || ! fill }
+					onChange={ () => changeAspectRatio( menu.id ) }
+				>
+					<Menu.ItemLabel>Lock aspect ratio</Menu.ItemLabel>
+				</CanvasMenuToggle>
 			) }
 			{ image && (
 				<ImageShapeMenu

@@ -19,6 +19,17 @@ export function contentFill( name, attributes = {} ) {
 		: supportsFill( name ) && saved.fill === true && ! attributes.fitText;
 }
 
+// Frame locking is shared by images and videos, independent of image shapes.
+export function mediaAspectRatio( name, attributes = {} ) {
+	const ratio = attributes[ ATTRIBUTE ]?.aspectRatio;
+	return isFrameMedia( name ) &&
+		contentFill( name, attributes ) &&
+		Number.isFinite( ratio ) &&
+		ratio > 0
+		? ratio
+		: undefined;
+}
+
 // Both controls change the same authored setting. Shapes require fill, while
 // text area fitting and WordPress's native width fitting are mutually exclusive.
 export function fillUpdates( name, attributes, fill ) {

@@ -53,11 +53,13 @@ Arrow keys move a selected block by one cell. Tab reaches resize and radius hand
 
 On touch screens, tap to select, drag with one finger to move, or pinch and twist with two fingers to scale and rotate. Tap selected text again to edit it; long press opens the context menu. Swipe empty space or an unselected block to scroll.
 
-= Images and text =
+= Images, videos, and text =
 
 In the right-click menu, Fill area scales and wraps text within the frame or crops media to cover it. Turn it off to use normal text sizing or show the whole image. Text also offers Fit text: it keeps one line, scales to the width, and lets height follow automatically. Width fitting uses left/right handles; area fitting keeps all eight. Enabling either text fitting option disables the other. Use the block toolbar to align text vertically or justify and align buttons within their frames. Native typography, image replacement, alt text, links, and captions remain available.
 
-Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. With a shape selected, Fill area stretches the shape to its frame; turn it off to preserve the shape's proportions. The photo always fills the shape without distortion. Removing the shape restores the image's previous fill preference. Image → Lock aspect ratio controls proportional resizing. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
+For images and videos, Lock aspect ratio sits beneath Fill area in the context menu and preserves the frame’s proportions while resizing. It is available while Fill area is enabled; hold Shift while resizing for a temporary lock.
+
+Choose an image shape in Styles → Shape or the context menu. Hover or focus previews a shape; selecting it applies the change. With a shape selected, Fill area stretches the shape to its frame; turn it off to preserve the shape's proportions. The photo always fills the shape without distortion. Removing the shape restores the image's previous fill preference. Click a selected filled image again or press Enter to reposition its crop, then choose Done, click outside, or press Escape to finish.
 
 = Groups and spacing =
 

@@ -1,10 +1,9 @@
-import { contentFill, isFrameMedia } from './content-fill.mjs';
 import {
-	imageShape,
-	imageAspectRatio,
-	imageShapeStretch,
-	shapeMask,
-} from './image-shapes.mjs';
+	contentFill,
+	isFrameMedia,
+	mediaAspectRatio,
+} from './content-fill.mjs';
+import { imageShape, imageShapeStretch, shapeMask } from './image-shapes.mjs';
 import {
 	mapCanvasPlacement,
 	savedCanvasPlacement,
@@ -183,10 +182,10 @@ export function resolveLayouts( blocks, geometry = {} ) {
 							block.name
 						) && !! block.attributes.fitText,
 					imagePosition: imagePosition( saved.imagePosition ),
-					aspectRatio:
-						block.name === 'core/image'
-							? imageAspectRatio( saved )
-							: undefined,
+					aspectRatio: mediaAspectRatio(
+						block.name,
+						block.attributes
+					),
 					...Object.fromEntries(
 						Object.entries( {
 							desktop,

@@ -1,4 +1,8 @@
-import { fillUpdates, textWidthUpdates } from './content-fill.mjs';
+import {
+	fillUpdates,
+	isFrameMedia,
+	textWidthUpdates,
+} from './content-fill.mjs';
 import {
 	compactCanvasAttributes,
 	serializePlacement,
@@ -714,7 +718,7 @@ export default function Edit( {
 		( id ) => {
 			const store = registry.select( blockEditorStore );
 			if (
-				store.getBlockName( id ) !== 'core/image' ||
+				! isFrameMedia( store.getBlockName( id ) ) ||
 				store.getBlockEditingMode( id ) !== 'default' ||
 				! layouts[ id ]?.fill
 			) {
