@@ -1,3 +1,4 @@
+import { GridModeMenu } from './grid-mode-menu';
 import { observeAutomaticTextColor } from './guide-colors.mjs';
 import {
 	fillUpdates,
@@ -1386,13 +1387,20 @@ export default function Edit( {
 							: null;
 					if ( canEdit && id === clientId ) {
 						return (
-							<ArrangeBlocksMenu
-								clientId={ clientId }
-								registry={ registry }
-								gridRef={ gridRef }
-								mode={ mode }
-								onClose={ onClose }
-							/>
+							<>
+								<ArrangeBlocksMenu
+									clientId={ clientId }
+									registry={ registry }
+									gridRef={ gridRef }
+									mode={ mode }
+									onClose={ onClose }
+								/>
+								<GridModeMenu
+									cells={ cells }
+									setAttributes={ setAttributes }
+									onClose={ onClose }
+								/>
+							</>
 						);
 					}
 					// The regular slot identifies the actual menu target, including List View.
@@ -1443,6 +1451,12 @@ export default function Edit( {
 							registry={ registry }
 							gridRef={ gridRef }
 							mode={ mode }
+							onClose={ closeContextMenu }
+							contextMenu
+						/>
+						<GridModeMenu
+							cells={ cells }
+							setAttributes={ setAttributes }
 							onClose={ closeContextMenu }
 							contextMenu
 						/>
