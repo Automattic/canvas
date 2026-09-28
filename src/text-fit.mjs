@@ -7,7 +7,8 @@ export function fittingFontSize(
 	width,
 	height,
 	min = 1,
-	max = MAX_TEXT_SIZE
+	max = MAX_TEXT_SIZE,
+	hint
 ) {
 	const fits = ( size ) => {
 		const box = measure( size );
@@ -18,6 +19,29 @@ export function fittingFontSize(
 	}
 	let low = min;
 	let high = max;
+	// A live resize usually changes the fitted size only slightly. Bracket the
+	// new answer around the last fit before searching; always measure the hint
+	// again, since a line wrap, font change, or large resize can invalidate it.
+	if ( Number.isFinite( hint ) && hint > min && hint < max ) {
+		let step = Math.max( 1, hint / 10 );
+		if ( fits( hint ) ) {
+			low = hint;
+			high = Math.min( max, low + step );
+			while ( high < max && fits( high ) ) {
+				low = high;
+				step *= 2;
+				high = Math.min( max, low + step );
+			}
+		} else {
+			high = hint;
+			low = Math.max( min, high - step );
+			while ( low > min && ! fits( low ) ) {
+				high = low;
+				step *= 2;
+				low = Math.max( min, high - step );
+			}
+		}
+	}
 	for ( let i = 0; i < 14 && high - low > 0.1; i++ ) {
 		const middle = ( low + high ) / 2;
 		if ( fits( middle ) ) {
@@ -31,6 +55,19 @@ export function fittingFontSize(
 
 const TEXT_SELECTOR = 'h1,h2,h3,h4,h5,h6,p';
 const VARIABLES = [ '--canvas-text-size', '--canvas-text-leading' ];
+// These variables describe measured placement or our own fitted output. Size
+// changes reach ResizeObserver; position/layer changes do not change text fit.
+const GEOMETRY_PROPERTY =
+	/^--canvas-(?:(?:desktop|tablet|mobile|free|frame|pad)-[\w-]+|(?:column-)?gap|layout-(?:left|right)|text-(?:size|leading))\s*:/;
+const textStyles = ( value ) =>
+	( value || '' )
+		.split( ';' )
+		.map( ( declaration ) => declaration.trim() )
+		.filter(
+			( declaration ) =>
+				declaration && ! GEOMETRY_PROPERTY.test( declaration )
+		)
+		.join( ';' );
 const TYPOGRAPHY = [
 	'fontFamily',
 	'fontWeight',
@@ -313,7 +350,16 @@ function fitItem( item, view, measurements ) {
 		item,
 		width,
 		( measure ) =>
-			fittingFontSize( measure, width, height, 1, MAX_TEXT_SIZE ),
+			fittingFontSize(
+				measure,
+				width,
+				height,
+				1,
+				MAX_TEXT_SIZE,
+				parseFloat(
+					item.style.getPropertyValue( '--canvas-text-size' )
+				)
+			),
 		false,
 		false,
 		measurements
@@ -336,6 +382,8 @@ function fitItem( item, view, measurements ) {
 export function observeTextFit( grid ) {
 	const view = grid.ownerDocument.defaultView;
 	const tracked = new Set();
+	const resized = new Set();
+	let fitAll = true;
 	let measurements = new WeakMap();
 	let frame;
 	let disposed = false;
@@ -346,16 +394,40 @@ export function observeTextFit( grid ) {
 	};
 	const invalidate = () => {
 		measurements = new WeakMap();
+		fitAll = true;
 		schedule();
 	};
-	const resize = new view.ResizeObserver( schedule );
-	const changes = new view.MutationObserver( schedule );
+	const resize = new view.ResizeObserver( ( entries ) => {
+		for ( const { target } of entries ) {
+			if ( tracked.has( target ) ) {
+				resized.add( target );
+			}
+		}
+		if ( resized.size ) {
+			schedule();
+		}
+	} );
+	const changes = new view.MutationObserver( ( records ) => {
+		if (
+			records.some(
+				( record ) =>
+					record.type !== 'attributes' ||
+					record.attributeName !== 'style' ||
+					textStyles( record.oldValue ) !==
+						textStyles( record.target.getAttribute( 'style' ) )
+			)
+		) {
+			fitAll = true;
+			schedule();
+		}
+	} );
 	const observeChanges = () =>
 		changes.observe( grid, {
 			subtree: true,
 			childList: true,
 			characterData: true,
 			attributes: true,
+			attributeOldValue: true,
 			attributeFilter: [ 'data-canvas-text-fit', 'style', 'class' ],
 		} );
 	function refresh() {
@@ -377,11 +449,16 @@ export function observeTextFit( grid ) {
 			for ( const item of items ) {
 				if ( ! tracked.has( item ) ) {
 					tracked.add( item );
+					resized.add( item );
 					resize.observe( item );
 				}
-				fitItem( item, view, measurements );
+				if ( fitAll || resized.has( item ) ) {
+					fitItem( item, view, measurements );
+				}
 			}
 		} finally {
+			fitAll = false;
+			resized.clear();
 			if ( ! disposed ) {
 				observeChanges();
 			}

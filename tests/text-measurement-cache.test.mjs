@@ -97,6 +97,11 @@ test('area fitting reuses unchanged searches but responds to height, content, an
   let height = 100;
   Object.defineProperty(item, 'clientWidth', { get: () => 200 });
   Object.defineProperty(item, 'clientHeight', { get: () => height });
+  const sibling = item.cloneNode(true);
+  grid.append(sibling);
+  let siblingReads = 0;
+  Object.defineProperty(sibling, 'clientWidth', { get: () => { siblingReads++; return 200; } });
+  Object.defineProperty(sibling, 'clientHeight', { get: () => 100 });
   Object.defineProperty(view.HTMLElement.prototype, 'offsetHeight', {
     get() { return this.classList.contains('canvas-measure-text') ? parseFloat(this.style.fontSize) * 1.2 : 0; },
   });
@@ -123,12 +128,21 @@ test('area fitting reuses unchanged searches but responds to height, content, an
   const initialSize = parseFloat(item.style.getPropertyValue('--canvas-text-size'));
   const initialProbes = probes();
   item.style.setProperty('--canvas-free-top', '10px');
+  await Promise.resolve();
+  assert.equal(frames.size, 0, 'position changes must not rerun fitting even from the cache');
   await flush();
   assert.equal(probes(), initialProbes, 'movement reuses the fitted-font search');
   assert.equal(parseFloat(item.style.getPropertyValue('--canvas-text-size')), initialSize);
+  item.style.letterSpacing = '2px';
+  await Promise.resolve();
+  assert.equal(frames.size, 1, 'authored typography must still schedule fitting');
+  await flush();
+  assert.ok(probes() > initialProbes);
+  siblingReads = 0;
   height = 50;
-  resize(); await flush();
+  resize([{ target: item }]); await flush();
   assert.ok(parseFloat(item.style.getPropertyValue('--canvas-text-size')) < initialSize);
+  assert.equal(siblingReads, 0, 'resizing one item must not measure unaffected fitted siblings');
   item.textContent = 'Different words';
   const beforeContent = probes(); await flush();
   assert.ok(probes() > beforeContent);

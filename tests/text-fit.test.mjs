@@ -16,6 +16,23 @@ test('keeps the readability floor when the area is too small', () => {
   assert.equal(fittingFontSize((size) => ({ width: 100, height: size * 100 }), 100, 24, 12), 12);
 });
 
+test('live fit hints reduce measurements while still respecting new line wraps and large changes', () => {
+  const measure = width => size => ({ width: Math.min(size * 20, width), height: Math.ceil(size * 20 / width) * size * 1.2 });
+  const previous = fittingFontSize(measure(300), 300, 120);
+  let full = 0, hinted = 0;
+  const next = measure(302);
+  const expected = fittingFontSize(size => { full++; return next(size); }, 302, 122);
+  const actual = fittingFontSize(size => { hinted++; return next(size); }, 302, 122, 1, 2400, previous);
+  assert.ok(hinted < full, `${hinted} hinted measurements should be fewer than ${full}`);
+  assert.ok(Math.abs(actual - expected) <= 0.2);
+  for (const [width, height, hint] of [[90, 30, previous], [900, 900, previous], [200, 40, 2000], [300, 120, NaN]]) {
+    const read = measure(width);
+    const fitted = fittingFontSize(read, width, height, 1, 2400, hint);
+    assert.ok(read(fitted).width <= width && read(fitted).height <= height);
+    assert.ok(read(fitted + 0.2).width > width || read(fitted + 0.2).height > height);
+  }
+});
+
 test('text fitting is opt-in and survives changes to either viewport', () => {
   const blocks = [{ clientId: 'a', name: 'core/heading', attributes: { canvas: { fill: true } } }, { clientId: 'b', name: 'core/paragraph', attributes: {} }];
   const layouts = resolveLayouts(blocks);
