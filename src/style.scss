@@ -1,9 +1,18 @@
 @use "measurements";
 
+// Like Cover, inherit container colors without overriding authored text colors.
+:root :where(.wp-block-tabor-canvas.has-background) :where(p:not(.has-text-color), h1:not(.has-text-color), h2:not(.has-text-color), h3:not(.has-text-color), h4:not(.has-text-color), h5:not(.has-text-color), h6:not(.has-text-color)) {
+	color: inherit;
+}
+
 .wp-block-tabor-canvas {
 	--canvas-viewport: desktop;
 	position: relative;
 	box-sizing: border-box;
+
+	&.has-background:not(.has-text-color) {
+		color: var(--canvas-auto-text-color, inherit);
+	}
 
 	// Rotation may paint outside a full-width grid, but must not widen the page.
 	// Keep editor handles and vertical overlaps available.

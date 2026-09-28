@@ -7,6 +7,7 @@ import { focusCanvasControl } from './canvas-keyboard';
 import { gridMetrics } from './canvas-metrics.mjs';
 import { nearestTouchHandle } from './touch-geometry.mjs';
 import { canvasRows } from './canvas-geometry.mjs';
+import { guideColors } from './guide-colors.mjs';
 
 export const RESIZE_HANDLES = {
 	n: 'top',
@@ -111,6 +112,7 @@ export function GridGuidelines( {
 		if ( ! active || ! grid ) {
 			return;
 		}
+		let colors = guideColors( grid );
 		const update = () => {
 			const currentPreview = previewRef.current;
 			const metrics = gridMetrics( grid );
@@ -163,6 +165,7 @@ export function GridGuidelines( {
 				: metrics;
 			setLines( {
 				...metrics,
+				...colors,
 				rows: rowMetrics.rows,
 				before: rowMetrics.before,
 				visibleRows: rowMetrics.coreRows,
@@ -185,10 +188,22 @@ export function GridGuidelines( {
 			update
 		);
 		observer.observe( grid );
+		const colorObserver =
+			new grid.ownerDocument.defaultView.MutationObserver( () => {
+				colors = guideColors( grid );
+				update();
+			} );
+		for ( let node = grid; node; node = node.parentElement ) {
+			colorObserver.observe( node, {
+				attributes: true,
+				attributeFilter: [ 'class', 'style' ],
+			} );
+		}
 		grid.addEventListener( 'canvas-layout-change', update );
 		return () => {
 			updateRef.current = null;
 			observer.disconnect();
+			colorObserver.disconnect();
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
 	}, [ gridRef, active ] );
@@ -279,6 +294,76 @@ export function GridGuidelines( {
 				)
 		);
 	} );
+	// Share the destination alignment check between guide strokes and badges.
+	const isHighlighted = ( { axis, position, kind } ) =>
+		lines.rectangles.some( ( rect ) => {
+			const start = axis === 'x' ? rect.left : rect.top;
+			const size = axis === 'x' ? rect.width : rect.height;
+			return ( kind === 'center' ? [ 0, 0.5, 1 ] : [ 0, 1 ] ).some(
+				( edge ) => Math.abs( start + size * edge - position ) < 0.1
+			);
+		} );
+	// Count complete cells outside the destination, including a multi-selection's
+	// outer bounds. Partial cells are occupied, just as in the grid highlight.
+	const spacing = [];
+	if (
+		cellsEnabled &&
+		preview &&
+		! preview.rotating &&
+		lines.rectangles.length
+	) {
+		const left = Math.min(
+			...lines.rectangles.map( ( rect ) => rect.left )
+		);
+		const right = Math.max(
+			...lines.rectangles.map( ( rect ) => rect.left + rect.width )
+		);
+		const top = Math.min( ...lines.rectangles.map( ( rect ) => rect.top ) );
+		const bottom = Math.max(
+			...lines.rectangles.map( ( rect ) => rect.top + rect.height )
+		);
+		const rows = lines.rows.slice(
+			lines.before,
+			lines.before + lines.visibleRows
+		);
+		for ( const { axis, position, kind } of guidelines ) {
+			if ( ! isHighlighted( { axis, position, kind } ) ) {
+				continue;
+			}
+			const vertical = axis === 'x';
+			const tracks = vertical ? rows : lines.columns;
+			const start = vertical ? top : left;
+			const end = vertical ? bottom : right;
+			const extent = vertical ? lines.height : lines.width;
+			for ( const before of [ true, false ] ) {
+				const space = before ? start : extent - end;
+				if ( space < 32 ) {
+					continue;
+				}
+				const count = tracks.filter( ( track ) =>
+					before ? track.end <= start + 0.5 : track.start >= end - 0.5
+				).length;
+				if ( count === 0 ) {
+					continue;
+				}
+				const middle = before ? start / 2 : ( end + extent ) / 2;
+				spacing.push(
+					<span
+						key={ `${ axis }-${ position }-${ before }` }
+						className="canvas__spacing-count"
+						style={ {
+							left: vertical ? position : middle,
+							top: vertical ? middle : position,
+							'--canvas-spacing-background': lines.background,
+							'--canvas-spacing-foreground': lines.foreground,
+						} }
+					>
+						{ count }
+					</span>
+				);
+			}
+		}
+	}
 	return (
 		<>
 			<div
@@ -287,6 +372,7 @@ export function GridGuidelines( {
 					( active && cellsEnabled ? ' is-visible' : '' )
 				}
 				aria-hidden="true"
+				style={ { color: lines.foreground } }
 			>
 				<svg className="canvas__grid-guidelines" focusable="false">
 					<g className="canvas__grid-cells">{ cells }</g>
@@ -298,6 +384,7 @@ export function GridGuidelines( {
 					( active && showAlignment ? ' is-visible' : '' )
 				}
 				aria-hidden="true"
+				style={ { color: lines.foreground } }
 			>
 				<svg className="canvas__grid-guidelines" focusable="false">
 					{ showAlignment &&
@@ -319,25 +406,11 @@ export function GridGuidelines( {
 					{ showAlignment &&
 						preview &&
 						guidelines.map( ( { axis, position, kind } ) => {
-							const meetsGuide = ( rect, tolerance ) => {
-								const start =
-									axis === 'x' ? rect.left : rect.top;
-								const size =
-									axis === 'x' ? rect.width : rect.height;
-								return (
-									kind === 'center' ? [ 0, 0.5, 1 ] : [ 0, 1 ]
-								).some(
-									( edge ) =>
-										Math.abs(
-											start + size * edge - position
-										) < tolerance
-								);
-							};
-							// Only the committed destination can light a guide. Pointer proximity
-							// alone must never promise an alignment that snapping will discard.
-							const highlighted = lines.rectangles.some(
-								( rect ) => meetsGuide( rect, 0.1 )
-							);
+							const highlighted = isHighlighted( {
+								axis,
+								position,
+								kind,
+							} );
 							return (
 								<line
 									key={ axis + '-' + position }
@@ -356,6 +429,7 @@ export function GridGuidelines( {
 							);
 						} ) }
 				</svg>
+				{ showAlignment && spacing }
 			</div>
 		</>
 	);

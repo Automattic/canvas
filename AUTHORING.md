@@ -14,6 +14,8 @@ These instructions describe Canvas's native block format. They do not grant perm
 
 Read `settings.layout.contentSize` and `wideSize`, palette, typography and spacing presets, and global styles. Prefer the site's preset slugs and inherited styles over hardcoded reference values. Parent blocks and templates may narrow the available area; configured CSS values are not measured pixel widths.
 
+When a Canvas has a background but no explicit text color, text automatically defaults to black or white based on the solid background. Explicit container and child text colors remain authored choices. Editor cells and guides inherit the foreground when it has enough contrast, with a black or white fallback when needed.
+
 Choose normal content alignment for narrow reading sections, `align: "wide"` for contained compositions, and `align: "full"` for edge-to-edge backgrounds or intentional viewport compositions. A full-width background does not imply full-width text: anchor foreground content to the theme's wide boundaries (`anchors: { left: "wide", right: "wide" }`) when it should align with neighboring sections. Preserve native padding. Without a theme wide width, use the parent's content bounds and verify in the browser rather than guessing a fixed width.
 
 ## Format

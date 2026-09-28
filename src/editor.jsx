@@ -1,3 +1,4 @@
+import { observeAutomaticTextColor } from './guide-colors.mjs';
 import {
 	fillUpdates,
 	isFrameMedia,
@@ -132,6 +133,7 @@ export default function Edit( {
 		gridRef
 	);
 	useLayoutEffect( () => observeTextFit( gridRef.current ), [] );
+	useLayoutEffect( () => observeAutomaticTextColor( gridRef.current ), [] );
 	useLayoutEffect(
 		() => observeCanvasLayout( gridRef.current, setGeometry ),
 		[]
