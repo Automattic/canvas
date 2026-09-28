@@ -61,7 +61,7 @@ Choose an image shape in Styles → Shape or the context menu. Hover or focus pr
 
 = Groups and spacing =
 
-Select sibling blocks and choose Group in the context menu to move them together. Click again to edit a child; Escape moves back through the group. Ungroup retains the children's layout. Use native background, border, radius, padding, and spacing controls to style the composition.
+Select sibling blocks and choose Group in the context menu to move them together. Overlapping blocks can be grouped. The group takes the frontmost selected layer at each screen size while preserving the order of blocks inside it. Click again to edit a child; Escape moves back through the group. Ungroup retains the children's layout. Use native background, border, radius, padding, and spacing controls to style the composition.
 
 Use Block spacing under Styles → Dimensions to adjust the space between Canvas grid cells. One control sets both horizontal and vertical spacing. Cells appear while adjusting spacing, and tracks update without changing authored cell coordinates.
 

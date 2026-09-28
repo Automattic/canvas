@@ -21,8 +21,7 @@ import {
 	layoutLeaves,
 	resolveCanvasLayouts,
 	releaseGroupSiblings,
-	groupingConflict,
-	groupingLayers,
+	prepareCanvasGroup,
 } from './canvas-groups.mjs';
 import { Menu } from './core-menu';
 import { CanvasSubmenu } from './canvas-menu';
@@ -198,7 +197,6 @@ export function ContainerActions( {
 			store.getBlocks( canvasId ),
 			gridRef.current?.canvasGeometry || {}
 		);
-		const conflict = groupingConflict( siblings, ids, layouts );
 		return {
 			distributable:
 				canvasParent && canMoveSelection( store, ids, canvasId ),
@@ -209,10 +207,7 @@ export function ContainerActions( {
 			editable,
 			ungroup,
 			eligible: canvasParent && selected.every( canContain ),
-			canGroup: canvasParent && ! conflict,
-			conflict,
 			layouts,
-			layers: groupingLayers( siblings, ids, layouts ),
 		};
 	}, [ menu, registry, canvasId, gridRef ] );
 	const commit = ( replacement, siblings = status.siblings ) => {
@@ -232,7 +227,7 @@ export function ContainerActions( {
 	const wrap = () => {
 		if (
 			! status.editable ||
-			! status.canGroup ||
+			! status.eligible ||
 			status.selected.length < 2
 		) {
 			return;
@@ -262,12 +257,17 @@ export function ContainerActions( {
 				block,
 				...( isCanvasGroup( block ) ? find( block.innerBlocks ) : [] ),
 			] );
-		const siblings =
+		const orderedSiblings =
 			status.parent === canvasId
 				? orderedRoots
 				: find( orderedRoots ).find(
 						( block ) => block.clientId === status.parent
 					).innerBlocks;
+		const { siblings, layers } = prepareCanvasGroup(
+			orderedSiblings,
+			status.ids,
+			status.layouts
+		);
 		const children = siblings.filter( ( block ) =>
 			status.ids.includes( block.clientId )
 		);
@@ -287,7 +287,7 @@ export function ContainerActions( {
 				allowedBlocks: [ ...ALLOWED_BLOCKS, 'core/group' ],
 				[ ATTRIBUTE ]: {
 					group: 1,
-					layers: status.layers,
+					layers,
 				},
 			},
 			children
@@ -297,11 +297,9 @@ export function ContainerActions( {
 				if ( block.clientId === status.parent ) {
 					return {
 						...block,
-						innerBlocks: replaceSelection(
-							block.innerBlocks,
-							status.ids,
-							[ group ]
-						),
+						innerBlocks: replaceSelection( siblings, status.ids, [
+							group,
+						] ),
 					};
 				} else if ( isCanvasGroup( block ) ) {
 					return {
@@ -318,9 +316,9 @@ export function ContainerActions( {
 			.replaceInnerBlocks(
 				canvasId,
 				status.parent === canvasId
-					? replaceSelection( orderedRoots, status.ids, [
-							group,
-						] ).map( compactCanvasBlock )
+					? replaceSelection( siblings, status.ids, [ group ] ).map(
+							compactCanvasBlock
+						)
 					: replace( orderedRoots ).map( compactCanvasBlock ),
 				false
 			);
@@ -444,16 +442,8 @@ export function ContainerActions( {
 				) }
 				{ showGroup && <Menu.Separator /> }
 				{ showGroup && (
-					<Menu.Item
-						disabled={ ! status.editable || ! status.canGroup }
-						onClick={ wrap }
-					>
+					<Menu.Item disabled={ ! status.editable } onClick={ wrap }>
 						<Menu.ItemLabel>Group</Menu.ItemLabel>
-						{ status.conflict && (
-							<Menu.ItemHelpText>
-								{ status.conflict }
-							</Menu.ItemHelpText>
-						) }
 					</Menu.Item>
 				) }
 				{ showUngroup && (

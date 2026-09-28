@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ATTRIBUTE, COLUMNS, minimumSpans } from '../src/placement.mjs';
+import { replaceSelection } from '../src/grouping.mjs';
 import { canvasColumns, canvasRows, dragMovePlacement, dragResizePlacement, nudgeCanvasPlacement, resizeCanvasWithKey, savedCanvasPlacement, settleCanvasPlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
-import { resolveCanvasLayouts, saveGroupMove, releaseCanvasGroup, releaseGroupSiblings, sourcePlacement, rotatedBounds, groupingConflict, groupingLayers, paintLayers, layoutLeaves, nudgeGroupPlacement, translateGroupPlacement } from '../src/canvas-groups.mjs';
+import { resolveCanvasLayouts, saveGroupMove, releaseCanvasGroup, releaseGroupSiblings, sourcePlacement, rotatedBounds, prepareCanvasGroup, paintLayers, layoutLeaves, nudgeGroupPlacement, translateGroupPlacement } from '../src/canvas-groups.mjs';
 const padding = { top: 24, right: 24, bottom: 24, left: 24 };
 const geometry = Object.fromEntries(Object.keys(COLUMNS).map(mode => [mode, {
   ...canvasColumns(1200, padding, 100, 1100, 12, mode), ...canvasRows(24, 24, 24, 12), gap: 12,
@@ -110,26 +111,60 @@ test('automatic layout inputs retain original source order through grouping', ()
   for(const id of ['a','b','c']) sameRect(before[id].mobile._rect,after[id].mobile._rect);
 });
 
-test('overlapping interleaved layers cannot silently become one stacking context', () => {
-  const blocks=[1,2,3].map(n=>leaf(String(n),2,2,{desktop:{gridColumns:24,column:2,columnSpan:6,row:2,rowSpan:4,layer:n}}));
-  const layouts=resolveCanvasLayouts(blocks,geometry);
-  assert.match(groupingConflict(blocks,['1','3'],layouts),/intervening/);
-  assert.equal(groupingConflict(blocks,['1','2'],layouts),null);
+test('overlapping interleaved blocks group at the frontmost selected layer in every viewport', () => {
+  const blocks=[
+    leaf('a',2,2,{order:0,layers:{desktop:1,tablet:4,mobile:0}}),
+    leaf('outside',2,2,{order:1,layers:{desktop:2,tablet:3,mobile:-1}}),
+    leaf('b',2,2,{order:2,layers:{desktop:3,tablet:2,mobile:-2}}),
+    leaf('above',2,2,{order:3,layers:{desktop:4,tablet:5,mobile:1}}),
+  ];
+  const original=JSON.stringify(blocks);
+  const before=resolveCanvasLayouts(blocks,geometry);
+  const ids=['a','b'];
+  const {siblings,layers}=prepareCanvasGroup(blocks,ids,before);
+  const container=group('g',siblings.filter(block=>ids.includes(block.clientId)),{layers});
+  const grouped=replaceSelection(siblings,ids,[container]);
+  const after=resolveCanvasLayouts(grouped,geometry);
+  assert.deepEqual(grouped.map(block=>block.clientId),['g','outside','above']);
+  assert.deepEqual(container.innerBlocks.map(block=>block.clientId),ids);
+  for (const mode of Object.keys(COLUMNS)) {
+    const oldPaint=paintLayers(blocks,before,mode),paint=paintLayers(grouped,after,mode);
+    assert.ok(paint.g>paint.outside);
+    assert.ok(paint.g<paint.above);
+    assert.equal(paint.a>paint.b,oldPaint.a>oldPaint.b);
+    for (const id of ['a','b','outside','above']) sameRect(before[id][mode]._rect,after[id][mode]._rect);
+  }
+  assert.equal(JSON.stringify(blocks),original);
+  const released=releaseGroupSiblings(grouped,'g',after);
+  const reopened=resolveCanvasLayouts(JSON.parse(JSON.stringify(released)),geometry);
+  for (const mode of Object.keys(COLUMNS)) {
+    const paint=paintLayers(released,reopened,mode);
+    assert.ok(paint.a>paint.outside && paint.b>paint.outside);
+    assert.ok(paint.a<paint.above && paint.b<paint.above);
+    for (const id of ['a','b','outside','above']) sameRect(after[id][mode]._rect,reopened[id][mode]._rect);
+  }
 });
 
-test('a safe group layer preserves overlap even when a distant child is above the outside block', () => {
-  const a=leaf('a',2,2), outside=leaf('outside',2,2), b=leaf('b',17,12);
-  a.attributes[ATTRIBUTE].layers.desktop=1;
-  outside.attributes[ATTRIBUTE].layers.desktop=2;
-  b.attributes[ATTRIBUTE].layers.desktop=3;
-  const before=resolveCanvasLayouts([a,outside,b],geometry);
-  const saved=groupingLayers([a,outside,b],['a','b'],before);
-  assert.ok(saved.desktop<2);
-  const blocks=[group('g',[a,b],{layers:saved}),outside];
-  const after=resolveCanvasLayouts(blocks,geometry), paint=paintLayers(blocks,after,'desktop');
-  assert.ok(paint.g<paint.outside);
-  assert.ok(paint.a<paint.b);
-  assert.ok(Object.values(paint).every(Number.isInteger));
+test('grouping preserves ties around the frontmost selection and nested child paint order', () => {
+  const nested=group('nested',[leaf('back',2,2),leaf('front',3,2)],{order:2,layers:{desktop:0,tablet:0,mobile:0}});
+  const blocks=[
+    leaf('a',2,2,{layers:{desktop:0}}),
+    leaf('between',2,2,{layers:{desktop:0}}),
+    nested,
+    leaf('above',2,2,{layers:{desktop:0}}),
+    leaf('low',17,12,{layers:{desktop:-5}}),
+  ];
+  const before=resolveCanvasLayouts(blocks,geometry),ids=['a','nested','low'];
+  const {siblings,layers}=prepareCanvasGroup(blocks,ids,before);
+  const grouped=replaceSelection(siblings,ids,[group('g',siblings.filter(block=>ids.includes(block.clientId)),{layers})]);
+  const after=resolveCanvasLayouts(grouped,geometry);
+  for (const mode of Object.keys(COLUMNS)) {
+    const paint=paintLayers(grouped,after,mode);
+    assert.ok(paint.g>paint.between && paint.g<paint.above);
+    assert.ok(paint.low<paint.a && paint.a<paint.nested);
+    assert.ok(paint.back<paint.front);
+  }
+  assert.deepEqual(siblings.find(block=>block.clientId==='nested').innerBlocks,nested.innerBlocks);
 });
 
 test('ungroup after changing the group layer preserves internal and external paint order', () => {

@@ -258,79 +258,41 @@ export function releaseCanvasGroup( group ) {
 		},
 	} ) );
 }
-// A group becomes one stacking context. Detect conflicting requirements from
-// outside siblings rather than silently changing which overlapping item wins.
-export function groupingLayers( siblings, ids, layouts ) {
+// Group at the frontmost selected layer in each viewport. Rank siblings first
+// so equal source layers retain their paint order when the group replaces the
+// first selected block in reading order. Overlapping children stay editable.
+export function prepareCanvasGroup( siblings, ids, layouts ) {
 	const layers = {};
+	const ranked = {};
 	for ( const mode of Object.keys( COLUMNS ) ) {
-		const selected = siblings.filter( ( b ) => ids.includes( b.clientId ) );
-		let lower = -Infinity,
-			upper = Infinity;
-		for ( const outside of siblings.filter(
-			( b ) => ! ids.includes( b.clientId )
-		) ) {
-			const p = layouts[ outside.clientId ]?.[ mode ];
-			if ( ! p?._rect ) {
-				continue;
-			}
-			const a = rotatedBounds( p._rect, p.rotation );
-			for ( const inside of selected ) {
-				const q = layouts[ inside.clientId ]?.[ mode ];
-				if ( ! q?._rect ) {
-					continue;
-				}
-				const b = rotatedBounds( q._rect, q.rotation );
-				if (
-					a.left >= b.left + b.width ||
-					b.left >= a.left + a.width ||
-					a.top >= b.top + b.height ||
-					b.top >= a.top + a.height
-				) {
-					continue;
-				}
-				const above =
-					q.layer > p.layer ||
-					( q.layer === p.layer &&
-						siblings.indexOf( inside ) >
-							siblings.indexOf( outside ) );
-				if ( above ) {
-					lower = Math.max( lower, p.layer );
-				} else {
-					upper = Math.min( upper, p.layer );
-				}
-			}
-		}
-		if ( lower >= upper ) {
-			return null;
-		}
-		let layer = Math.max(
+		ranked[ mode ] = paintLayers( siblings, layouts, mode );
+		layers[ mode ] = Math.max(
 			1,
-			...selected.map(
-				( block ) => layouts[ block.clientId ]?.[ mode ]?.layer || 1
-			)
+			...ids.map( ( id ) => ranked[ mode ][ id ] || 1 )
 		);
-		if ( layer >= upper ) {
-			layer = Number.isFinite( lower )
-				? ( lower + upper ) / 2
-				: upper - 0.5;
-		}
-		if ( layer <= lower ) {
-			layer = Number.isFinite( upper )
-				? ( lower + upper ) / 2
-				: lower + 0.5;
-		}
-		layers[ mode ] = layer;
 	}
-	return layers;
-}
-export function groupingConflict( siblings, ids, layouts ) {
-	return groupingLayers( siblings, ids, layouts )
-		? null
-		: 'These blocks overlap other layers. Select the intervening blocks to group them together.';
+	return {
+		layers,
+		siblings: siblings.map( ( block ) => ( {
+			...block,
+			attributes: {
+				...block.attributes,
+				[ ATTRIBUTE ]: compactCanvas( {
+					...block.attributes[ ATTRIBUTE ],
+					layers: Object.fromEntries(
+						Object.keys( COLUMNS ).map( ( mode ) => [
+							mode,
+							ranked[ mode ][ block.clientId ],
+						] )
+					),
+				} ),
+			},
+		} ) ),
+	};
 }
 
-// Fractional source layers let a new group sit between existing layers. CSS
-// z-index only accepts integers, so render a stable rank within each parent.
+// Authored layers can be fractional. CSS z-index only accepts integers, so
+// render a stable rank within each parent.
 export function paintLayers( blocks, layouts, mode ) {
 	const layers = {};
 	const visit = ( siblings ) => {
