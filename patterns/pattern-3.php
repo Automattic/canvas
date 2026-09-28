@@ -8,7 +8,7 @@
 defined( 'ABSPATH' ) || exit;
 $image_url = plugin_dir_url( __DIR__ ) . 'images/image-2.jpg';
 ?>
-<!-- wp:tabor/canvas {"desktopRows":18,"backgroundColor":"accent-4","align":"full","className":"is-style-section-4","style":{"spacing":{"margin":{"top":"0","bottom":"0"}},"elements":{"link":{"color":{"text":"#ffe500"}}},"color":{"text":"#ffe500"}}} -->
+<!-- wp:tabor/canvas {"desktopRows":18,"backgroundColor":"accent-4","align":"full","className":"is-style-section-4","style":{"spacing":{"margin":{"top":"0","bottom":"0"},"blockGap":"var:preset|spacing|20"},"elements":{"link":{"color":{"text":"#ffe500"}}},"color":{"text":"#ffe500"}}} -->
 <!-- wp:image {"sizeSlug":"full","linkDestination":"none","canvas":{"shape":"tilted-oval","shapeStretch":true,"desktop":{"column":4,"row":5,"columnSpan":18,"rowSpan":10,"gridColumns":24,"frameRatio":1.98853}}} -->
 <figure class="wp-block-image size-full"><img src="<?php echo esc_url( $image_url ); ?>" alt=""/></figure>
 <!-- /wp:image -->

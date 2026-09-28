@@ -47,7 +47,7 @@ export function inheritedGap( base = {}, user = {}, className = '' ) {
 	};
 	// Canvas has its own default; block-specific styles can override either axis.
 	return resolveGap(
-		'24px',
+		'var:preset|spacing|20',
 		merge( block?.spacing?.blockGap, custom?.spacing?.blockGap ),
 		...variations.map( ( name ) =>
 			merge(

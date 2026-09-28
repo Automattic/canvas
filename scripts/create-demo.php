@@ -43,7 +43,7 @@ $children = array(
 );
 $canvas = canvas_demo_block( 'tabor/canvas', array(
 	'align' => 'full', 'desktopRows' => 28, 'mobileRows' => 34,
-	'style' => array( 'color' => array( 'background' => '#202820', 'text' => '#f6f6ed' ), 'spacing' => array( 'blockGap' => '12px', 'padding' => array( 'top' => '32px', 'bottom' => '32px', 'left' => '24px', 'right' => '24px' ) ) ),
+	'style' => array( 'color' => array( 'background' => '#202820', 'text' => '#f6f6ed' ), 'spacing' => array( 'blockGap' => 'var:preset|spacing|20', 'padding' => array( 'top' => '32px', 'bottom' => '32px', 'left' => '24px', 'right' => '24px' ) ) ),
 ), '', $children, array_fill( 0, count( $children ), null ) );
 $page_id = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'Canvas — Playground', 'post_name' => 'canvas-playground', 'post_content' => serialize_block( $canvas ), 'post_author' => 1 ), true );
 if ( is_wp_error( $page_id ) ) { throw new Exception( $page_id->get_error_message() ); }

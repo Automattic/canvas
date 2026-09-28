@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 $image_url        = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 $second_image_url = plugin_dir_url( __DIR__ ) . 'images/image-2.jpg';
 ?>
-<!-- wp:tabor/canvas {"desktopRows":14,"mobileRows":15,"tabletRows":12,"align":"full","className":"is-style-section-5","metadata":{"categories":["tabor-canvas"],"patternName":"tabor/canvas-pattern-2","name":"pattern-2"}} -->
+<!-- wp:tabor/canvas {"desktopRows":14,"mobileRows":15,"tabletRows":12,"align":"full","className":"is-style-section-5","metadata":{"categories":["tabor-canvas"],"patternName":"tabor/canvas-pattern-2","name":"pattern-2"},"style":{"spacing":{"blockGap":"var:preset|spacing|20"}}} -->
 <!-- wp:image {"sizeSlug":"large","linkDestination":"none","canvas":{"imagePosition":{"x":0.5,"y":0.7851762472740097},"desktop":{"column":14,"row":3,"columnSpan":11,"rowSpan":4,"gridColumns":24,"free":{"x":0.547801,"y":3,"width":0.417477,"ratio":3.210674},"frameRatio":3.21067,"anchors":{"right":"wide"}},"tablet":{"column":8,"row":3,"columnSpan":5,"rowSpan":4,"gridColumns":12,"frameRatio":2.90714,"anchors":{"right":"padding"}},"mobile":{"column":8,"row":4,"columnSpan":5,"rowSpan":4,"gridColumns":12,"frameRatio":2.90714,"anchors":{"right":"wide"}}},"style":{"border":{"radius":"20px"}}} -->
 <figure class="wp-block-image size-large has-custom-border"><img src="<?php echo esc_url( $image_url ); ?>" alt="" style="border-radius:20px"/></figure>
 <!-- /wp:image -->

@@ -31,10 +31,10 @@
 		position: relative;
 		isolation: isolate;
 		// Width settings bound the grid inside the native content padding.
-		grid-template-columns: var(--canvas-desktop-tracks, repeat(calc(var(--canvas-desktop-columns, 24) - 1), minmax(0, 1fr) var(--canvas-column-gap, 24px)) minmax(0, 1fr));
+		grid-template-columns: var(--canvas-desktop-tracks, repeat(calc(var(--canvas-desktop-columns, 24) - 1), minmax(0, 1fr) var(--canvas-column-gap, var(--wp--preset--spacing--20))) minmax(0, 1fr));
 		grid-template-rows: var(--canvas-desktop-row-tracks, repeat(var(--canvas-desktop-rows, 12), 24px));
 		grid-auto-rows: 24px;
-		row-gap: var(--canvas-gap, 24px);
+		row-gap: var(--canvas-gap, var(--wp--preset--spacing--20));
 		column-gap: 0;
 		width: 100%;
 	}

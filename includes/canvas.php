@@ -39,8 +39,8 @@ function canvas_gap( $attributes ) {
 	}
 	$values[] = $attributes['style']['spacing']['blockGap'] ?? null;
 	$gap      = array(
-		'top'  => '24px',
-		'left' => '24px',
+		'top'  => 'var:preset|spacing|20',
+		'left' => 'var:preset|spacing|20',
 	);
 	foreach ( $values as $value ) {
 		$axes = is_array( $value ) ? $value : array(
@@ -224,7 +224,7 @@ function enqueue_viewport_styles() {
 		$range_start = preg_match( '/\(([\d.]+(?:px|em|rem)) < width/', $query, $matches ) ? $matches[1] : '0px';
 		$count       = GRID_COLUMNS[ $mode ] - 1;
 		$span        = 'mobile' === $mode ? GRID_COLUMNS[ $mode ] : 6;
-		$css        .= "$query { $canvas { --canvas-viewport:$mode; --canvas-range-start:$range_start; } $grid { grid-template-columns:var(--canvas-$mode-tracks,repeat($count,minmax(0,1fr) var(--canvas-column-gap,24px)) minmax(0,1fr));grid-template-rows:var(--canvas-$mode-row-tracks,repeat(var(--canvas-$mode-rows,12),24px)); }";
+		$css        .= "$query { $canvas { --canvas-viewport:$mode; --canvas-range-start:$range_start; } $grid { grid-template-columns:var(--canvas-$mode-tracks,repeat($count,minmax(0,1fr) var(--canvas-column-gap,var(--wp--preset--spacing--20))) minmax(0,1fr));grid-template-rows:var(--canvas-$mode-row-tracks,repeat(var(--canvas-$mode-rows,12),24px)); }";
 		$css        .= "$grid > .canvas__item { grid-column:var(--canvas-$mode-line-left,calc(2 * var(--canvas-$mode-column,1) - 1)) / var(--canvas-$mode-line-right,span calc(2 * var(--canvas-$mode-columnSpan,$span) - 1));grid-row:var(--canvas-$mode-line-top,var(--canvas-$mode-row,1)) / var(--canvas-$mode-line-bottom,span var(--canvas-$mode-rowSpan,6));z-index:var(--canvas-$mode-layer,1);rotate:calc(var(--canvas-$mode-rotation,0) * 1deg); } }";
 	}
 	wp_enqueue_style( 'tabor-canvas-style' );

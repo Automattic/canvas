@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 $image_url        = plugin_dir_url( __DIR__ ) . 'images/image-1.jpg';
 $second_image_url = plugin_dir_url( __DIR__ ) . 'images/image-3.jpg';
 ?>
-<!-- wp:tabor/canvas {"desktopRows":18,"backgroundColor":"accent-5","align":"full","className":"is-style-section-2","style":{"color":{"text":"#ff0000"},"elements":{"link":{"color":{"text":"#ff0000"}}}},"metadata":{"categories":["tabor-canvas"],"patternName":"tabor/canvas-pattern-4","name":"pattern-4"}} -->
+<!-- wp:tabor/canvas {"desktopRows":18,"backgroundColor":"accent-5","align":"full","className":"is-style-section-2","style":{"color":{"text":"#ff0000"},"elements":{"link":{"color":{"text":"#ff0000"}}},"spacing":{"blockGap":"var:preset|spacing|20"}},"metadata":{"categories":["tabor-canvas"],"patternName":"tabor/canvas-pattern-4","name":"pattern-4"}} -->
 <!-- wp:heading {"canvas":{"verticalAlign":"bottom","layers":{"desktop":2,"tablet":1},"desktop":{"column":1,"row":1,"columnSpan":24,"rowSpan":9,"gridColumns":24,"anchors":{"left":"canvas","right":"canvas"}},"tablet":{"column":1,"row":2,"columnSpan":12,"rowSpan":9,"gridColumns":12,"anchors":{"left":"canvas","right":"canvas"}}},"className":"is-style-default","style":{"typography":{"textTransform":"uppercase","textAlign":"center"}},"fontFamily":"fira-code","fitText":true} -->
 <h2 class="wp-block-heading has-text-align-center is-style-default has-fit-text has-fira-code-font-family" style="text-transform:uppercase">FLOWERS</h2>
 <!-- /wp:heading -->
