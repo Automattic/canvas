@@ -1,5 +1,8 @@
 import { GridModeMenu } from './grid-mode-menu';
 import { observeAutomaticTextColor } from './guide-colors.mjs';
+import { alignSelection, positionSelection } from './selection-alignment.mjs';
+import { resizeSelection } from './selection-resize.mjs';
+import { gridAlignedPlacement } from './grid-placement.mjs';
 import {
 	fillUpdates,
 	isFrameMedia,
@@ -10,11 +13,7 @@ import {
 	serializePlacement,
 } from './serialization.mjs';
 import { preserveRowsOnResize } from './row-resize.mjs';
-import {
-	canMoveSelection,
-	moveSelection,
-	centerInSection,
-} from './selection-movement.mjs';
+import { canMoveSelection, moveSelection } from './selection-movement.mjs';
 import { imageShape, imageResizeRatio } from './image-shapes.mjs';
 import { imageShapeUpdates } from './image-shape-layout.mjs';
 import {
@@ -400,14 +399,27 @@ export default function Edit( {
 	] );
 	const minimumRows = requiredRows( layouts, mode );
 	const rowKey = `${ mode }Rows`;
+	const savedRowCount = savedMinimumRows( attributes, mode );
 	const rowCount = Math.max(
-		savedMinimumRows( attributes, mode ),
+		savedRowCount,
 		minimumRows,
 		geometry[ mode ]?.coreRows || 1
 	);
 	const commitSelection = useCallback(
-		( placements ) => {
-			const updates = {};
+		( placements, additionalUpdates = {}, snap = cells ) => {
+			const updates = { ...additionalUpdates };
+			const rows = Math.max(
+				rowCount,
+				...Object.values( placements ).map(
+					( placement ) => placement._canvas?.coreRows || 1
+				)
+			);
+			if ( rows > savedRowCount ) {
+				updates[ clientId ] = {
+					[ rowKey ]: rows,
+					...updates[ clientId ],
+				};
+			}
 			for ( const [ id, placement ] of Object.entries( placements ) ) {
 				const current = layouts[ id ];
 				const block = blocks.find(
@@ -416,7 +428,10 @@ export default function Edit( {
 				if ( ! current || ! block ) {
 					continue;
 				}
-				if ( placement === current[ mode ] ) {
+				if (
+					placement === current[ mode ] &&
+					! ( snap && placement.free )
+				) {
 					continue;
 				}
 				if ( isCanvasGroup( block ) ) {
@@ -430,11 +445,22 @@ export default function Edit( {
 					};
 					continue;
 				}
+				const source = sourcePlacement(
+					snap
+						? gridAlignedPlacement(
+								placement,
+								mode,
+								minimumSpans( block.name )
+							)
+						: placement,
+					mode,
+					current[ mode ]
+				);
 				const next = savePlacement(
 					block.attributes[ ATTRIBUTE ],
 					current,
 					mode,
-					sourcePlacement( placement, mode, current[ mode ] ),
+					source,
 					minimumSpans( block.name )
 				);
 				if (
@@ -453,10 +479,23 @@ export default function Edit( {
 				commitUpdates( updates );
 			}
 		},
-		[ blocks, layouts, mode, commitUpdates ]
+		[
+			blocks,
+			layouts,
+			mode,
+			cells,
+			commitUpdates,
+			rowCount,
+			savedRowCount,
+			clientId,
+			rowKey,
+		]
 	);
 	const commit = useCallback(
-		( id, placement ) => commitSelection( { [ id ]: placement } ),
+		// Single gestures already resolve their destination, including precise
+		// edge attachments and constrained resize frames. Save that preview.
+		( id, placement ) =>
+			commitSelection( { [ id ]: placement }, {}, false ),
 		[ commitSelection ]
 	);
 	const centerBlock = useCallback(
@@ -469,17 +508,29 @@ export default function Edit( {
 			) {
 				return;
 			}
-			const placements = Object.fromEntries(
-				ids.map( ( id ) => [
-					id,
-					centerInSection( layouts[ id ][ mode ], mode, axis, {
-						minimum: minimumSpans( store.getBlockName( id ) ),
-						preserveSize: layouts[ id ].group || ! cells,
-						cells,
-					} ),
-				] )
+			const { placements, rows } = positionSelection(
+				layouts,
+				ids,
+				mode,
+				axis,
+				{
+					cells,
+					minimums: Object.fromEntries(
+						ids.map( ( id ) => [
+							id,
+							minimumSpans( store.getBlockName( id ) ),
+						] )
+					),
+				}
 			);
-			commitSelection( placements );
+			// Moving the lowest block up must not collapse rows that currently
+			// exist only because of its position. Persist the height we centered in.
+			commitSelection(
+				placements,
+				rows > savedRowCount
+					? { [ clientId ]: { [ rowKey ]: rows } }
+					: {}
+			);
 			let announcement;
 			if ( axis === 'horizontal' ) {
 				announcement = 'Block centered horizontally.';
@@ -494,7 +545,56 @@ export default function Edit( {
 					: announcement
 			);
 		},
-		[ registry, layouts, mode, clientId, commitSelection, announce, cells ]
+		[
+			registry,
+			layouts,
+			mode,
+			clientId,
+			commitSelection,
+			announce,
+			cells,
+			savedRowCount,
+			rowKey,
+		]
+	);
+	const alignBlocks = useCallback(
+		( ids, alignment ) => {
+			const store = registry.select( blockEditorStore );
+			if (
+				ids.length < 2 ||
+				ids.some( ( id ) => ! layouts[ id ]?.[ mode ]?._canvas ) ||
+				! canMoveSelection( store, ids, clientId )
+			) {
+				return;
+			}
+			commitSelection(
+				alignSelection( layouts, ids, mode, alignment, {
+					cells,
+					minimums: Object.fromEntries(
+						ids.map( ( id ) => [
+							id,
+							minimumSpans( store.getBlockName( id ) ),
+						] )
+					),
+				} ),
+				rowCount > savedRowCount
+					? { [ clientId ]: { [ rowKey ]: rowCount } }
+					: {}
+			);
+			announce( 'Blocks aligned within selection.' );
+		},
+		[
+			registry,
+			layouts,
+			mode,
+			clientId,
+			commitSelection,
+			rowCount,
+			savedRowCount,
+			rowKey,
+			announce,
+			cells,
+		]
 	);
 	const commitRows = useCallback(
 		( rows, offset = 0 ) => {
@@ -866,15 +966,7 @@ export default function Edit( {
 		registry,
 		announce,
 	} );
-	const box = useSelectionBox(
-		stageRef,
-		gridRef,
-		selectedId,
-		preview,
-		layouts,
-		mode,
-		attributes
-	);
+
 	const moveWithKey = useCallback(
 		( event, ids = [ selectedId ], anchorId = selectedId ) => {
 			const offsets = {
@@ -932,7 +1024,9 @@ export default function Edit( {
 						anchorId,
 						next._rect.left - start._rect.left,
 						next._rect.top - start._rect.top
-					)
+					),
+					{},
+					false
 				);
 				announce( `${ ids.length } blocks moved.` );
 				return;
@@ -961,6 +1055,7 @@ export default function Edit( {
 					y * ( event.shiftKey ? 10 : 1 ),
 					minimumSpans( selectedName ),
 					1,
+					false,
 					false
 				);
 			} else {
@@ -1035,6 +1130,38 @@ export default function Edit( {
 			ArrowDown: [ 0, 1 ],
 		};
 		if (
+			multipleResize &&
+			offsets[ event.key ] &&
+			! event.altKey &&
+			! event.ctrlKey &&
+			! event.metaKey
+		) {
+			event.preventDefault();
+			event.stopPropagation();
+			const [ x, y ] = offsets[ event.key ];
+			const canvas = layouts[ selectedIds[ 0 ] ][ mode ]._canvas;
+			const step = event.shiftKey ? 10 : 1;
+			commitSelection(
+				resizeSelection(
+					layouts,
+					selectedIds,
+					mode,
+					'se',
+					x *
+						( cells
+							? canvas.columns[ 1 ].start -
+								canvas.columns[ 0 ].start
+							: step ),
+					y * ( cells ? canvas.rowHeight + canvas.gap : step ),
+					{ holdBottom: false }
+				),
+				{},
+				false
+			);
+			announce( `${ selectedIds.length } blocks resized.` );
+			return;
+		}
+		if (
 			locked ||
 			layouts[ selectedId ]?.group ||
 			! layouts[ selectedId ] ||
@@ -1061,7 +1188,10 @@ export default function Edit( {
 					x * ( event.shiftKey ? 10 : 1 ),
 					y * ( event.shiftKey ? 10 : 1 ),
 					minimumSpans( selectedName ),
-					imageResizeRatio( layouts[ selectedId ], start )
+					imageResizeRatio( layouts[ selectedId ], start ),
+					false,
+					1,
+					false
 				)
 			: resizeCanvasWithKey(
 					start,
@@ -1134,6 +1264,27 @@ export default function Edit( {
 		announce,
 		canInsert: !! insertion.allowed.length,
 	} );
+	const multipleResize =
+		selectedIds.length > 1 &&
+		selectedIds.every(
+			( id ) => layouts[ id ]?.[ mode ] && ! layouts[ id ].group
+		) &&
+		canMoveSelection(
+			registry.select( blockEditorStore ),
+			selectedIds,
+			clientId
+		);
+	const box = useSelectionBox(
+		stageRef,
+		gridRef,
+		selectedId,
+		preview,
+		layouts,
+		mode,
+		attributes,
+		multipleResize ? selectedIds.join( ',' ) : selectedId
+	);
+
 	useItemToolbar(
 		selectedId,
 		selectedName,
@@ -1152,8 +1303,21 @@ export default function Edit( {
 		announce,
 		exitEditing,
 	} );
+	const resizeTitle = ( direction, label ) => {
+		if ( multipleResize ) {
+			return 'Resize selected elements proportionally';
+		}
+		if ( widthFitSelected ) {
+			return 'Resize width · Height follows text';
+		}
+		return `Resize ${ label } · Shift + Option/Alt-drag resizes from center${ direction.length === 2 ? ' · Command/Ctrl-drag to rotate' : '' }`;
+	};
 	const resizeWithPointer = ( event, direction ) => {
 		const kind = resizeHandleAtTouch( event, direction );
+		if ( multipleResize ) {
+			gesture( event, kind, { id: selectedIds[ 0 ], ids: selectedIds } );
+			return;
+		}
 		if ( kind === 'move' ) {
 			handleTouchSurface( event );
 		} else {
@@ -1202,14 +1366,18 @@ export default function Edit( {
 						mode={ mode }
 						onClose={ onClose }
 						onComplete={ afterGrouping }
-						onDistribute={ commitSelection }
+						onDistribute={ ( placements ) =>
+							commitSelection( placements, {}, false )
+						}
 						onCenter={ centerBlock }
+						onAlign={ alignBlocks }
 					/>
 				}
 			/>
 		),
 		[
 			centerBlock,
+			alignBlocks,
 			layouts,
 			mode,
 			layer,
@@ -1517,11 +1685,12 @@ export default function Edit( {
 					) }
 					{ box &&
 						selectedId &&
-						selectedIds.length <= 1 &&
+						( selectedIds.length <= 1 || multipleResize ) &&
 						! editingId &&
 						! locked && (
 							<div className="canvas__selection" style={ box }>
-								{ ! preview &&
+								{ ! multipleResize &&
+									! preview &&
 									[
 										'core/image',
 										'core/buttons',
@@ -1541,6 +1710,7 @@ export default function Edit( {
 									Object.entries( RESIZE_HANDLES )
 										.filter(
 											( [ direction ] ) =>
+												multipleResize ||
 												! widthFitSelected ||
 												/^[ew]$/.test( direction )
 										)
@@ -1557,12 +1727,15 @@ export default function Edit( {
 														? 'resize'
 														: undefined
 												}
-												aria-description={ `${ cells ? `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows.` : `Width ${ Math.round( layouts[ selectedId ][ mode ]._rect.width ) }, height ${ Math.round( layouts[ selectedId ][ mode ]._rect.height ) } pixels. Arrow keys resize by 1 pixel, or 10 with Shift.` } ${ widthFitSelected ? 'Left and right change width; height follows the text.' : 'Left and right change width; up and down change height.' } Hold Shift + Command/Ctrl while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.` }
-												title={
-													widthFitSelected
-														? 'Resize width · Height follows text'
-														: `Resize ${ label } · Shift + Command/Ctrl-drag resizes from center${ direction.length === 2 ? ' · Command/Ctrl-drag to rotate' : '' }`
+												aria-description={
+													multipleResize
+														? 'Resize selected elements proportionally. Arrow keys resize the selection. Shift + Option/Alt-drag resizes from the center.'
+														: `${ cells ? `Width ${ layouts[ selectedId ][ mode ].columnSpan } columns, height ${ layouts[ selectedId ][ mode ].rowSpan } rows.` : `Width ${ Math.round( layouts[ selectedId ][ mode ]._rect.width ) }, height ${ Math.round( layouts[ selectedId ][ mode ]._rect.height ) } pixels. Arrow keys resize by 1 pixel, or 10 with Shift.` } ${ widthFitSelected ? 'Left and right change width; height follows the text.' : 'Left and right change width; up and down change height.' } Hold Shift + Option/Alt while dragging to resize proportionally from the center; Command/Ctrl alone rotates corners. Escape returns to the block.`
 												}
+												title={ resizeTitle(
+													direction,
+													label
+												) }
 												onPointerDown={ ( event ) =>
 													resizeWithPointer(
 														event,
@@ -1573,9 +1746,13 @@ export default function Edit( {
 													direction ===
 													keyboardResizeDirection
 														? ( event ) => {
-																rotateWithKey(
-																	event
-																);
+																if (
+																	! multipleResize
+																) {
+																	rotateWithKey(
+																		event
+																	);
+																}
 																resizeWithKey(
 																	event
 																);
@@ -1590,7 +1767,8 @@ export default function Edit( {
 												}
 											/>
 										) ) }
-								{ preview?.placement &&
+								{ ! multipleResize &&
+									preview?.placement &&
 									( preview.resizing ||
 										preview.rotating ||
 										preview.transforming ) && (

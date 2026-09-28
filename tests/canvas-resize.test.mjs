@@ -82,18 +82,20 @@ test('the shared preview still applies the image ratio constraint when enabled',
   assert.notEqual(unlocked._rect.width / unlocked._rect.height, ratio);
 });
 
-test('Shift plus the platform modifier resizes handles while the modifier alone rotates corners', () => {
-  for (const [platform, modifier, other] of [['MacIntel', 'metaKey', 'ctrlKey'], ['Win32', 'ctrlKey', 'metaKey'], ['Linux x86_64', 'ctrlKey', 'metaKey']]) {
-    const event = { target: { ownerDocument: { defaultView: { navigator: { platform } } } }, pointerType: 'mouse', [modifier]: true };
+test('Shift plus Option/Alt centers resizing while Command/Ctrl rotates corners', () => {
+  for (const [platform, modifier] of [['MacIntel', 'metaKey'], ['Win32', 'ctrlKey'], ['Linux x86_64', 'ctrlKey']]) {
+    const event = { target: { ownerDocument: { defaultView: { navigator: { platform } } } }, pointerType: 'mouse' };
     for (const kind of ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']) {
-      assert.equal(resizeGestureKind(event, kind), kind.length === 2 ? 'rotate' : kind);
-      assert.equal(resizeGestureKind({ ...event, shiftKey: true }, kind), kind);
+      assert.equal(resizeGestureKind({ ...event, [modifier]: true }, kind), kind.length === 2 ? 'rotate' : kind);
+      assert.equal(resizeGestureKind({ ...event, shiftKey: true, altKey: true }, kind), kind);
+      assert.equal(resizeGestureKind({ ...event, shiftKey: true, altKey: true, [modifier]: true }, kind), kind);
     }
-    assert.equal(centerResizeModifier({ ...event, shiftKey: true }), true);
-    assert.equal(centerResizeModifier(event), false);
-    assert.equal(centerResizeModifier({ ...event, shiftKey: true, [modifier]: false, [other]: true }), false);
-    assert.equal(centerResizeModifier({ ...event, shiftKey: true, pointerType: 'touch' }), false);
-    assert.equal(resizeGestureKind({ ...event, pointerType: 'touch' }, 'se'), 'se');
+    assert.equal(centerResizeModifier({ ...event, shiftKey: true, altKey: true }), true);
+    assert.equal(centerResizeModifier({ ...event, shiftKey: true }), false);
+    assert.equal(centerResizeModifier({ ...event, altKey: true }), false);
+    assert.equal(centerResizeModifier({ ...event, shiftKey: true, [modifier]: true }), false);
+    assert.equal(centerResizeModifier({ ...event, shiftKey: true, altKey: true, pointerType: 'touch' }), false);
+    assert.equal(resizeGestureKind({ ...event, [modifier]: true, pointerType: 'touch' }, 'se'), 'se');
   }
 });
 

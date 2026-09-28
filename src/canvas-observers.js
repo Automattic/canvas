@@ -117,16 +117,21 @@ export function useSelectionBox(
 	preview,
 	layouts,
 	mode,
-	attributes
+	attributes,
+	selection = selectedId
 ) {
 	const [ box, setBox ] = useState( null );
 	const updateRef = useRef( null );
 	useLayoutEffect( () => {
 		const stage = stageRef.current;
 		const grid = gridRef.current;
-		const item = grid?.querySelector(
-			`[data-canvas-item="${ selectedId }"]`
-		);
+		const items = ( selection || '' )
+			.split( ',' )
+			.map( ( id ) =>
+				grid?.querySelector( `[data-canvas-item="${ id }"]` )
+			)
+			.filter( Boolean );
+		const item = items[ 0 ];
 		if ( ! stage || ! grid || ! item ) {
 			setBox( null );
 			return;
@@ -138,8 +143,45 @@ export function useSelectionBox(
 				return;
 			}
 			const parent = stage.getBoundingClientRect();
-			const child = item.getBoundingClientRect();
+			if ( items.length > 1 ) {
+				const rectangles = items.map( ( node ) =>
+					node.getBoundingClientRect()
+				);
+				const scale = stage.offsetWidth / parent.width || 1;
+				const left = Math.min(
+					...rectangles.map( ( rect ) => rect.left )
+				);
+				const top = Math.min(
+					...rectangles.map( ( rect ) => rect.top )
+				);
+				const next = {
+					left: ( left - parent.left ) * scale,
+					top: ( top - parent.top ) * scale,
+					width:
+						( Math.max(
+							...rectangles.map( ( rect ) => rect.right )
+						) -
+							left ) *
+						scale,
+					height:
+						( Math.max(
+							...rectangles.map( ( rect ) => rect.bottom )
+						) -
+							top ) *
+						scale,
+				};
+				setBox( ( old ) =>
+					old &&
+					Object.keys( next ).every(
+						( key ) => old[ key ] === next[ key ]
+					)
+						? old
+						: next
+				);
+				return;
+			}
 			const scale = stage.offsetWidth / parent.width || 1;
+			const child = item.getBoundingClientRect();
 			// A rotated DOMRect is an axis-aligned bounding box. Keep its center,
 			// but use the unrotated border box so handles stay on the actual corners.
 			const css = view.getComputedStyle( item );
@@ -180,7 +222,7 @@ export function useSelectionBox(
 		update();
 		const observer = new view.ResizeObserver( update );
 		observer.observe( grid );
-		observer.observe( item );
+		items.forEach( ( node ) => observer.observe( node ) );
 		view.addEventListener( 'resize', update );
 		view.addEventListener( 'scroll', update, true );
 		grid.addEventListener( 'canvas-layout-change', update );
@@ -191,7 +233,15 @@ export function useSelectionBox(
 			view.removeEventListener( 'scroll', update, true );
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
-	}, [ stageRef, gridRef, selectedId, layouts, mode, attributes ] );
+	}, [
+		stageRef,
+		gridRef,
+		selectedId,
+		layouts,
+		mode,
+		attributes,
+		selection,
+	] );
 	// Measure the new placement without reconnecting observers and scheduling
 	// another initial ResizeObserver notification for every pointer movement.
 	useLayoutEffect( () => {

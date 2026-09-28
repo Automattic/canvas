@@ -1,4 +1,8 @@
-import { distributeHorizontally } from './selection-distribution.mjs';
+import {
+	distributeHorizontally,
+	distributeVertically,
+	equalizeWidths,
+} from './selection-distribution.mjs';
 import { canMoveSelection } from './selection-movement.mjs';
 import { compactCanvasBlock } from './serialization.mjs';
 import { useLayoutEffect } from '@wordpress/element';
@@ -147,6 +151,7 @@ export function ContainerActions( {
 	onComplete,
 	onDistribute,
 	onCenter,
+	onAlign,
 } ) {
 	const status = useSelect( () => {
 		const store = registry.select( blockEditorStore );
@@ -198,6 +203,7 @@ export function ContainerActions( {
 			gridRef.current?.canvasGeometry || {}
 		);
 		return {
+			cells: store.getBlockAttributes( canvasId ).cells !== false,
 			distributable:
 				canvasParent && canMoveSelection( store, ids, canvasId ),
 			ids,
@@ -388,14 +394,23 @@ export function ContainerActions( {
 		status.eligible &&
 		status.selected.length > 1 &&
 		status.selected.length === status.ids.length;
-	const distribution = status.distributable
-		? distributeHorizontally( status.selected, status.layouts, mode )
-		: null;
 	const showUngroup =
 		status.selected.length === 1 && isContainer( status.selected[ 0 ] );
 	if ( ! showGroup && ! showUngroup ) {
 		return null;
 	}
+	const distributions = [
+		[ 'Equalize widths', equalizeWidths ],
+		[ 'Distribute horizontal spacing', distributeHorizontally ],
+		[ 'Distribute vertical spacing', distributeVertically ],
+	].map( ( [ label, distribute ] ) => ( {
+		label,
+		placements: status.distributable
+			? distribute( status.selected, status.layouts, mode, {
+					cells: status.cells,
+				} )
+			: null,
+	} ) );
 	return (
 		<>
 			<Menu.Group>
@@ -404,9 +419,9 @@ export function ContainerActions( {
 						<Menu.SubmenuTriggerItem
 							disabled={ ! status.distributable }
 						>
-							<Menu.ItemLabel>Align</Menu.ItemLabel>
+							<Menu.ItemLabel>Position</Menu.ItemLabel>
 						</Menu.SubmenuTriggerItem>
-						<Menu.Popover aria-label="Align">
+						<Menu.Popover aria-label="Position">
 							{ [
 								[ 'both', 'Center' ],
 								[ 'horizontal', 'Center horizontally' ],
@@ -423,20 +438,68 @@ export function ContainerActions( {
 									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
 								</Menu.Item>
 							) ) }
-							<Menu.Separator />
-							<Menu.Item
-								disabled={ ! distribution }
-								onClick={ () => {
-									if ( distribution ) {
-										onDistribute( distribution );
-										onClose();
-									}
-								} }
-							>
-								<Menu.ItemLabel>
-									Distribute horizontally
-								</Menu.ItemLabel>
-							</Menu.Item>
+						</Menu.Popover>
+					</CanvasSubmenu>
+				) }
+				{ showGroup && (
+					<CanvasSubmenu>
+						<Menu.SubmenuTriggerItem
+							disabled={ ! status.distributable }
+						>
+							<Menu.ItemLabel>Align</Menu.ItemLabel>
+						</Menu.SubmenuTriggerItem>
+						<Menu.Popover aria-label="Align">
+							{ [
+								[ 'left', 'Left edges' ],
+								[ 'horizontal', 'Horizontal centers' ],
+								[ 'right', 'Right edges' ],
+								[ 'separator' ],
+								[ 'top', 'Top edges' ],
+								[ 'vertical', 'Vertical centers' ],
+								[ 'bottom', 'Bottom edges' ],
+							].map( ( [ axis, label ] ) =>
+								axis === 'separator' ? (
+									<Menu.Separator key={ axis } />
+								) : (
+									<Menu.Item
+										key={ axis }
+										disabled={ ! status.distributable }
+										onClick={ () => {
+											onAlign( status.ids, axis );
+											onClose();
+										} }
+									>
+										<Menu.ItemLabel>
+											{ label }
+										</Menu.ItemLabel>
+									</Menu.Item>
+								)
+							) }
+						</Menu.Popover>
+					</CanvasSubmenu>
+				) }
+				{ showGroup && (
+					<CanvasSubmenu>
+						<Menu.SubmenuTriggerItem
+							disabled={ ! status.distributable }
+						>
+							<Menu.ItemLabel>Distribute</Menu.ItemLabel>
+						</Menu.SubmenuTriggerItem>
+						<Menu.Popover aria-label="Distribute">
+							{ distributions.map( ( { label, placements } ) => (
+								<Menu.Item
+									key={ label }
+									disabled={ ! placements }
+									onClick={ () => {
+										if ( placements ) {
+											onDistribute( placements );
+											onClose();
+										}
+									} }
+								>
+									<Menu.ItemLabel>{ label }</Menu.ItemLabel>
+								</Menu.Item>
+							) ) }
 						</Menu.Popover>
 					</CanvasSubmenu>
 				) }

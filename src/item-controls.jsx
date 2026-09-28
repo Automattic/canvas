@@ -385,9 +385,9 @@ function ItemMenuItems( {
 					<Menu.SubmenuTriggerItem
 						disabled={ ! editable || rotationLocked }
 					>
-						<Menu.ItemLabel>Align</Menu.ItemLabel>
+						<Menu.ItemLabel>Position</Menu.ItemLabel>
 					</Menu.SubmenuTriggerItem>
-					<Menu.Popover aria-label="Align">
+					<Menu.Popover aria-label="Position">
 						{ [
 							[ 'both', 'Center' ],
 							[ 'horizontal', 'Center horizontally' ],

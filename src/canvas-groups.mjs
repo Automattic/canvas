@@ -205,6 +205,19 @@ export function saveGroupMove( saved, current, next, mode ) {
 	} );
 }
 export function translateGroupPlacement( placement, mode, x, y ) {
+	const base = savedCanvasPlacement( placement );
+	if ( Math.abs( x ) > 0.0001 ) {
+		// Horizontal movement authors a new position. Old named boundaries must
+		// not override that position when the precise frame is rendered again.
+		const left = placement._rect.left + x;
+		const right = left + placement._rect.width;
+		base.anchors = {
+			...( Math.abs( left ) < 0.0001 ? { left: 'canvas' } : {} ),
+			...( Math.abs( right - placement._canvas.width ) < 0.0001
+				? { right: 'canvas' }
+				: {} ),
+		};
+	}
 	return exactPlacement(
 		{
 			...placement._rect,
@@ -213,7 +226,7 @@ export function translateGroupPlacement( placement, mode, x, y ) {
 		},
 		mode,
 		placement._canvas,
-		savedCanvasPlacement( placement )
+		base
 	);
 }
 export function nudgeGroupPlacement( placement, mode, x, y ) {
@@ -231,6 +244,12 @@ export function sourcePlacement( placement, mode, current ) {
 		return placement;
 	}
 	const g = placement._canvas;
+	const base = savedCanvasPlacement( placement );
+	if ( offset.x ) {
+		// Named edges refer to displayed Canvas coordinates. Retaining them in
+		// the source frame would apply the parent translation a second time.
+		base.anchors = {};
+	}
 	return exactPlacement(
 		{
 			...placement._rect,
@@ -240,7 +259,7 @@ export function sourcePlacement( placement, mode, current ) {
 		mode,
 		g,
 		{
-			...savedCanvasPlacement( placement ),
+			...base,
 			rotation: placement.rotation,
 			layer: placement.layer,
 		}

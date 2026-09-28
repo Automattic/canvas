@@ -1,9 +1,77 @@
 import { MAX_ROWS, rowPitch, minimumSpans } from './placement.mjs';
 import {
+	canvasRows,
 	centerCanvasPlacement,
 	snapCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { translateGroupPlacement } from './canvas-groups.mjs';
+
+// A fixed span needs the same row parity as its canvas to center on cells.
+// Grow only when one extra row centers every selected frame exactly, so mixed
+// spans and partial padding cells cannot keep growing on repeated commands.
+export function centerSelection(
+	layouts,
+	ids,
+	mode,
+	axis = 'both',
+	{ cells = true, minimums = {} } = {}
+) {
+	const canvas = layouts[ ids[ 0 ] ][ mode ]._canvas;
+	const center = ( geometry ) =>
+		Object.fromEntries(
+			ids.map( ( id ) => [
+				id,
+				centerInSection(
+					{ ...layouts[ id ][ mode ], _canvas: geometry },
+					mode,
+					axis,
+					{
+						minimum: minimums[ id ],
+						preserveSize: layouts[ id ].group || ! cells,
+						cells,
+					}
+				),
+			] )
+		);
+	const placements = center( canvas );
+	const centered = ( values, geometry ) =>
+		Object.values( values ).every(
+			( { _rect: rect } ) =>
+				Math.abs( rect.top + rect.height / 2 - geometry.height / 2 ) <
+				0.0001
+		);
+	if (
+		! cells ||
+		axis === 'horizontal' ||
+		canvas.coreRows >= MAX_ROWS ||
+		centered( placements, canvas )
+	) {
+		return { placements, rows: canvas.coreRows };
+	}
+	const grown = {
+		...canvas,
+		...canvasRows(
+			canvas.padding.top,
+			canvas.padding.bottom,
+			canvas.coreRows + 1,
+			canvas.gap,
+			canvas.rowHeight
+		),
+	};
+	const next = center( grown );
+	if (
+		centered( next, grown ) &&
+		ids.every(
+			( id ) =>
+				Math.abs(
+					next[ id ]._rect.height - placements[ id ]._rect.height
+				) < 0.0001
+		)
+	) {
+		return { placements: next, rows: grown.coreRows };
+	}
+	return { placements, rows: canvas.coreRows };
+}
 
 export function centerInSection(
 	placement,

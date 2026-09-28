@@ -1032,10 +1032,31 @@ export function snapCanvasPlacement(
 	if ( value._snapHorizontal ) {
 		base.anchors = { ...value._snapHorizontal };
 	}
-	return mapCanvasRowsPlacement( base, mode, g, minimum, {
+	const snapped = mapCanvasRowsPlacement( base, mode, g, minimum, {
 		top: topGuide?.[ 1 ] ?? g.rows[ top ].start,
 		bottom: bottomGuide?.[ 1 ] ?? g.rows[ bottom ].end,
 	} );
+	if ( span && ( leftGuide || rightGuide ) && ! centered ) {
+		// Attaching one side during a move must not resize the frame to the
+		// nearest opposite grid line. Save only the caught boundary, with the
+		// original dimensions, so reopening at another width cannot stretch it.
+		const edge = leftGuide ? 'left' : 'right';
+		const guide = leftGuide || rightGuide;
+		const attached = placementWithFreeFrame(
+			span,
+			mode,
+			{
+				...snapped._rect,
+				left: leftGuide ? guide[ 1 ] : guide[ 1 ] - span._rect.width,
+				width: span._rect.width,
+				height: span._rect.height,
+			},
+			minimum
+		);
+		attached._base.anchors = { [ edge ]: guide[ 0 ] };
+		return mapCanvasPlacement( attached._base, mode, g, minimum );
+	}
+	return snapped;
 }
 
 // Both gestures and drops use these measured cells and semantic edge anchors.
@@ -1144,12 +1165,36 @@ export function settleCanvasPlacement(
 	}
 	const rect = { ...snapped._rect };
 	if ( kind === 'move' ) {
-		rect.width = start._rect.width;
-		rect.height = start._rect.height;
-		rect.left = Math.max(
-			0,
-			Math.min( rect.left, value._canvas.width - rect.width )
-		);
+		// A deliberate center snap may need a neighboring cell span. Restoring
+		// a precise frame's old size here would undo that alignment and prevent
+		// the destination guide from ever lighting for an odd-width block.
+		const centeredMove = ( position, size, center ) =>
+			Math.abs( value._rect[ position ] - start._rect[ position ] ) >
+				0.0001 &&
+			Math.abs(
+				value._rect[ position ] + value._rect[ size ] / 2 - center
+			) <= tolerance &&
+			Math.abs( rect[ position ] + rect[ size ] / 2 - center ) < 0.0001;
+		if (
+			! centeredMove(
+				'left',
+				'width',
+				snapped._canvas.center ?? snapped._canvas.width / 2
+			)
+		) {
+			rect.width = start._rect.width;
+		}
+		if ( ! centeredMove( 'top', 'height', snapped._canvas.height / 2 ) ) {
+			rect.height = start._rect.height;
+		}
+		// Retain the caught right edge when restoring an off-grid width.
+		rect.left =
+			snapped._base.anchors.right === 'canvas'
+				? Math.max( 0, value._canvas.width - rect.width )
+				: Math.max(
+						0,
+						Math.min( rect.left, value._canvas.width - rect.width )
+					);
 	} else {
 		const original = start._rect;
 		if ( ! kind.includes( 'w' ) ) {
@@ -1265,15 +1310,28 @@ function placementWithFreeFrame( start, mode, rect, minimum ) {
 	const base = {
 		...savedCanvasPlacement( start ),
 	};
-	base.anchors =
+	const unchangedHorizontal =
 		Math.abs( rect.left - start._rect.left ) < 0.0001 &&
-		Math.abs( rect.width - start._rect.width ) < 0.0001
-			? {
+		Math.abs( rect.width - start._rect.width ) < 0.0001;
+	if ( unchangedHorizontal ) {
+		// A precise frame with one named edge gets its width from the frame.
+		// Adding a numeric opposite edge would stretch it on a vertical move.
+		base.anchors = base.free
+			? { ...base.anchors }
+			: {
 					left: base.anchors.left ?? base.column - 1,
 					right:
 						base.anchors.right ?? base.column + base.columnSpan - 1,
-				}
-			: {};
+				};
+	} else {
+		// Store contact with the physical canvas, beyond the reference width.
+		base.anchors = {
+			...( Math.abs( rect.left ) < 0.0001 ? { left: 'canvas' } : {} ),
+			...( Math.abs( rect.left + rect.width - g.width ) < 0.0001
+				? { right: 'canvas' }
+				: {} ),
+		};
+	}
 	// The fallback footprint excludes padding; the precise frame retains it.
 	const limit =
 		rect.top + rect.height <= g.height + 0.01 ? g.coreRows : MAX_ROWS;
@@ -1304,8 +1362,7 @@ function placementWithFreeFrame( start, mode, rect, minimum ) {
 	return {
 		...mapCanvasPlacement( base, mode, g, minimum ),
 		_snapCanvas: g,
-		...( Math.abs( rect.left - start._rect.left ) < 0.0001 &&
-		Math.abs( rect.width - start._rect.width ) < 0.0001
+		...( unchangedHorizontal
 			? { _snapHorizontal: { ...base.anchors } }
 			: {} ),
 	};
@@ -1451,6 +1508,13 @@ export function dragAspectRatioPlacement(
 ) {
 	return dragResizePlacement( start, mode, kind, dx, dy, minimum, ratio );
 }
+// Row growth uses screen pixels in every layout mode and pointer gesture.
+// Grid movement can also catch the edge on approach; Freeform stays precise.
+export function resolveCanvasBottom( bottom, height, scale = 1, approach = 0 ) {
+	const overshoot = bottom - height;
+	return overshoot >= -approach && overshoot <= 24 * scale ? height : bottom;
+}
+
 export function dragMovePlacement(
 	start,
 	mode,
@@ -1458,26 +1522,22 @@ export function dragMovePlacement(
 	dy,
 	minimum,
 	scale = 1,
-	cells = true
+	cells = true,
+	holdBottom = true
 ) {
 	const g = start._canvas,
 		rect = start._rect;
 	const height = g.padding.top + MAX_ROWS * rowPitch( g ) - g.gap;
 	let top = clamp( rect.top + dy, 0, Math.max( 0, height - rect.height ) );
-	// Require a deliberate pull past the bottom before allowing growth. Keep
-	// the approach range smaller so nearby placements are still easy to reach.
-	// Otherwise a tiny overshoot adds tracks and moves the target away from the
-	// pointer before release. Use the same attached frame for preview and drop.
-	const overshoot = top + rect.height - g.height;
-	const approach = Math.max( 6 * scale, rowPitch( g ) / 2 );
-	const growthThreshold = Math.max( 24 * scale, rowPitch( g ) * 0.75 );
-	if (
-		cells &&
-		rect.height <= g.height &&
-		overshoot >= -approach &&
-		overshoot <= growthThreshold
-	) {
-		top = g.height - rect.height;
+	const approach = cells ? Math.max( 6 * scale, rowPitch( g ) / 2 ) : 0;
+	if ( holdBottom && rect.height <= g.height ) {
+		top =
+			resolveCanvasBottom(
+				top + rect.height,
+				g.height,
+				scale,
+				approach
+			) - rect.height;
 	}
 	return placementWithFreeFrame(
 		start,
@@ -1502,7 +1562,9 @@ export function dragResizePlacement(
 	dy,
 	minimum,
 	ratio,
-	fromCenter = false
+	fromCenter = false,
+	scale = 1,
+	holdBottom = true
 ) {
 	const g = start._canvas;
 	const bounds = {
@@ -1536,18 +1598,38 @@ export function dragResizePlacement(
 	if ( fromCenter ) {
 		ratio = start._rect.width / start._rect.height;
 	}
-	const rect = ratio
-		? resizeAspectRect(
-				start._rect,
-				kind,
-				dx,
-				dy,
-				ratio,
-				bounds,
-				start.rotation,
-				fromCenter
-			)
-		: resizeRect( start._rect, kind, dx, dy, bounds, size, start.rotation );
+	const resize = ( height ) =>
+		ratio
+			? resizeAspectRect(
+					start._rect,
+					kind,
+					dx,
+					dy,
+					ratio,
+					{ ...bounds, height },
+					start.rotation,
+					fromCenter
+				)
+			: resizeRect(
+					start._rect,
+					kind,
+					dx,
+					dy,
+					{ ...bounds, height },
+					size,
+					start.rotation
+				);
+	let rect = resize( bounds.height );
+	const bottom = rect.top + rect.height;
+	if (
+		holdBottom &&
+		start._rect.top + start._rect.height <= g.height + 0.01 &&
+		resolveCanvasBottom( bottom, g.height, scale ) < bottom
+	) {
+		// Resolve again against the held edge so ratios, centers, and the fixed
+		// opposite edge survive. Cropping the resulting height would distort them.
+		rect = resize( g.height );
+	}
 	return placementWithFreeFrame( start, mode, rect, minimum );
 }
 export function transformCanvasPlacement(

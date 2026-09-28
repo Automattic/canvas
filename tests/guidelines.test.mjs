@@ -10,10 +10,10 @@ const geometry = (mode, padding = 40) => {
     Math.max(padding, (width - 1200) / 2), Math.min(width - padding, (width + 1200) / 2), 12, mode, undefined, { left: Math.max(padding, (width - 1200) / 2), right: Math.max(padding, (width - 1200) / 2) }),
     ...canvasRows(24, 24, 20, 12), gap: 12 };
 };
-function cellEdges(p) {
+function cellEdges(p, attached = false) {
   assert.ok(p._canvas.columns.some(c => Math.abs(c.start - p._rect.left) < .0001), 'left edge must land on a cell');
   assert.ok(p._canvas.columns.some(c => Math.abs(c.end - p._rect.left - p._rect.width) < .0001), 'right edge must land on a cell');
-  assert.equal(savedCanvasPlacement(p).free, undefined);
+  if (!attached) assert.equal(savedCanvasPlacement(p).free, undefined);
   assert.deepEqual(mapCanvasPlacement(JSON.parse(JSON.stringify(savedCanvasPlacement(p))), p._canvas.viewport || 'desktop', p._canvas)._rect, p._rect);
 }
 
@@ -67,7 +67,10 @@ test('wide guides preserve exact cell boundaries during moves and resizing', () 
     const dx = target + distance - edge(start._rect);
     const move = snapCanvasPlacement(dragMovePlacement(start, 'desktop', dx, 36, minimum), 'desktop', minimum, start);
     near(edge(move._rect), target);
-    cellEdges(move);
+    near(move._rect.width, start._rect.width);
+    near(move._rect.height, start._rect.height);
+    assert.deepEqual(savedCanvasPlacement(move).anchors, { [side]: 'wide' });
+    cellEdges(move, true);
     const resize = snapCanvasPlacement(dragResizePlacement(start, 'desktop', side === 'left' ? 'w' : 'e', dx, 0, minimum), 'desktop', minimum);
     near(edge(resize._rect), target);
     cellEdges(resize);

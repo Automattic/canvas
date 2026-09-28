@@ -39,16 +39,24 @@ test('pointer moves, native drops and keyboard nudges reach outer cells and surv
     for (const cell of g.columns.filter(c => c.end < g.wideStart || c.start > g.wideEnd)) {
       const preview = dragMovePlacement(start, mode, cell.start - start._rect.left, 0, minimum);
       const moved = snapCanvasPlacement(preview, mode, minimum, start, 0);
-      close(moved._rect.left, cell.start);
-      close(moved._rect.left + moved._rect.width, cell.end);
+      if (moved.free) {
+        close(moved._rect.width, start._rect.width);
+        close(moved._rect.height, start._rect.height);
+        close(moved._base.anchors.left ? moved._rect.left : g.width - moved._rect.left - moved._rect.width, 0);
+      } else {
+        close(moved._rect.left, cell.start);
+        close(moved._rect.left + moved._rect.width, cell.end);
+      }
       const saved = JSON.parse(JSON.stringify(savedCanvasPlacement(moved)));
       assert.deepEqual(mapCanvasPlacement(saved, mode, g)._rect, moved._rect);
       assert.equal(saved.gridColumns, g.gridColumns);
-      assert.equal(saved.free, undefined);
+      if (saved.free) {
+        assert.deepEqual(Object.values(saved.anchors), ['canvas']);
+      }
       const incoming = { clientId: 'new', name: 'core/paragraph', attributes: { canvas: { desktop: savedCanvasPlacement(start), [mode]: savedCanvasPlacement(start) } } };
       const dropped = droppedLayouts([], [incoming], mode, { x: cell.start, y: start._rect.top }, metrics).new;
       // Native drops retain the standard 6px guide tolerance.
-      if (Math.abs(cell.start - padding.left) > 6 && Math.abs(cell.end - (width - padding.right)) > 6) {
+      if (!moved.free && Math.abs(cell.start - padding.left) > 6 && Math.abs(cell.end - (width - padding.right)) > 6) {
         close(placementRectangle(dropped[mode], metrics).left, cell.start);
       }
     }
@@ -57,7 +65,7 @@ test('pointer moves, native drops and keyboard nudges reach outer cells and surv
     assert.ok(nudged._rect.left < g.wideStart);
     assert.equal(savedCanvasPlacement(nudged).anchors?.left, nudged._rect.left === 0 ? 'canvas' : -1);
     const back = nudgeCanvasPlacement(nudged, mode, 1, 0, minimum);
-    assert.deepEqual(back._rect, wide._rect);
+    for (const key of ['left', 'top', 'width', 'height']) close(back._rect[key], wide._rect[key]);
   }
 });
 

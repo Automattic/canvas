@@ -1,3 +1,4 @@
+import { resizeSelection } from './selection-resize.mjs';
 import { measureWidthFit } from './text-fit.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 import { isFrameMedia } from './content-fill.mjs';
@@ -83,7 +84,11 @@ export function useCanvasGestures( {
 			} = {}
 		) => {
 			const touch = event.pointerType === 'touch';
-			if ( layouts[ id ]?.widthFit && /^[nsew]+$/.test( kind ) ) {
+			if (
+				ids.length === 1 &&
+				layouts[ id ]?.widthFit &&
+				/^[nsew]+$/.test( kind )
+			) {
 				kind = kind.replace( /[ns]/g, '' );
 				if ( ! kind ) {
 					return;
@@ -96,13 +101,22 @@ export function useCanvasGestures( {
 			) {
 				return;
 			}
+			const multiple =
+				ids.length > 1 &&
+				( kind === 'move' || /^[nsew]+$/.test( kind ) );
+			const multipleResize = multiple && kind !== 'move';
+			if (
+				multipleResize &&
+				ids.some( ( key ) => layouts[ key ]?.group )
+			) {
+				return;
+			}
 			const store = registry.select( blockEditorStore );
-			const multiple = kind === 'move' && ids.length > 1;
 			const canvasId =
 				gridRef.current?.closest( '[data-block]' )?.dataset.block;
 			if (
 				multiple &&
-				( touch ||
+				( ( touch && ! multipleResize ) ||
 					! ids.includes( id ) ||
 					! canMoveSelection( store, ids, canvasId ) ||
 					ids.some( ( key ) => ! layouts[ key ]?.[ mode ]?._canvas ) )
@@ -360,6 +374,29 @@ export function useCanvasGestures( {
 								: metrics.height +
 									next.heightDelta * rowPitch( metrics ),
 					} );
+				} else if ( multipleResize ) {
+					const placements = resizeSelection(
+						layouts,
+						ids,
+						mode,
+						kind,
+						dx,
+						dy,
+						{
+							fromCenter: centerResizeModifier( e ),
+							snap: cells,
+							screenScale: metrics.scale || 1,
+						}
+					);
+					dropPlacements = placements;
+					setPreview( {
+						id,
+						placement: placements[ id ],
+						placements,
+						dropPlacement: placements[ id ],
+						dropPlacements,
+						resizing: true,
+					} );
 				} else if ( multiple ) {
 					const placements = moveSelection(
 						layouts,
@@ -459,7 +496,8 @@ export function useCanvasGestures( {
 										localY * progress,
 										minimum,
 										resizeRatio,
-										fromCenter
+										fromCenter,
+										metrics.scale || 1
 									);
 						finalValue = readableResize
 							? constrainReadableResize(
@@ -591,8 +629,10 @@ export function useCanvasGestures( {
 				}
 				if ( multiple ) {
 					if ( canMoveSelection( store, ids, canvasId ) ) {
-						commitSelection( dropPlacements );
-						announce( `${ ids.length } blocks moved.` );
+						commitSelection( dropPlacements, {}, false );
+						announce(
+							`${ ids.length } blocks ${ multipleResize ? 'resized' : 'moved' }.`
+						);
 					}
 					return;
 				}
@@ -647,6 +687,7 @@ export function useCanvasGestures( {
 							: undefined,
 						canPair: ( e ) => {
 							if (
+								multiple ||
 								layouts[ id ]?.group ||
 								! start?._canvas ||
 								kind === 'canvas' ||

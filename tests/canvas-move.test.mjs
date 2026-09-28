@@ -50,9 +50,9 @@ test('moves stop at canvas boundaries and grow rows below the canvas', () => {
       assert.ok(r.top + r.height <= g.padding.top + MAX_ROWS * (ROW_HEIGHT + g.gap) - g.gap + 1e-7);
       if (delta > 0) assert.equal(g.coreRows, MAX_ROWS);
       const snapped = snapCanvasPlacement(preview, mode, spans, start);
-      assertCells(snapped);
-      assert.equal(snapped.columnSpan, start.columnSpan);
-      assert.equal(snapped.rowSpan, start.rowSpan);
+      close(snapped._rect.width, start._rect.width);
+      close(snapped._rect.height, start._rect.height);
+      close(delta < 0 ? snapped._rect.left : g.width - snapped._rect.left - snapped._rect.width, 0);
       const canvas = { ...geometry(mode), ...canvasRows(g.padding.top, g.padding.bottom, Math.max(20, occupiedRows(snapped)), g.gap) };
       assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(snapped), mode, canvas, spans)._rect, snapped._rect);
     }
@@ -99,7 +99,8 @@ test('pointer moves land on wide guides at cell boundaries and retain the anchor
         const saved = JSON.parse(JSON.stringify(savedCanvasPlacement(dropped)));
         const reopened = mapCanvasPlacement(saved, mode, g, spans);
         assert.deepEqual(reopened._rect, dropped._rect);
-        assert.deepEqual(snapCanvasPlacement(reopened, mode, spans)._rect, reopened._rect);
+        const resnapped = snapCanvasPlacement(reopened, mode, spans)._rect;
+        for (const key of ['left', 'top', 'width', 'height']) close(resnapped[key], reopened._rect[key]);
         const vertical = snapCanvasPlacement(dragMovePlacement(reopened, mode, 0, 36, spans), mode, spans, reopened);
         close(edge(vertical._rect), target);
       }

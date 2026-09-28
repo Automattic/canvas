@@ -2,9 +2,7 @@ import { rotationModifier } from './rotation.mjs';
 
 export function centerResizeModifier( event ) {
 	return (
-		event.pointerType !== 'touch' &&
-		!! event.shiftKey &&
-		!! rotationModifier( event )
+		event.pointerType !== 'touch' && !! event.shiftKey && !! event.altKey
 	);
 }
 
