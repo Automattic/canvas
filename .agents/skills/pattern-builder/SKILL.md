@@ -31,7 +31,25 @@ Reuse the running local Playground. If it is stopped, follow [README.md](../../.
 
 ## Compose and save
 
-Preserve the reference's hierarchy, image silhouette and crop, intentional overlap, alignment, and use of empty space. Adapt the composition to the destination theme and available width. Use the site's typography, palette, spacing, and native controls wherever they express the design. Keep text selectable and editable, images replaceable, and the source reading order sensible.
+Preserve the reference's hierarchy, image silhouette, intentional overlap, alignment, and use of empty space. Adapt the composition to the destination theme and available width. Keep text selectable and editable, images replaceable, and the source reading order sensible.
+
+### Inherit global styles by default
+
+Build the composition so the active theme's `theme.json` and user Global Styles control its appearance. A reference supplies layout and hierarchy; it does not implicitly request its fonts, colors, or image assets.
+
+- Inherit font families for headings, body text, and buttons. Do not select an explicit font merely because it is available in the theme, add font assets, or set a monospace fallback to imitate a reference. Omit font-family attributes, preset classes, and inline declarations. Inherit weight and letter spacing too unless the brief explicitly calls for an override.
+- Leave text, background, and button colors unset by default so they inherit Global Styles. Do not routinely assign colors, even from theme palette presets, to reproduce a reference. Occasionally use an existing section or block style variation when it gives the composition a useful contrasting treatment; variations are optional, not a requirement for every section. Prefer that variation over individual color assignments. Do not create new variations, hardcode reference hex values or gradients, or add custom palettes unless requested.
+- Leave font sizes unset by default, including on paragraphs and buttons. Let theme.json/Global Styles provide ordinary text sizes and Canvas text fitting size fitted headings from their frames. Use existing Small, Medium, or Large presets only sparingly when a specific hierarchy needs them; do not routinely assign presets to every block. Avoid custom pixel, rem, clamp, or other explicit font sizes unless the user explicitly requests them. When removing a size, remove its block attribute and matching saved HTML style or font-size class together.
+- Prefer theme spacing presets. Preserve authored Canvas geometry and supported text fitting; use a line-height override only when necessary for the composition.
+- Explicit user requests for particular assets, fonts, or colors can override these defaults. Do not change the site's global styles to make one pattern match a reference.
+
+### Use native image placeholders by default
+
+Use empty `core/image` blocks for image areas unless the user supplies or explicitly requests actual imagery. Preserve their Canvas dimensions, responsive placements, and supported shapes. A placeholder means the native **Add image** controls, not a generated, stock, remote, or solid-color SVG image. Do not create substitute image files just to make the preview look filled. Treat decorative marks separately; use an asset only when the brief calls for that design element.
+
+For a large image serving as the section background, use the Canvas block's native background-image attribute/support, not an oversized child `core/image` behind the content. Verify the current attribute structure against the running block schema. When no background asset is supplied or requested, leave the Canvas background image unset so the user can choose it with the native background controls; do not substitute a full-section image placeholder. Reserve child image blocks for content images, including shaped or overlapping images that belong to the composition.
+
+Serialize empty images with native Core markup and no image URL or attachment ID. Verify that **Add image** exposes media selection and upload after save/reload. Empty images may be invisible on the frontend while their layout space remains; report that honestly. If the Canvas ability validator rejects an empty image source, preserve the native placeholder, use the supported editor workflow, and report the validator limitation rather than inserting a dummy image or changing the engine.
 
 Use `tabor/canvas` and the supported Core blocks described in the authoring guide. Start with automatic responsive behavior; add viewport overrides only when the composition needs them. Preserve image frame proportions and semantic wide anchors. Do not flatten the composition into an image or add arbitrary HTML/CSS/JavaScript to imitate the reference.
 
@@ -46,7 +64,7 @@ For page-only requests, use the Canvas create/insert/update workflow without reg
 
 ## Verify the result
 
-Run `npm run lint:php` after pattern PHP changes. Inspect the actual registered insertion in the editor and frontend, save and reload, and check for invalid blocks. Confirm normal text editing and image replacement remain available.
+Run `npm run lint:php` after pattern PHP changes. Inspect the actual registered insertion in the editor and frontend, save and reload, and check for invalid blocks. Confirm normal text editing and native image addition or replacement remain available. Review saved markup for unintended font or color assignments, and verify that rendered typography and colors follow the destination's global styles or an intentionally chosen existing style variation.
 
 Check mobile, tablet, desktop, and widths between the editor presets. For image proportions or full-width/wide-anchor compositions, cover the narrow and ultrawide ends of 320–3840px. Inspect wrapping, readable button labels, image crops, overlaps, vertical space, and horizontal overflow. Capture useful desktop and mobile screenshots under ignored `output/`; save additional evidence where it explains a problem or design choice.
 
