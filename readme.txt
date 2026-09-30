@@ -37,6 +37,8 @@ A source checkout needs a production build before installation. Run npm ci and n
 
 = Arrange content =
 
+When a Canvas is empty, its introductory prompt offers Add pattern, which opens WordPress’s grid layout chooser. Use All or a category in the sidebar to browse matching Canvas patterns. Choosing a pattern replaces the empty Canvas with the pattern's complete layout. Undo restores the empty Canvas. To insert another layout immediately after a Canvas, select it and choose Add pattern after in its toolbar. Choosing a pattern selects the new Canvas; closing the picker leaves the page unchanged.
+
 Use Add block inside a Canvas to insert a heading, paragraph, image, video, or buttons. New headings start vertically centered in their frames; paragraphs start at the top. Click a block to select it, then drag to move it. Hold Option (Mac) or Alt (Windows/Linux) before dragging to duplicate a block, group, or multi-selection. Release to place the copies; Escape cancels. Drag its edges or corners to resize; release to snap to the grid. Hold Shift + Option (Mac) or Shift + Alt (Windows/Linux) while dragging a resize handle to resize proportionally from the center. Command/Ctrl-drag a corner to rotate. Click selected text again, double-click, or press Enter to edit it normally. Escape returns to moving.
 
 Select multiple sibling elements to show a shared resize box. Drag an edge or corner to resize their frames and spacing proportionally, or use the resize handle’s arrow keys. Shift + Option/Alt-drag resizes from the center. Locked elements and Canvas groups cannot be resized together.

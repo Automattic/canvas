@@ -98,6 +98,7 @@ export function GridGuidelines( {
 	showAlignment,
 	preview,
 	cellsEnabled = true,
+	emptyState = false,
 } ) {
 	const [ lines, setLines ] = useState( null );
 	const previewRef = useRef( preview );
@@ -113,6 +114,13 @@ export function GridGuidelines( {
 			return;
 		}
 		let colors = guideColors( grid );
+		const promptElements = emptyState
+			? [
+					...( grid.parentElement.querySelector(
+						'.canvas__empty-state'
+					)?.children || [] ),
+				]
+			: [];
 		const update = () => {
 			const currentPreview = previewRef.current;
 			const metrics = gridMetrics( grid );
@@ -121,6 +129,43 @@ export function GridGuidelines( {
 			}
 			const bounds = grid.getBoundingClientRect();
 			const scale = grid.offsetWidth / bounds.width || 1;
+			const promptRects = promptElements
+				.map( ( element ) => element.getBoundingClientRect() )
+				.filter( ( rect ) => rect.width && rect.height );
+			// Omit whole cells around the actual prompt, including its button.
+			// Keep the authored background visible, with no mask or painted card.
+			const promptBounds = promptRects.length
+				? {
+						left:
+							( Math.min(
+								...promptRects.map( ( rect ) => rect.left )
+							) -
+								bounds.left -
+								16 ) *
+							scale,
+						right:
+							( Math.max(
+								...promptRects.map( ( rect ) => rect.right )
+							) -
+								bounds.left +
+								16 ) *
+							scale,
+						top:
+							( Math.min(
+								...promptRects.map( ( rect ) => rect.top )
+							) -
+								bounds.top -
+								48 ) *
+							scale,
+						bottom:
+							( Math.max(
+								...promptRects.map( ( rect ) => rect.bottom )
+							) -
+								bounds.top +
+								48 ) *
+							scale,
+					}
+				: null;
 			// The item follows the pointer between cells. Highlight where releasing
 			// it will land, so a guideline stays solid throughout that cell's snap range.
 			const drop = currentPreview?.dropPlacement?._rect;
@@ -170,6 +215,7 @@ export function GridGuidelines( {
 				before: rowMetrics.before,
 				contentRows: canvasContentRows( rowMetrics ),
 				rectangles,
+				promptBounds,
 				width: parseFloat( css.width ),
 				height: parseFloat( css.height ),
 				wideLeft:
@@ -188,6 +234,7 @@ export function GridGuidelines( {
 			update
 		);
 		observer.observe( grid );
+		promptElements.forEach( ( element ) => observer.observe( element ) );
 		const colorObserver =
 			new grid.ownerDocument.defaultView.MutationObserver( () => {
 				colors = guideColors( grid );
@@ -206,7 +253,7 @@ export function GridGuidelines( {
 			colorObserver.disconnect();
 			grid.removeEventListener( 'canvas-layout-change', update );
 		};
-	}, [ gridRef, active ] );
+	}, [ gridRef, active, emptyState ] );
 	if ( ! lines ) {
 		return null;
 	}
@@ -217,6 +264,16 @@ export function GridGuidelines( {
 				start: Math.max( track.start, lines.padding.left ),
 				end: Math.min( track.end, lines.width - lines.padding.right ),
 			};
+			const prompt = emptyState && lines.promptBounds;
+			if (
+				prompt &&
+				column.start < prompt.right &&
+				column.end > prompt.left &&
+				row.start < prompt.bottom &&
+				row.end > prompt.top
+			) {
+				return null;
+			}
 			if ( column.end - column.start < 1 || row.end - row.start < 1 ) {
 				return null;
 			}

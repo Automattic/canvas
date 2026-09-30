@@ -19,19 +19,7 @@ import { withInsertionDefaults } from './insertion-defaults.mjs';
 import { canvasInserterPlugin } from './inserter-registry.mjs';
 import { CanvasMenu, CanvasSubmenu } from './canvas-menu';
 import { Menu } from './core-menu';
-
-const INSERTER_ICON = (
-	<svg
-		className="canvas__inserter-icon"
-		viewBox="0 0 24 24"
-		width="24"
-		height="24"
-		fill="currentColor"
-		aria-hidden="true"
-	>
-		<path d="M11 12.5V17.5H12.5V12.5H17.5V11H12.5V6H11V11H6V12.5H11Z" />
-	</svg>
-);
+import { INSERTER_ICON } from './canvas-inserter-icon';
 
 // A child registry subscribes to its parent. Reuse it across Canvas blocks and
 // toolbar remounts instead of creating a new parent subscription on every open.
@@ -190,7 +178,7 @@ export function CanvasInserter( { clientId, onSelect, disabled: canvasFull } ) {
 			} ) }
 			className="canvas__toolbar"
 		>
-			<Toolbar label="Canvas">{ inserter }</Toolbar>
+			<Toolbar label="Add block">{ inserter }</Toolbar>
 		</BlockPopover>
 	);
 }

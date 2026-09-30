@@ -66,6 +66,58 @@
 	.canvas__stage {
 		position: relative;
 	}
+
+	.canvas__empty-state {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+		padding: 24px;
+		text-align: center;
+		pointer-events: none;
+
+		.components-button {
+			// Components inherit typography; inside the editor iframe that would
+			// pick up authored global styles instead of WordPress's UI font.
+			font-family: -apple-system, system-ui, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+			font-style: normal;
+			letter-spacing: normal;
+			line-height: normal;
+			text-transform: none;
+			pointer-events: auto;
+		}
+	}
+
+	.canvas__empty-instructions {
+		max-width: 280px;
+		margin: 0;
+		// Editor instructions must not inherit the theme's authored typography.
+		font-family: -apple-system, system-ui, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+		font-size: 14px;
+		font-weight: 400;
+		font-style: normal;
+		font-variant: normal;
+		font-stretch: normal;
+		font-feature-settings: normal;
+		font-variation-settings: normal;
+		letter-spacing: normal;
+		word-spacing: normal;
+		line-height: 1.6;
+		text-transform: none;
+		text-decoration: none;
+		text-shadow: none;
+		text-indent: 0;
+		text-wrap: balance;
+	}
+
+	.canvas__empty-action .components-accessible-toolbar {
+		margin-block: 0;
+	}
+
 	// Grid cells sit behind content; guideline lines sit above the isolated
 	// block stack, including its highest layers, and below the editing handles.
 	.canvas__stage > .canvas__grid {
@@ -622,6 +674,34 @@
 		min-height: 0;
 	}
 }
+// Core's chooser has no prop to disable view switching. Keep its native grid
+// and hide the footer only within the Canvas pattern picker.
+.canvas-pattern-picker .block-editor-block-pattern-setup__toolbar {
+	display: none;
+}
+
+.canvas-pattern-picker__layout {
+	display: grid;
+	grid-template-columns: 220px minmax(0, 1fr);
+	gap: 24px;
+	align-items: start;
+
+	@media (max-width: 781px) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.canvas-pattern-picker__categories {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+
+	.components-button {
+		justify-content: flex-start;
+		width: 100%;
+	}
+}
+
 // Match Core's toolbar margins so viewport clamping retains the same gap.
 .canvas__toolbar {
 	white-space: nowrap;
@@ -633,7 +713,8 @@
 		background-color: var(--wp-components-color-background, var(--wpds-color-background-surface-neutral-strong, #fff));
 	}
 
-	.block-editor-inserter {
+	.block-editor-inserter,
+	.components-accessible-toolbar > .components-toolbar-button {
 		margin-block: -1px;
 	}
 

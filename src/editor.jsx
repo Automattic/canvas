@@ -114,6 +114,7 @@ import {
 	CanvasContextMenu,
 	useCanvasInsertion,
 } from './canvas-inserter';
+import { CanvasPatternAfter, CanvasPatternInserter } from './canvas-patterns';
 import { RadiusHandle } from './radius-control';
 import { useCanvasGap } from './use-canvas-gap';
 export default function Edit( {
@@ -1524,6 +1525,11 @@ export default function Edit( {
 		__unstableDisableDropZone: true,
 	} );
 	const active = ! editingId && !! ( isSelected || selectedId );
+	const showEmptyState =
+		! blocks.length &&
+		!! insertion.allowed.length &&
+		! preview &&
+		! dropPreview;
 	return (
 		<div { ...innerProps }>
 			<BlockControls group="block">
@@ -1534,6 +1540,9 @@ export default function Edit( {
 						setAttributes( { fullHeight: ! attributes.fullHeight } )
 					}
 				/>
+			</BlockControls>
+			<BlockControls group="other">
+				<CanvasPatternAfter clientId={ clientId } />
 			</BlockControls>
 			<InspectorControls group="settings">
 				<PanelBody title="Settings">
@@ -1669,6 +1678,14 @@ export default function Edit( {
 				) }
 			<CanvasContext.Provider value={ context }>
 				<div className="canvas__stage" ref={ stageRef }>
+					{ showEmptyState && (
+						<div className="canvas__empty-state">
+							<CanvasPatternInserter
+								clientId={ clientId }
+								placeholder
+							/>
+						</div>
+					) }
 					<div
 						className="canvas__grid"
 						ref={ gridRef }
@@ -1689,6 +1706,7 @@ export default function Edit( {
 						</CanvasPreviewContext.Provider>
 					</div>
 					<GridGuidelines
+						emptyState={ showEmptyState }
 						cellsEnabled={ cells }
 						gridRef={ gridRef }
 						active={
