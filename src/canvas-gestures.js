@@ -1,3 +1,7 @@
+import {
+	canDuplicateSelection,
+	preserveDragOriginals,
+} from './drag-duplicate.mjs';
 import { resizeSelection } from './selection-resize.mjs';
 import { measureWidthFit } from './text-fit.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
@@ -47,6 +51,7 @@ export function useCanvasGestures( {
 	minimum,
 	commit,
 	commitSelection,
+	duplicateSelection,
 	rowCount,
 	minimumRows,
 	commitRows,
@@ -116,6 +121,10 @@ export function useCanvasGestures( {
 				return;
 			}
 			const store = registry.select( blockEditorStore );
+			const duplicating = ! touch && kind === 'move' && event.altKey;
+			if ( duplicating && ! canDuplicateSelection( store, ids ) ) {
+				return;
+			}
 			const canvasId =
 				gridRef.current?.closest( '[data-block]' )?.dataset.block;
 			if (
@@ -190,6 +199,7 @@ export function useCanvasGestures( {
 						layout[ mode ]?._rect
 				)
 				.map( ( [ , layout ] ) => layout[ mode ]._rect );
+			let restoreOriginals;
 			let scroll;
 			let selectionEnabled;
 			const resizeElement = grid.querySelector(
@@ -308,6 +318,9 @@ export function useCanvasGestures( {
 			const activate = () => {
 				if ( moved ) {
 					return;
+				}
+				if ( duplicating ) {
+					restoreOriginals = preserveDragOriginals( grid, ids );
 				}
 				scroll = holdGestureScroll( grid );
 				selectionEnabled = registry
@@ -608,6 +621,7 @@ export function useCanvasGestures( {
 				);
 				grid.removeAttribute( 'data-canvas-dragging' );
 				grid.removeAttribute( 'data-canvas-rotating' );
+				restoreOriginals?.();
 				setPreview( null );
 				cancelRef.current = null;
 				scroll?.release();
@@ -633,6 +647,12 @@ export function useCanvasGestures( {
 				}
 				cleanup();
 				if ( ! moved ) {
+					return;
+				}
+				if ( duplicating ) {
+					duplicateSelection(
+						multiple ? dropPlacements : { [ id ]: dropPlacement() }
+					);
 					return;
 				}
 				if ( multiple ) {
@@ -762,6 +782,7 @@ export function useCanvasGestures( {
 			minimum,
 			commit,
 			commitSelection,
+			duplicateSelection,
 			rowCount,
 			minimumRows,
 			commitRows,

@@ -650,7 +650,7 @@ export function useCanvasInteractions( {
 				item.focus( {
 					preventScroll: true,
 				} );
-				if ( ! event.altKey && ! rotationModifier( event ) ) {
+				if ( ! rotationModifier( event ) ) {
 					latest.current.gesture( event, 'move', {
 						id: target,
 						ids: [ ...selection.current ],
@@ -677,12 +677,11 @@ export function useCanvasInteractions( {
 				editOnClick = id;
 			}
 			selectItem( item );
-			if ( rotationModifier( event ) ) {
+			if ( event.altKey || rotationModifier( event ) ) {
 				editOnClick = null;
 			}
 			if (
 				event.detail > 1 ||
-				event.altKey ||
 				( event.shiftKey && ! rotationModifier( event ) ) ||
 				! store.canMoveBlocks( [ id ] ) ||
 				store.getBlockEditingMode( id ) !== 'default'

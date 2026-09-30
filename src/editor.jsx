@@ -1,3 +1,8 @@
+import { cloneBlock } from '@wordpress/blocks';
+import {
+	canDuplicateSelection,
+	duplicateDragLayout,
+} from './drag-duplicate.mjs';
 import { GridModeMenu } from './grid-mode-menu';
 import { observeAutomaticTextColor } from './guide-colors.mjs';
 import { alignSelection, positionSelection } from './selection-alignment.mjs';
@@ -903,6 +908,63 @@ export default function Edit( {
 		},
 		[ registry, commitUpdates ]
 	);
+	const duplicateSelection = useCallback(
+		( placements ) => {
+			const store = registry.select( blockEditorStore );
+			const ids = Object.keys( placements );
+			if (
+				! canMoveSelection( store, ids, clientId ) ||
+				! canDuplicateSelection( store, ids )
+			) {
+				return;
+			}
+			const parent = store.getBlockRootClientId( ids[ 0 ] );
+			const order = store.getBlockOrder( parent );
+			const copies = order
+				.filter( ( id ) => ids.includes( id ) )
+				.map( ( id ) => {
+					const block = store.getBlock( id );
+					return cloneBlock( block, {
+						[ ATTRIBUTE ]: duplicateDragLayout(
+							block,
+							layouts[ id ],
+							placements[ id ],
+							mode
+						),
+					} );
+				} );
+			// These copies already have their authored destination. Skip the normal
+			// initialization/offset applied to Core's Duplicate command.
+			const markInitialized = ( block ) => {
+				initialized.current.add( block.clientId );
+				block.innerBlocks.forEach( markInitialized );
+			};
+			copies.forEach( markInitialized );
+			const actions = registry.dispatch( blockEditorStore );
+			registry.batch( () => {
+				actions.insertBlocks(
+					copies,
+					Math.max( ...ids.map( ( id ) => order.indexOf( id ) ) ) + 1,
+					parent,
+					false
+				);
+				if ( copies.length > 1 ) {
+					actions.multiSelect(
+						copies[ 0 ].clientId,
+						copies.at( -1 ).clientId
+					);
+				} else {
+					actions.selectBlock( copies[ 0 ].clientId, null );
+				}
+			} );
+			announce(
+				copies.length === 1
+					? 'Block duplicated.'
+					: `${ copies.length } blocks duplicated.`
+			);
+		},
+		[ registry, clientId, layouts, mode, announce ]
+	);
 	const gesture = useCanvasGestures( {
 		cells,
 		gridRef,
@@ -912,6 +974,7 @@ export default function Edit( {
 		minimum: minimumSpans( selectedName ),
 		commit,
 		commitSelection,
+		duplicateSelection,
 		rowCount,
 		minimumRows,
 		commitRows,
