@@ -65,7 +65,8 @@ export function rectanglePlacement( rect, mode, geometry, layer = 1, minimum ) {
 			geometry.padding.bottom,
 			needed,
 			geometry.gap,
-			geometry.rowHeight
+			geometry.rowHeight,
+			geometry.minimumHeight
 		),
 	};
 	const base = mapCanvasPlacement(

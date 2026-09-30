@@ -6,7 +6,7 @@ import { useLayoutEffect, useRef, useState } from '@wordpress/element';
 import { focusCanvasControl } from './canvas-keyboard';
 import { gridMetrics } from './canvas-metrics.mjs';
 import { nearestTouchHandle } from './touch-geometry.mjs';
-import { canvasRows } from './canvas-geometry.mjs';
+import { canvasRows, canvasContentRows } from './canvas-geometry.mjs';
 import { guideColors } from './guide-colors.mjs';
 
 export const RESIZE_HANDLES = {
@@ -168,7 +168,7 @@ export function GridGuidelines( {
 				...colors,
 				rows: rowMetrics.rows,
 				before: rowMetrics.before,
-				visibleRows: rowMetrics.coreRows,
+				contentRows: canvasContentRows( rowMetrics ),
 				rectangles,
 				width: parseFloat( css.width ),
 				height: parseFloat( css.height ),
@@ -210,49 +210,47 @@ export function GridGuidelines( {
 	if ( ! lines ) {
 		return null;
 	}
-	// Leave vertical padding clear so the cells show the content area's bounds.
-	const cells = lines.rows
-		.slice( lines.before, lines.before + lines.visibleRows )
-		.flatMap( ( row, rowIndex ) =>
-			lines.columns.map( ( column, columnIndex ) => {
-				if (
-					column.end - column.start < 1 ||
-					row.end - row.start < 1
-				) {
-					return null;
-				}
-				const width = Math.max( 0, column.end - column.start - 1 );
-				const height = Math.max( 0, row.end - row.start - 1 );
-				const radius = Math.min( 2, width / 2, height / 2 );
-				// Ignore subpixel edge contact so a shared boundary never lights its neighbor.
-				const covered =
-					active &&
-					preview &&
-					lines.rectangles.some(
-						( rect ) =>
-							Math.min( column.end, rect.left + rect.width ) -
-								Math.max( column.start, rect.left ) >
-								0.5 &&
-							Math.min( row.end, rect.top + rect.height ) -
-								Math.max( row.start, rect.top ) >
-								0.5
-					);
-				return (
-					<rect
-						key={ `${ rowIndex }-${ columnIndex }` }
-						className={
-							'canvas__grid-cell' +
-							( covered ? ' is-covered' : '' )
-						}
-						x={ column.start + 0.5 }
-						y={ row.start + 0.5 }
-						width={ width }
-						height={ height }
-						rx={ radius }
-					/>
+	// Leave padding clear on every side so cells show the content area's bounds.
+	const cells = lines.contentRows.flatMap( ( row, rowIndex ) =>
+		lines.columns.map( ( track, columnIndex ) => {
+			const column = {
+				start: Math.max( track.start, lines.padding.left ),
+				end: Math.min( track.end, lines.width - lines.padding.right ),
+			};
+			if ( column.end - column.start < 1 || row.end - row.start < 1 ) {
+				return null;
+			}
+			const width = Math.max( 0, column.end - column.start - 1 );
+			const height = Math.max( 0, row.end - row.start - 1 );
+			const radius = Math.min( 2, width / 2, height / 2 );
+			// Ignore subpixel edge contact so a shared boundary never lights its neighbor.
+			const covered =
+				active &&
+				preview &&
+				lines.rectangles.some(
+					( rect ) =>
+						Math.min( column.end, rect.left + rect.width ) -
+							Math.max( column.start, rect.left ) >
+							0.5 &&
+						Math.min( row.end, rect.top + rect.height ) -
+							Math.max( row.start, rect.top ) >
+							0.5
 				);
-			} )
-		);
+			return (
+				<rect
+					key={ `${ rowIndex }-${ columnIndex }` }
+					className={
+						'canvas__grid-cell' + ( covered ? ' is-covered' : '' )
+					}
+					x={ column.start + 0.5 }
+					y={ row.start + 0.5 }
+					width={ width }
+					height={ height }
+					rx={ radius }
+				/>
+			);
+		} )
+	);
 	const guidelines = [
 		{
 			axis: 'x',
@@ -322,10 +320,7 @@ export function GridGuidelines( {
 		const bottom = Math.max(
 			...lines.rectangles.map( ( rect ) => rect.top + rect.height )
 		);
-		const rows = lines.rows.slice(
-			lines.before,
-			lines.before + lines.visibleRows
-		);
+		const rows = lines.contentRows;
 		for ( const { axis, position, kind } of guidelines ) {
 			if ( ! isHighlighted( { axis, position, kind } ) ) {
 				continue;

@@ -96,8 +96,13 @@ export function mapImagePlacement(
 		true,
 		true
 	);
+	// A named anchor makes the authored frame authoritative. Media fits inside
+	// it; an independent aspect-ratio pass must not stretch its vertical span.
 	if (
 		placement.fillHeight ||
+		[ 'left', 'right' ].some(
+			( side ) => typeof placement.anchors[ side ] === 'string'
+		) ||
 		! Number.isFinite( ratio ) ||
 		ratio <= 0 ||
 		placement.free
@@ -131,7 +136,8 @@ export function mapImagePlacement(
 				g.padding.bottom,
 				rows,
 				g.gap,
-				g.rowHeight
+				g.rowHeight,
+				g.minimumHeight
 			),
 		};
 	}

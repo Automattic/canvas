@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { COLUMNS, rowHeightForWidth } from '../src/placement.mjs';
 import { canvasColumns, canvasRows, occupiedRows, nudgeCanvasPlacement, dragMovePlacement, snapCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { resolveLayouts, savePlacement } from '../src/geometry.mjs';
-import { sectionRows, responsiveRowMetrics } from '../src/section-layout.mjs';
+import { freeFrameBounds } from '../src/aspect-ratio.mjs';
+import { sectionRows, responsiveRowMetrics, sectionGridPadding } from '../src/section-layout.mjs';
 
 const minimums = { desktop: 12, tablet: 1, mobile: 1 };
 const centered = { column: 9, row: 3, columnSpan: 8, rowSpan: 8, gridColumns: 24, frameRatio: 1.04733 };
@@ -99,4 +100,37 @@ test('moving a precise centered mobile image preserves its proportions and row s
     for (const key of ['left', 'top', 'width', 'height']) close(reopened._rect[key], moved._rect[key]);
     close(reopened._canvas.height, all.mobile.height);
   }
+});
+
+
+test('full-width sections keep their composition inside wide guides with usable outer cells', () => {
+  const padding = { top: 0, bottom: 0, left: 0, right: 0 };
+  const blocks = [block({ column: 1, row: 8, columnSpan: 24, rowSpan: 19,
+    gridColumns: 24, frameRatio: 2.21874, anchors: { left: 'canvas', right: 'canvas' } }),
+  { clientId: 'heading', name: 'core/heading', attributes: { canvas: { fill: true,
+    desktop: { column: 1, row: 27, columnSpan: 24, rowSpan: 4, gridColumns: 24,
+      anchors: { left: -2, right: 26 } } } } }];
+  let referenceTop;
+  for (const width of [1000, 1340, 1920, 2560]) {
+    const inset = Math.max(0, (width - 1340) / 2);
+    assert.deepEqual(freeFrameBounds({ width, referenceWidth: 1340, viewport: 'desktop', align: 'full' }), { left: 0, width });
+    const all = Object.fromEntries(Object.keys(COLUMNS).map(mode => {
+    const gridPadding = sectionGridPadding(padding, width, inset, width - inset);
+      return [mode, { ...canvasColumns(width, padding, inset, width - inset, 24, mode, COLUMNS[mode], gridPadding),
+        ...canvasRows(0, 0, 45, 24, rowHeightForWidth(width, mode)),
+        gap: 24, referenceWidth: 1340, referenceColumns: 24, viewport: mode }];
+    }));
+    for (const mode of Object.keys(COLUMNS)) all[mode] = responsiveRowMetrics(blocks, mode, all);
+    const layout = resolveLayouts(blocks, all);
+    const image = layout.image.desktop._rect, heading = layout.heading.desktop._rect;
+    close(image.left, 0);
+    close(image.width, width);
+    assert.ok(heading.left < inset || inset === 0);
+    assert.ok(heading.left + heading.width > width - inset || inset === 0);
+    assert.ok(image.top + image.height <= heading.top, 'image must not grow behind following heading');
+    referenceTop ??= heading.top / Math.min(width, 1340);
+    close(heading.top / Math.min(width, 1340), referenceTop);
+    close(all.desktop.wideStart, inset);
+  }
+  assert.equal(sectionGridPadding(padding, 1920, 290, 1630).left, 290);
 });

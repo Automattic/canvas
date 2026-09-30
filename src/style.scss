@@ -10,6 +10,14 @@
 	position: relative;
 	box-sizing: border-box;
 
+	&.is-full-height {
+		min-height: 100vh;
+
+		&[data-canvas-canvas] > .canvas__grid {
+			min-height: 100vh;
+		}
+	}
+
 	&.has-background:not(.has-text-color) {
 		color: var(--canvas-auto-text-color, inherit);
 	}
@@ -41,7 +49,7 @@
 		isolation: isolate;
 		// Width settings bound the grid inside the native content padding.
 		grid-template-columns: var(--canvas-desktop-tracks, repeat(calc(var(--canvas-desktop-columns, 24) - 1), minmax(0, 1fr) var(--canvas-column-gap, var(--wp--preset--spacing--20))) minmax(0, 1fr));
-		grid-template-rows: var(--canvas-desktop-row-tracks, repeat(var(--canvas-desktop-rows, 12), 24px));
+		grid-template-rows: var(--canvas-desktop-row-tracks, repeat(var(--canvas-desktop-rows, 18), 24px));
 		grid-auto-rows: 24px;
 		row-gap: var(--canvas-gap, var(--wp--preset--spacing--20));
 		column-gap: 0;
@@ -205,6 +213,11 @@
 	.canvas__grid [data-canvas-text-fit="true"][data-canvas-text-fitted] > :is(h1, h2, h3, h4, h5, h6, p) {
 		font-size: var(--canvas-text-size) !important;
 		line-height: var(--canvas-text-leading) !important;
+	}
+
+	.canvas__grid [data-canvas-content-scaled] {
+		font-size: var(--canvas-content-font-size) !important;
+		line-height: var(--canvas-content-line-height) !important;
 	}
 
 	.canvas__image,

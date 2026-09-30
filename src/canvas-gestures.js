@@ -8,7 +8,11 @@ import {
 	readableContentHeight,
 } from './automatic-content.mjs';
 import { canMoveSelection, moveSelection } from './selection-movement.mjs';
-import { preserveRowsOnResize, resizeCanvasRows } from './row-resize.mjs';
+import {
+	preserveRowsOnResize,
+	resizeCanvasRows,
+	visibleRowCount,
+} from './row-resize.mjs';
 import { minimumSpans } from './placement.mjs';
 import { imageResizeRatio } from './image-shapes.mjs';
 import { useCallback, useEffect, useRef } from '@wordpress/element';
@@ -231,7 +235,8 @@ export function useCanvasGestures( {
 				: null;
 			let finalValue = start;
 			let dropPlacements;
-			let finalRows = rowCount;
+			const startRows = visibleRowCount( metrics, rowCount );
+			let finalRows = startRows;
 			let rowOffset = 0;
 			let moved = false;
 			let finished = false;
@@ -353,7 +358,7 @@ export function useCanvasGestures( {
 					const next = resizeCanvasRows(
 						layouts,
 						mode,
-						rowCount,
+						startRows,
 						minimumRows,
 						dy / rowPitch( metrics ),
 						e.shiftKey
@@ -423,7 +428,10 @@ export function useCanvasGestures( {
 						const aligned = alignFreeCanvasPlacement(
 							placements[ id ],
 							mode,
-							{ siblings, tolerance: 8 * ( metrics.scale || 1 ) }
+							{
+								siblings,
+								tolerance: 8 * ( metrics.scale || 1 ),
+							}
 						);
 						dropPlacements = moveSelection(
 							layouts,
@@ -638,7 +646,7 @@ export function useCanvasGestures( {
 				}
 				finalValue = dropPlacement();
 				if ( kind === 'canvas' ) {
-					if ( finalRows !== rowCount ) {
+					if ( finalRows !== rowCount || metrics.minimumHeight ) {
 						commitRows( finalRows, rowOffset );
 						announce( `Canvas height ${ finalRows } rows.` );
 					}

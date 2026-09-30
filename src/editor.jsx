@@ -12,7 +12,7 @@ import {
 	compactCanvasAttributes,
 	serializePlacement,
 } from './serialization.mjs';
-import { preserveRowsOnResize } from './row-resize.mjs';
+import { preserveRowsOnResize, visibleRowCount } from './row-resize.mjs';
 import { canMoveSelection, moveSelection } from './selection-movement.mjs';
 import { imageShape, imageResizeRatio } from './image-shapes.mjs';
 import { imageShapeUpdates } from './image-shape-layout.mjs';
@@ -36,6 +36,8 @@ import {
 import { useSelect, useDispatch, useRegistry } from '@wordpress/data';
 import {
 	PanelBody,
+	TextControl,
+	ToggleControl,
 	__experimentalToggleGroupControl as ToggleGroupControl,
 	__experimentalToggleGroupControlOption as ToggleGroupControlOption,
 } from '@wordpress/components';
@@ -44,6 +46,10 @@ import {
 	useBlockProps,
 	useInnerBlocksProps,
 	InspectorControls,
+	BlockControls,
+	// Reuse Cover’s native control; WordPress has not exposed a stable alias.
+	// eslint-disable-next-line @wordpress/no-unsafe-wp-apis
+	__experimentalBlockFullHeightAligmentControl as BlockFullHeightAlignmentControl,
 	BlockSettingsMenuControls,
 	__unstableBlockSettingsMenuFirstItem as BlockSettingsMenuFirstItem,
 } from '@wordpress/block-editor';
@@ -119,6 +125,7 @@ export default function Edit( {
 	const announce = useLayoutAnnouncement();
 	const [ preview, setPreview ] = useState( null );
 	const cells = attributes.cells !== false;
+	const showGrid = cells && attributes.showGrid === true;
 	const [ shapePreview, setShapePreview ] = useState( null );
 	const clearShapePreview = useCallback( () => setShapePreview( null ), [] );
 	const [ geometry, setGeometry ] = useState( {} );
@@ -574,12 +581,13 @@ export default function Edit( {
 				Math.max( 1, minimumRows + offset ),
 				MAX_ROWS
 			);
-			if ( next === rowCount ) {
+			if ( next === rowCount && ! attributes.fullHeight ) {
 				return;
 			}
 			const updates = {
 				[ clientId ]: {
 					[ rowKey ]: next,
+					...( attributes.fullHeight ? { fullHeight: false } : {} ),
 				},
 			};
 			for ( const [ id, placement ] of Object.entries(
@@ -613,6 +621,7 @@ export default function Edit( {
 		},
 		[
 			commitUpdates,
+			attributes.fullHeight,
 			clientId,
 			rowKey,
 			rowCount,
@@ -1164,7 +1173,9 @@ export default function Edit( {
 		event.preventDefault();
 		event.stopPropagation();
 		const rows = integer(
-			rowCount + ( event.key === 'ArrowDown' ? 1 : -1 ),
+			( attributes.fullHeight
+				? visibleRowCount( geometry[ mode ], rowCount )
+				: rowCount ) + ( event.key === 'ArrowDown' ? 1 : -1 ),
 			rowCount,
 			minimumRows,
 			MAX_ROWS
@@ -1420,6 +1431,10 @@ export default function Edit( {
 		);
 	}
 	const blockProps = useBlockProps( {
+		className:
+			attributes.fullHeight && preview?.rows === undefined
+				? 'is-full-height'
+				: undefined,
 		'data-canvas-spacing': JSON.stringify( gap.effective ),
 		style: {
 			'--canvas-desktop-columns': columnsForAlignment(
@@ -1448,6 +1463,15 @@ export default function Edit( {
 	const active = ! editingId && !! ( isSelected || selectedId );
 	return (
 		<div { ...innerProps }>
+			<BlockControls group="block">
+				<BlockFullHeightAlignmentControl
+					isActive={ !! attributes.fullHeight }
+					isDisabled={ canvasLocked }
+					onToggle={ () =>
+						setAttributes( { fullHeight: ! attributes.fullHeight } )
+					}
+				/>
+			</BlockControls>
 			<InspectorControls group="settings">
 				<PanelBody title="Settings">
 					<ToggleGroupControl
@@ -1470,6 +1494,40 @@ export default function Edit( {
 							label="Freeform"
 						/>
 					</ToggleGroupControl>
+					<TextControl
+						label="Rows"
+						type="number"
+						value={
+							preview?.rows ??
+							( attributes.fullHeight
+								? visibleRowCount( geometry[ mode ], rowCount )
+								: rowCount )
+						}
+						min={ minimumRows }
+						max={ MAX_ROWS }
+						step={ 1 }
+						disabled={ canvasLocked }
+						onChange={ ( value ) => {
+							if (
+								value !== '' &&
+								Number.isFinite( Number( value ) )
+							) {
+								commitRows( Number( value ) );
+							}
+						} }
+						__next40pxDefaultSize
+						__nextHasNoMarginBottom
+					/>
+					{ cells && (
+						<ToggleControl
+							label="Show grid"
+							checked={ showGrid }
+							onChange={ ( value ) =>
+								setAttributes( { showGrid: value } )
+							}
+							__nextHasNoMarginBottom
+						/>
+					) }
 				</PanelBody>
 			</InspectorControls>
 			{ ! preview &&
@@ -1554,7 +1612,7 @@ export default function Edit( {
 						style={ gridStyle }
 						data-canvas-preview-rows={ preview?.rows ?? undefined }
 						data-canvas-desktop-minimum={
-							attributes.desktopRows || 12
+							attributes.desktopRows || 18
 						}
 						data-canvas-tablet-minimum={
 							attributes.tabletRows || 1
@@ -1572,7 +1630,10 @@ export default function Edit( {
 						gridRef={ gridRef }
 						active={
 							! dropPreview?.replacing &&
-							( ( cells && ( ! blocks.length || gridPreview ) ) ||
+							( ( cells &&
+								( showGrid ||
+									! blocks.length ||
+									gridPreview ) ) ||
 								!! dropPreview ||
 								( active && !! preview && ! preview.rotating ) )
 						}

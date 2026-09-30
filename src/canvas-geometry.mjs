@@ -130,17 +130,28 @@ export function canvasColumns(
 
 // Content never changes the cell pitch. Outer tracks consume exactly the
 // padding, including a clipped cell when an edge falls in a gap.
-export function canvasRows( top, bottom, count, gap, rowHeight = ROW_HEIGHT ) {
+export function canvasRows(
+	top,
+	bottom,
+	count,
+	gap,
+	rowHeight = ROW_HEIGHT,
+	minimumHeight = 0
+) {
 	const pitch = rowHeight + gap;
 	const before = Math.min( 500, Math.ceil( top / pitch ) );
-	const after = Math.min( 500, Math.ceil( bottom / pitch ) );
 	const core = tracks( Array( count ).fill( rowHeight ), gap ).map(
 		( { start, end } ) => ( {
 			start: top + start,
 			end: top + end,
 		} )
 	);
-	const contentEnd = core.at( -1 ).end;
+	const authoredEnd = core.at( -1 ).end;
+	// Continue the cell pitch through the viewport's extra space without
+	// turning that measured space into authored rows or stretching any cells.
+	const trailing = Math.max( bottom, minimumHeight - authoredEnd );
+	const after = Math.min( 500, Math.ceil( trailing / pitch ) );
+	const contentEnd = authoredEnd + trailing - bottom;
 	const rows = [
 		...Array.from(
 			{
@@ -157,8 +168,8 @@ export function canvasRows( top, bottom, count, gap, rowHeight = ROW_HEIGHT ) {
 				length: after,
 			},
 			( _, i ) => ( {
-				start: contentEnd + Math.min( bottom, gap + i * pitch ),
-				end: contentEnd + Math.min( bottom, ( i + 1 ) * pitch ),
+				start: authoredEnd + Math.min( trailing, gap + i * pitch ),
+				end: authoredEnd + Math.min( trailing, ( i + 1 ) * pitch ),
 			} )
 		),
 	];
@@ -176,11 +187,23 @@ export function canvasRows( top, bottom, count, gap, rowHeight = ROW_HEIGHT ) {
 		before,
 		after,
 		coreRows: count,
+		minimumHeight,
 		height: contentEnd + bottom,
 		contentEnd,
 		rowTemplate: template,
 	};
 }
+// Visible content cells include measured full-height space, but not padding.
+export function canvasContentRows( { rows, before, contentEnd } ) {
+	return rows
+		.slice( before )
+		.filter( ( row ) => row.start < contentEnd && row.end > row.start )
+		.map( ( row ) => ( {
+			...row,
+			end: Math.min( row.end, contentEnd ),
+		} ) );
+}
+
 export function savedCanvasPlacement( value ) {
 	const base = value._base || value;
 	return {
@@ -251,6 +274,33 @@ function horizontalEdge( anchor, side, geometry ) {
 		)
 	][ side ];
 }
+
+// Horizontal anchors only resolve horizontal geometry. One edge translates
+// the proportional frame; two edges stretch its width, never its height.
+function anchoredFrame( rect, anchors, geometry ) {
+	const { left, right } = anchors;
+	if ( left !== undefined && right !== undefined ) {
+		const start = horizontalEdge( left, 'start', geometry );
+		return {
+			...rect,
+			left: start,
+			width: Math.max(
+				1,
+				horizontalEdge( right, 'end', geometry ) - start
+			),
+		};
+	}
+	if ( left !== undefined ) {
+		return { ...rect, left: horizontalEdge( left, 'start', geometry ) };
+	}
+	if ( right !== undefined ) {
+		return {
+			...rect,
+			left: horizontalEdge( right, 'end', geometry ) - rect.width,
+		};
+	}
+	return rect;
+}
 function rowIndexAtBoundary( boundary, side, geometry, fallback ) {
 	const { before, coreRows, rows } = geometry;
 	if ( boundary === 'canvas' ) {
@@ -291,7 +341,7 @@ export function mapCanvasPlacement(
 	// leave the canvas before the committed edit releases full height.
 	const fillHeight = resolveFillHeight && base.fillHeight;
 	const freeBounds = freeFrameBounds( geometry );
-	const rect = free
+	let rect = free
 		? {
 				left: freeBounds.left + free.x * freeBounds.width,
 				top: Math.max(
@@ -309,20 +359,7 @@ export function mapCanvasPlacement(
 			( side ) => typeof base.anchors[ side ] === 'string'
 		)
 	) {
-		const left = base.anchors.left;
-		const right = base.anchors.right;
-		if ( left !== undefined && right !== undefined ) {
-			rect.left = horizontalEdge( left, 'start', geometry );
-			rect.width = Math.max(
-				1,
-				horizontalEdge( right, 'end', geometry ) - rect.left
-			);
-		} else if ( left !== undefined ) {
-			rect.left = horizontalEdge( left, 'start', geometry );
-		} else {
-			rect.left = horizontalEdge( right, 'end', geometry ) - rect.width;
-		}
-		rect.height = rect.width / free.ratio;
+		rect = anchoredFrame( rect, base.anchors, geometry );
 	}
 	if ( rect && fillHeight ) {
 		rect.top = 0;
@@ -357,7 +394,8 @@ export function mapCanvasPlacement(
 				geometry.padding.bottom,
 				needed,
 				geometry.gap,
-				geometry.rowHeight
+				geometry.rowHeight,
+				geometry.minimumHeight
 			),
 		};
 	}
@@ -410,6 +448,26 @@ export function mapCanvasPlacement(
 		base.anchors?.right ?? base.column + base.columnSpan - 1;
 	let left = horizontalEdge( leftAnchor, 'start', geometry );
 	let right = horizontalEdge( rightAnchor, 'end', geometry );
+	if (
+		resolveHorizontal &&
+		[ 'left', 'right' ].some(
+			( side ) => typeof base.anchors[ side ] === 'string'
+		)
+	) {
+		const start = horizontalEdge( base.column - 1, 'start', geometry );
+		const end = horizontalEdge(
+			base.column + base.columnSpan - 1,
+			'end',
+			geometry
+		);
+		const frame = anchoredFrame(
+			{ left: start, width: end - start },
+			base.anchors,
+			geometry
+		);
+		left = frame.left;
+		right = frame.left + frame.width;
+	}
 	// When a narrower canvas loses outer cells, bring the whole numeric span
 	// inside together. Clamping its edges separately would collapse it to one
 	// cell. Keep the authored anchors so widening restores its exact position.
@@ -582,15 +640,14 @@ function nearestGuideline( value, side, g, axis, tolerance ) {
 					[ 'canvas', start ? 0 : g.height ],
 					[ 'padding', start ? g.padding.top : g.contentEnd ],
 				];
-	// Alignment guides cannot pull an edge into a gutter. Canvas and padding
-	// remain explicit outer anchors; all guide snaps must meet a real cell.
+	// Named boundaries remain usable at every width. The center gutter alone
+	// is informational unless it also meets an edge of a cell.
 	return targets
 		.filter(
 			( [ kind, position ] ) =>
 				Math.abs( position - value ) <= tolerance + 1e-7 &&
 				( axis !== 'x' ||
-					kind === 'canvas' ||
-					kind === 'padding' ||
+					kind !== 'center' ||
 					g.columns.some(
 						( cell ) => Math.abs( cell[ side ] - position ) < 0.0001
 					) )
@@ -1234,7 +1291,28 @@ export function settleCanvasPlacement(
 	) {
 		return snapped;
 	}
-	return placementWithFreeFrame( start, mode, rect, minimum );
+	const precise = placementWithFreeFrame( start, mode, rect, minimum );
+	// Preserving an untouched off-grid edge must not discard a wide/padding
+	// guide caught by the edited edge. Keep only boundaries the final frame
+	// still touches; its precise dimensions remain the opposite constraint.
+	for ( const side of [ 'left', 'right' ] ) {
+		const anchor = snapped._base.anchors[ side ];
+		const edge = rect.left + ( side === 'right' ? rect.width : 0 );
+		if (
+			typeof anchor === 'string' &&
+			Math.abs(
+				edge -
+					horizontalEdge(
+						anchor,
+						side === 'left' ? 'start' : 'end',
+						precise._canvas
+					)
+			) < 0.0001
+		) {
+			precise._base.anchors[ side ] = anchor;
+		}
+	}
+	return mapCanvasPlacement( precise._base, mode, precise._canvas, minimum );
 }
 
 export function dragCanvasPlacement(
@@ -1269,7 +1347,8 @@ export function dragCanvasPlacement(
 						)
 				),
 				g.gap,
-				g.rowHeight
+				g.rowHeight,
+				g.minimumHeight
 			),
 		};
 		start = { ...start, _canvas: g };
@@ -1687,7 +1766,8 @@ export function transformCanvasPlacement(
 				g.padding.bottom,
 				count,
 				g.gap,
-				g.rowHeight
+				g.rowHeight,
+				g.minimumHeight
 			),
 		};
 	}

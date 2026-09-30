@@ -33,7 +33,7 @@ test('new drops snap to measured cells without freezing inherited viewports', ()
   assert.deepEqual(placementRectangle(next.desktop, metrics), { left: metrics.columns[2].start, top: 144, width: metrics.columns[9].end - metrics.columns[2].start, height: 312 });
 });
 
-test('existing dimensions, layer, image options and other viewport survive a move', () => {
+test('existing dimensions, source-order layer, image options and other viewport survive a move', () => {
   const original = compactCanvas(resolveLayouts([block('a')]).a);
   original.layers = { desktop: 9 };
   original.desktop = { column: 2, row: 3, columnSpan: 4, rowSpan: 2 };
@@ -41,7 +41,7 @@ test('existing dimensions, layer, image options and other viewport survive a mov
   const a = block('a', 'core/image', { [ATTRIBUTE]: original });
   const next = droppedLayouts([a], [a], 'desktop', { x: 99999, y: -10 }, metrics).a;
   const moved = resolveLayouts([block('a','core/image',{[ATTRIBUTE]:next})],metrics.geometry).a.desktop;
-  assert.deepEqual([moved.column,moved.row,moved.columnSpan,moved.rowSpan,moved.layer],[21,1,4,2,9]);
+  assert.deepEqual([moved.column,moved.row,moved.columnSpan,moved.rowSpan,moved.layer],[21,1,4,2,1]);
   assert.deepEqual(next.mobile, original.mobile);
   assert.equal(next.fill, false);
   assert.equal(a.attributes[ATTRIBUTE].desktop.column, 2);

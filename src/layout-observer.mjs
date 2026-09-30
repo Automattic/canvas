@@ -22,10 +22,15 @@ import {
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
 import { freeFrameStyles } from './aspect-ratio.mjs';
+import { scaleCanvasContent } from './content-scale.mjs';
 import { resolveAutomaticContent } from './automatic-content.mjs';
 import { automaticCanvasRows } from './automatic-layout.mjs';
 import { measureCanvasSpacing } from './spacing.mjs';
-import { responsiveRowMetrics, sectionRows } from './section-layout.mjs';
+import {
+	responsiveRowMetrics,
+	sectionGridPadding,
+	sectionRows,
+} from './section-layout.mjs';
 
 // The editor and frontend share one measurement and track resolver. Core owns
 // padding; the canvas consumes that space without changing the canvas's size.
@@ -72,6 +77,7 @@ export function observeCanvasLayout( grid, onChange ) {
 			attributes: true,
 			attributeFilter: [
 				'style',
+				'class',
 				'data-canvas-layout',
 				'data-canvas-auto',
 				'data-canvas-text-fit',
@@ -88,6 +94,9 @@ export function observeCanvasLayout( grid, onChange ) {
 		styles?.disconnect();
 		content?.disconnect();
 		const canvasCss = view.getComputedStyle( canvas );
+		const minimumHeight = canvas.classList.contains( 'is-full-height' )
+			? parseFloat( canvasCss.minHeight ) || 0
+			: 0;
 		const padding = Object.fromEntries(
 			[ 'top', 'right', 'bottom', 'left' ].map( ( side ) => [
 				side,
@@ -149,8 +158,8 @@ export function observeCanvasLayout( grid, onChange ) {
 					? '--wp--style--global--wide-size'
 					: '--wp--style--global--content-size'
 			) || '1340px';
-		// Wide size limits the inner grid of a full-width canvas. Its reference
-		// outer width includes native padding, as it does at smaller screen sizes.
+		// The reference composition includes native padding around its wide
+		// content. Extra canvas width adds outer cells, not larger content.
 		const referenceWidth =
 			( parseFloat( view.getComputedStyle( spacing ).width ) || 1340 ) +
 			( align === 'full' && wideSize ? padding.left + padding.right : 0 );
@@ -167,21 +176,19 @@ export function observeCanvasLayout( grid, onChange ) {
 				viewport,
 				Number(
 					grid.getAttribute( `data-canvas-${ viewport }-minimum` )
-				) || ( viewport === 'desktop' ? 12 : 1 ),
+				) || ( viewport === 'desktop' ? 18 : 1 ),
 			] )
 		);
 		for ( const viewport of Object.keys( COLUMNS ) ) {
 			const count = minimums[ viewport ];
-			// Keep the content grid and row sizing tied to the wide area. Extra
-			// columns continue its pitch through the remaining canvas width.
-			const gridPadding =
-				viewport === 'desktop'
-					? {
-							...padding,
-							left: Math.max( padding.left, start ),
-							right: Math.max( padding.right, width - end ),
-						}
-					: padding;
+			// Keep the inner grid on the wide guides at every editing density.
+			// Outer cells continue the same pitch through the rest of the canvas.
+			const gridPadding = sectionGridPadding(
+				padding,
+				width,
+				start,
+				end
+			);
 			const columns = canvasColumns(
 				width,
 				padding,
@@ -202,7 +209,8 @@ export function observeCanvasLayout( grid, onChange ) {
 				padding.bottom,
 				count,
 				gap,
-				rowHeight
+				rowHeight,
+				minimumHeight
 			);
 			set( grid, `--canvas-${ viewport }-tracks`, columns.template );
 			set(
@@ -286,7 +294,8 @@ export function observeCanvasLayout( grid, onChange ) {
 					padding.bottom,
 					authoredRows[ viewport ],
 					g.gap,
-					g.rowHeight
+					g.rowHeight,
+					minimumHeight
 				),
 			};
 		}
@@ -350,6 +359,7 @@ export function observeCanvasLayout( grid, onChange ) {
 		);
 		const rowGap = geometry[ mode ]?.gap ?? gap;
 		set( grid, '--canvas-gap', `${ rowGap }px` );
+		scaleCanvasContent( items, geometry[ mode ], set, placements[ mode ] );
 		// Every viewport resolves readable content, including containers, which
 		// use their authored area as a minimum. Explicit placements (desktop is
 		// always explicit) only grow downward and clear what they newly cover.
@@ -398,7 +408,8 @@ export function observeCanvasLayout( grid, onChange ) {
 						padding.bottom,
 						rows,
 						rowGap,
-						geometry[ mode ].rowHeight
+						geometry[ mode ].rowHeight,
+						minimumHeight
 					),
 				};
 				placements[ mode ] = placements[ mode ].map( ( placement ) =>
@@ -421,7 +432,8 @@ export function observeCanvasLayout( grid, onChange ) {
 					padding.bottom,
 					rows,
 					rowGap,
-					geometry[ mode ].rowHeight
+					geometry[ mode ].rowHeight,
+					minimumHeight
 				),
 				automatic,
 			};
@@ -459,7 +471,8 @@ export function observeCanvasLayout( grid, onChange ) {
 						padding.bottom,
 						rows,
 						geometry[ viewport ].gap,
-						geometry[ viewport ].rowHeight
+						geometry[ viewport ].rowHeight,
+						minimumHeight
 					),
 				};
 				set(
@@ -549,7 +562,8 @@ export function observeCanvasLayout( grid, onChange ) {
 						padding.bottom,
 						rows,
 						rowGap,
-						geometry[ mode ].rowHeight
+						geometry[ mode ].rowHeight,
+						minimumHeight
 					),
 				};
 				set(
@@ -692,6 +706,13 @@ export function observeCanvasLayout( grid, onChange ) {
 			'pad-left',
 		] ) {
 			canvas.style.removeProperty( `--canvas-${ key }` );
+		}
+		for ( const node of grid.querySelectorAll(
+			'[data-canvas-content-scaled]'
+		) ) {
+			node.removeAttribute( 'data-canvas-content-scaled' );
+			node.style.removeProperty( '--canvas-content-font-size' );
+			node.style.removeProperty( '--canvas-content-line-height' );
 		}
 		delete grid.canvasGeometry;
 	};

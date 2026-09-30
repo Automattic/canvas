@@ -72,6 +72,23 @@ test('sub-cell pointer changes resize the actual mapped rectangle without grid r
   close(parseFloat(freeFrameStyles(b)['--canvas-free-width']), b._rect.width);
 });
 
+test('guide-attached grid frames paint their exact size between tracks without saving a free frame', () => {
+  for (const width of [1000, 1400, 1920, 2560, 3840]) {
+    const g = geometry(width);
+    for (const anchors of [{ left: 'wide' }, { right: 'wide' }, { left: 'center' }]) {
+      const placement = mapCanvasPlacement({ column: 4, row: 3, columnSpan: 8, rowSpan: 4, gridColumns: 24, anchors }, 'desktop', g);
+      const before = JSON.stringify(savedCanvasPlacement(placement));
+      const styles = freeFrameStyles(placement);
+      const gridLeft = g.lines[placement._grid.left - 1];
+      const gridRight = g.lines[placement._grid.right - 1];
+      close(gridLeft + (parseFloat(styles['--canvas-free-left']) || 0), placement._rect.left);
+      close(parseFloat(styles['--canvas-free-width']) || gridRight - gridLeft, placement._rect.width);
+      assert.equal(savedCanvasPlacement(placement).free, undefined);
+      assert.equal(JSON.stringify(savedCanvasPlacement(placement)), before);
+    }
+  }
+});
+
 test('release and reopening preserve snapped cells without saving the smooth preview', () => {
   const start = initial(), ratio = start._rect.width / start._rect.height;
   const next = dragAspectRatioPlacement(start, 'desktop', 'nw', -43, -37, ratio, minimum);

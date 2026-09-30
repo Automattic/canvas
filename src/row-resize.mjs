@@ -6,6 +6,24 @@ import {
 import { exactPlacement } from './canvas-groups.mjs';
 import { MAX_ROWS, integer, rowPitch } from './placement.mjs';
 
+// Full height is measured, never authored. A manual resize starts at the
+// nearest row to the visible edge rather than the old, shorter row count.
+export function visibleRowCount( geometry, fallback ) {
+	if ( ! geometry?.minimumHeight ) {
+		return fallback;
+	}
+	return integer(
+		( geometry.height -
+			geometry.padding.top -
+			geometry.padding.bottom +
+			geometry.gap ) /
+			rowPitch( geometry ),
+		fallback,
+		1,
+		MAX_ROWS
+	);
+}
+
 // A Shift drag adds the same number of whole rows at each end. Clamp the
 // shared delta once so neither end can push existing content out of bounds.
 export function resizeCanvasRows(

@@ -2,6 +2,16 @@ import { COLUMNS, MAX_ROWS, integer, rowHeightForWidth } from './placement.mjs';
 import { requiredRows, resolveLayouts } from './geometry.mjs';
 import { canvasColumns, canvasRows } from './canvas-geometry.mjs';
 
+export function sectionGridPadding( padding, width, start, end ) {
+	// Wide content sets the shared cell pitch. Continue those cells outside
+	// the guides without turning the surrounding space into block padding.
+	return {
+		...padding,
+		left: Math.max( padding.left, start ),
+		right: Math.max( padding.right, width - end ),
+	};
+}
+
 // Start each measurement from authored rows, never the last rendered height.
 // Responsive content may need more room, but empty authored rows still belong
 // to the composition. A viewport's own height takes precedence over inheritance.
@@ -11,7 +21,7 @@ export function sectionRows( blocks, minimums ) {
 	for ( const mode of Object.keys( COLUMNS ) ) {
 		const inherited =
 			mode === 'desktop'
-				? 12
+				? 18
 				: result[ mode === 'tablet' ? 'desktop' : 'tablet' ];
 		const authored =
 			mode === 'desktop'
@@ -86,6 +96,7 @@ export function responsiveRowMetrics( blocks, mode, geometry ) {
 	const rowHeight = reference.rowHeight * scale;
 	return {
 		...target,
+		contentScale: scale,
 		proportional: mode !== 'desktop',
 		referenceGap,
 		referenceColumnGap,
@@ -110,9 +121,10 @@ export function responsiveRowMetrics( blocks, mode, geometry ) {
 		...canvasRows(
 			target.padding.top,
 			target.padding.bottom,
-			integer( target.coreRows, 12, 1, MAX_ROWS ),
+			integer( target.coreRows, 18, 1, MAX_ROWS ),
 			gap,
-			rowHeight
+			rowHeight,
+			target.minimumHeight
 		),
 	};
 }

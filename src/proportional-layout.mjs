@@ -54,7 +54,12 @@ export function proportionalPlacement(
 			geometry.wideEnd,
 			geometry.columnGap,
 			mode,
-			source.gridColumns
+			source.gridColumns,
+			{
+				...geometry.padding,
+				left: geometry.contentColumns[ 0 ].start,
+				right: geometry.width - geometry.contentColumns.at( -1 ).end,
+			}
 		),
 	};
 	const left = source.anchors.left ?? source.column - 1;

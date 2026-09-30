@@ -23,11 +23,28 @@ export function normalizeFreeFrame( frame ) {
 	};
 }
 
-// Desktop artwork stops growing with its reference canvas. Extra viewport
-// width surrounds that canvas; the physical grid still reaches the edges.
+// Precise desktop artwork uses the same origin and scale as the content grid.
+// Extra cells outside the wide guides do not stretch the inner composition.
 export function freeFrameBounds( geometry ) {
+	if (
+		geometry.viewport === 'desktop' &&
+		geometry.align === 'full' &&
+		geometry.contentScale > 0 &&
+		geometry.referenceWidth > 0
+	) {
+		// Fractions use the reference canvas, while native padding stays fixed.
+		return {
+			left:
+				( geometry.contentColumns?.[ 0 ].start ??
+					geometry.padding.left ) -
+				geometry.padding.left * geometry.contentScale,
+			width: geometry.referenceWidth * geometry.contentScale,
+		};
+	}
 	const width =
-		geometry.viewport === 'desktop' && geometry.referenceWidth > 0
+		geometry.viewport === 'desktop' &&
+		geometry.align !== 'full' &&
+		geometry.referenceWidth > 0
 			? Math.min( geometry.width, geometry.referenceWidth )
 			: geometry.width;
 	return { left: ( geometry.width - width ) / 2, width };
@@ -223,14 +240,31 @@ export function resizeRect(
 	);
 }
 export function freeFrameStyles( placement ) {
-	if ( ! placement?.free || ! placement._rect || ! placement._canvas ) {
+	if ( ! placement?._rect || ! placement._canvas ) {
 		return {};
 	}
 	const { _rect: rect, _canvas: canvas, _grid: grid } = placement;
+	const left = canvas.lines[ grid.left - 1 ];
+	const top = canvas.rows[ ( grid.top - 1 ) / 2 ].start;
+	// A named anchor can translate a cell-sized frame between grid lines.
+	// Paint its resolved edges exactly instead of rounding each edge to a
+	// different track. This is measured output, never an authored free frame.
+	if (
+		! placement.free &&
+		Math.abs( rect.left - left ) < 0.001 &&
+		Math.abs( rect.top - top ) < 0.001 &&
+		Math.abs( rect.width - ( canvas.lines[ grid.right - 1 ] - left ) ) <
+			0.001 &&
+		Math.abs(
+			rect.height - ( canvas.rows[ ( grid.bottom - 2 ) / 2 ].end - top )
+		) < 0.001
+	) {
+		return {};
+	}
 	return {
 		'--canvas-free-width': `${ rect.width }px`,
 		'--canvas-free-height': `${ rect.height }px`,
-		'--canvas-free-left': `${ rect.left - canvas.lines[ grid.left - 1 ] }px`,
-		'--canvas-free-top': `${ rect.top - canvas.rows[ ( grid.top - 1 ) / 2 ].start }px`,
+		'--canvas-free-left': `${ rect.left - left }px`,
+		'--canvas-free-top': `${ rect.top - top }px`,
 	};
 }

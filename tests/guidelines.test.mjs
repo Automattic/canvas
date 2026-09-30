@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canvasColumns, canvasRows, mapCanvasPlacement, dragMovePlacement, dragResizePlacement, snapCanvasPlacement, savedCanvasPlacement } from '../src/canvas-geometry.mjs';
+import { canvasColumns, canvasRows, mapCanvasPlacement, dragCanvasPlacement, dragMovePlacement, dragResizePlacement, snapCanvasPlacement, savedCanvasPlacement } from '../src/canvas-geometry.mjs';
 
 const minimum = { columnSpan: 1, rowSpan: 1 };
 const near = (a, b) => assert.ok(Math.abs(a - b) < .0001, `${a} != ${b}`);
@@ -130,4 +130,41 @@ test('wide boundaries remain cell edges when the viewport just crosses the theme
     assert.ok(g.columns.some(c => Math.abs(c.start - start) < .0001), `${width} missing wide start`);
     assert.ok(g.columns.some(c => Math.abs(c.end - end) < .0001), `${width} missing wide end`);
   }
+});
+
+test('wide guides attract moves and resizes even between cell boundaries', () => {
+  for (const width of [1680, 1920, 2560]) for (const [side, handle] of [['left', 'w'], ['right', 'e']]) {
+    const padding = { left: 50, right: 50, top: 0, bottom: 0 };
+    // Also exercise guide snapping without relying on the main grid's origin.
+    const g = { ...canvasColumns(width, padding, (width - 1340) / 2, (width + 1340) / 2, 10, 'desktop'), ...canvasRows(0, 0, 18, 10), gap: 10, align: 'full' };
+    const start = mapCanvasPlacement({ column: 8, columnSpan: 4, row: 3, rowSpan: 3 }, 'desktop', g);
+    const target = side === 'left' ? g.wideStart : g.wideEnd;
+    const edge = r => r.left + (side === 'right' ? r.width : 0);
+    for (const distance of [-5, 0, 5]) {
+      const dx = target + distance - edge(start._rect);
+      const moved = snapCanvasPlacement(dragMovePlacement(start, 'desktop', dx, 0, minimum), 'desktop', minimum, start);
+      near(edge(moved._rect), target);
+      near(moved._rect.width, start._rect.width);
+      near(moved._rect.height, start._rect.height);
+      assert.deepEqual(savedCanvasPlacement(moved).anchors, { [side]: 'wide' });
+      assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(moved), 'desktop', g)._rect, moved._rect);
+      const resized = snapCanvasPlacement(dragResizePlacement(start, 'desktop', handle, dx, 0, minimum), 'desktop', minimum);
+      near(edge(resized._rect), target);
+      assert.equal(savedCanvasPlacement(resized).anchors[side], 'wide');
+      assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(resized), 'desktop', g)._rect, resized._rect);
+    }
+  }
+});
+
+test('wide resize attachments survive preserving an untouched off-grid height', () => {
+  const g = { ...geometry('desktop'), align: 'full' };
+  const start = mapCanvasPlacement({ column: 1, columnSpan: 6, row: 3, rowSpan: 4,
+    free: { x: g.wideStart / g.width, y: 2, width: .2, ratio: 1.7 }, anchors: { left: 'wide' } }, 'desktop', g);
+  const next = dragCanvasPlacement(start, 'desktop', 'e', g.wideEnd - start._rect.left - start._rect.width - 2, 0, minimum);
+  near(next._rect.left, g.wideStart);
+  near(next._rect.left + next._rect.width, g.wideEnd);
+  near(next._rect.top, start._rect.top);
+  near(next._rect.height, start._rect.height);
+  assert.deepEqual(savedCanvasPlacement(next).anchors, { left: 'wide', right: 'wide' });
+  assert.deepEqual(mapCanvasPlacement(savedCanvasPlacement(next), 'desktop', g)._rect, next._rect);
 });

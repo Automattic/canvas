@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { ATTRIBUTE, columnsForAlignment, resolveLayouts, savePlacement, rowHeightForWidth, rowPitch, normalizePlacement } from '../src/geometry.mjs';
-import { canvasColumns, canvasRows, dragResizePlacement, dragCanvasPlacement, snapCanvasPlacement, savedCanvasPlacement } from '../src/canvas-geometry.mjs';
+import { canvasColumns, canvasRows, mapCanvasPlacement, dragResizePlacement, dragCanvasPlacement, snapCanvasPlacement, savedCanvasPlacement } from '../src/canvas-geometry.mjs';
 import { resolveAutomaticContent } from '../src/automatic-content.mjs';
 import { assertHorizontalSnap } from './helpers/snapped-placement.mjs';
 import { mapImagePlacement } from '../src/image-layout.mjs';
@@ -49,13 +49,19 @@ test('square, portrait and landscape frames use the closest grid height from 320
   }
 });
 
-test('capped cells stop growing while canvas and padding anchors keep their proportions outside the cap', () => {
+test('named anchors own the image frame without growing its authored vertical span', () => {
   for (const edgeRight of [11, 'wide', 'padding', 'canvas']) {
     const saved = { desktop: { ...source, frameRatio: 1, anchors: { ...(source).anchors, left: 2, right: edgeRight } } };
     const frames = [1600, 2000, 2560, 3840].map(width => resolveLayouts([block(saved)], { desktop: geometry(width) }).image.desktop);
-    for (const p of frames) assertNearestFrame(p, 1);
+    for (const p of frames) {
+      if (typeof edgeRight === 'number') assertNearestFrame(p, 1);
+      else assert.deepEqual(p._rect, mapCanvasPlacement(saved.desktop, 'desktop', p._canvas)._rect);
+    }
     if (typeof edgeRight === 'number' || edgeRight === 'wide') close(frames[0]._rect.width, frames.at(-1)._rect.width);
-    else assert.ok(frames.at(-1)._rect.height > frames[0]._rect.height + 1000);
+    else {
+      assert.ok(frames.at(-1)._rect.width > frames[0]._rect.width + 1000);
+      close(frames.at(-1)._rect.height, frames[0]._rect.height);
+    }
   }
 });
 

@@ -224,7 +224,7 @@ function enqueue_viewport_styles() {
 		$range_start = preg_match( '/\(([\d.]+(?:px|em|rem)) < width/', $query, $matches ) ? $matches[1] : '0px';
 		$count       = GRID_COLUMNS[ $mode ] - 1;
 		$span        = 'mobile' === $mode ? GRID_COLUMNS[ $mode ] : 6;
-		$css        .= "$query { $canvas { --canvas-viewport:$mode; --canvas-range-start:$range_start; } $grid { grid-template-columns:var(--canvas-$mode-tracks,repeat($count,minmax(0,1fr) var(--canvas-column-gap,var(--wp--preset--spacing--20))) minmax(0,1fr));grid-template-rows:var(--canvas-$mode-row-tracks,repeat(var(--canvas-$mode-rows,12),24px)); }";
+		$css        .= "$query { $canvas { --canvas-viewport:$mode; --canvas-range-start:$range_start; } $grid { grid-template-columns:var(--canvas-$mode-tracks,repeat($count,minmax(0,1fr) var(--canvas-column-gap,var(--wp--preset--spacing--20))) minmax(0,1fr));grid-template-rows:var(--canvas-$mode-row-tracks,repeat(var(--canvas-$mode-rows,18),24px)); }";
 		$css        .= "$grid > .canvas__item { grid-column:var(--canvas-$mode-line-left,calc(2 * var(--canvas-$mode-column,1) - 1)) / var(--canvas-$mode-line-right,span calc(2 * var(--canvas-$mode-columnSpan,$span) - 1));grid-row:var(--canvas-$mode-line-top,var(--canvas-$mode-row,1)) / var(--canvas-$mode-line-bottom,span var(--canvas-$mode-rowSpan,6));z-index:var(--canvas-$mode-layer,1);rotate:calc(var(--canvas-$mode-rotation,0) * 1deg); } }";
 	}
 	wp_enqueue_style( 'tabor-canvas-style' );
@@ -560,18 +560,19 @@ function render_canvas( $attributes, $content, $block ) {
 	}
 	$css = '';
 	foreach ( $next as $mode => $next_row ) {
-		$minimum  = $attributes[ $mode . 'Rows' ] ?? ( 'desktop' === $mode ? 12 : 1 );
+		$minimum  = $attributes[ $mode . 'Rows' ] ?? ( 'desktop' === $mode ? 18 : 1 );
 		$trailing = 0;
 		if ( 'desktop' !== $mode && $minimum <= 1 ) {
 			$source_mode    = 'mobile' === $mode && ( $attributes['tabletRows'] ?? 1 ) > 1 ? 'tablet' : 'desktop';
-			$source_minimum = $attributes[ $source_mode . 'Rows' ] ?? ( 'desktop' === $source_mode ? 12 : 1 );
+			$source_minimum = $attributes[ $source_mode . 'Rows' ] ?? ( 'desktop' === $source_mode ? 18 : 1 );
 			$trailing       = max( 0, $source_minimum - ( $next[ $source_mode ] - 1 ) );
 		}
-		$rows = min( 500, max( bounded_int( $minimum, 12, 1, 500 ), $next_row - 1 + $trailing ) );
+		$rows = min( 500, max( bounded_int( $minimum, 18, 1, 500 ), $next_row - 1 + $trailing ) );
 		$css .= "--canvas-$mode-rows:$rows;";
 	}
-	$minimums = ' data-canvas-desktop-minimum="' . bounded_int( $attributes['desktopRows'] ?? null, 12, 1, 500 ) . '" data-canvas-tablet-minimum="' . bounded_int( $attributes['tabletRows'] ?? null, 1, 1, 500 ) . '" data-canvas-mobile-minimum="' . bounded_int( $attributes['mobileRows'] ?? null, 1, 1, 500 ) . '"';
+	$minimums = ' data-canvas-desktop-minimum="' . bounded_int( $attributes['desktopRows'] ?? null, 18, 1, 500 ) . '" data-canvas-tablet-minimum="' . bounded_int( $attributes['tabletRows'] ?? null, 1, 1, 500 ) . '" data-canvas-mobile-minimum="' . bounded_int( $attributes['mobileRows'] ?? null, 1, 1, 500 ) . '"';
 	$wrapper  = array(
+		'class'               => ! empty( $attributes['fullHeight'] ) ? 'is-full-height' : '',
 		'style'               => '--canvas-desktop-columns:' . $desktop_columns . ';',
 		'data-canvas-spacing' => wp_json_encode( canvas_gap( $attributes ) ),
 	);

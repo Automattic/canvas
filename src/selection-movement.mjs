@@ -55,7 +55,8 @@ export function centerSelection(
 			canvas.padding.bottom,
 			canvas.coreRows + 1,
 			canvas.gap,
-			canvas.rowHeight
+			canvas.rowHeight,
+			canvas.minimumHeight
 		),
 	};
 	const next = center( grown );

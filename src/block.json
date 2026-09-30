@@ -17,7 +17,15 @@
       "name": "full-width",
       "isDefault": true,
       "attributes": {
-        "align": "full"
+        "align": "full",
+        "style": {
+          "spacing": {
+            "margin": {
+              "top": "0",
+              "bottom": "0"
+            }
+          }
+        }
       },
       "scope": [
         "inserter"
@@ -25,13 +33,21 @@
     }
   ],
   "attributes": {
+    "fullHeight": {
+      "type": "boolean",
+      "default": false
+    },
     "cells": {
       "type": "boolean",
       "default": true
     },
+    "showGrid": {
+      "type": "boolean",
+      "default": false
+    },
     "desktopRows": {
       "type": "number",
-      "default": 12
+      "default": 18
     },
     "mobileRows": {
       "type": "number",
