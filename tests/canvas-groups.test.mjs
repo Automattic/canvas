@@ -126,7 +126,7 @@ test('overlapping interleaved blocks group at the frontmost selected layer in ev
   const container=group('g',siblings.filter(block=>ids.includes(block.clientId)),{layers});
   const grouped=replaceSelection(siblings,ids,[container]);
   const after=resolveCanvasLayouts(grouped,geometry);
-  assert.deepEqual(grouped.map(block=>block.clientId),['g','outside','above']);
+  assert.deepEqual(grouped.map(block=>block.clientId),['outside','g','above']);
   assert.deepEqual(container.innerBlocks.map(block=>block.clientId),ids);
   for (const mode of Object.keys(COLUMNS)) {
     const oldPaint=paintLayers(blocks,before,mode),paint=paintLayers(grouped,after,mode);
@@ -161,8 +161,8 @@ test('grouping preserves ties around the frontmost selection and nested child pa
   const after=resolveCanvasLayouts(grouped,geometry);
   for (const mode of Object.keys(COLUMNS)) {
     const paint=paintLayers(grouped,after,mode);
-    assert.ok(paint.g>paint.between && paint.g<paint.above);
-    assert.ok(paint.low<paint.a && paint.a<paint.nested);
+    assert.ok(paint.g>paint.between && paint.g>paint.above);
+    assert.ok(paint.a<paint.nested && paint.nested<paint.low);
     assert.ok(paint.back<paint.front);
   }
   assert.deepEqual(siblings.find(block=>block.clientId==='nested').innerBlocks,nested.innerBlocks);
@@ -176,7 +176,7 @@ test('ungroup after changing the group layer preserves internal and external pai
   const after=resolveCanvasLayouts(released,geometry);
   for(const mode of Object.keys(COLUMNS)) {
     for(const id of ['a','b','outside']) sameRect(before[id][mode]._rect,after[id][mode]._rect);
-    assert.ok(after.a[mode].layer<after.b[mode].layer);
+    assert.ok(after.b[mode].layer<after.a[mode].layer);
     assert.equal(after.a[mode].layer>after.outside[mode].layer,before.g[mode].layer>before.outside[mode].layer);
   }
 });

@@ -41,15 +41,6 @@ export function mapPlacement(
 		: normalizePlacement( value, mode, {}, minimum );
 }
 
-// Layers inherit independently of authored placement geometry.
-export function layerAt( saved = {}, mode ) {
-	return (
-		saved.layers?.[ mode ] ??
-		( mode === 'mobile' ? saved.layers?.tablet : undefined ) ??
-		saved.layers?.desktop
-	);
-}
-
 // Resolve inheritance without writing it back into the post. PHP mirrors this
 // fallback for blocks pasted without metadata and for rendering without JS.
 export function resolveLayouts( blocks, geometry = {} ) {
@@ -194,7 +185,7 @@ export function resolveLayouts( blocks, geometry = {} ) {
 						} ).map( ( [ mode, placement ] ) => {
 							placement = {
 								...placement,
-								layer: layerAt( saved, mode ) ?? index + 1,
+								layer: index + 1,
 							};
 							if (
 								! saved[ mode ] &&
@@ -476,49 +467,6 @@ export function duplicateLayout( layout, saved = {} ) {
 	}
 	return compactCanvas( duplicate );
 }
-export function reorderLayer( layouts, id, mode, direction ) {
-	if (
-		Array.isArray( id ) &&
-		( ! id.length || id.some( ( key ) => ! layouts[ key ] ) || ! direction )
-	) {
-		return layouts;
-	}
-	let ids = Object.keys( layouts ).sort(
-		( a, b ) => layouts[ a ][ mode ].layer - layouts[ b ][ mode ].layer
-	);
-	if ( Array.isArray( id ) ) {
-		const selected = ids.filter( ( key ) => id.includes( key ) );
-		const remaining = ids.filter( ( key ) => ! id.includes( key ) );
-		const ordered =
-			direction > 0
-				? [ ...remaining, ...selected ]
-				: [ ...selected, ...remaining ];
-		if ( ordered.every( ( key, index ) => key === ids[ index ] ) ) {
-			return layouts;
-		}
-		ids = ordered;
-	} else {
-		const index = ids.indexOf( id );
-		const next = Math.max(
-			0,
-			Math.min( ids.length - 1, index + direction )
-		);
-		if ( index < 0 || index === next ) {
-			return layouts;
-		}
-		ids.splice( index, 1 );
-		ids.splice( next, 0, id );
-	}
-	return Object.fromEntries(
-		ids.map( ( key, i ) => [
-			key,
-			changeViewport( layouts[ key ], mode, {
-				...layouts[ key ][ mode ],
-				layer: i + 1,
-			} ),
-		] )
-	);
-}
 export function layoutVariables( layout ) {
 	const vars = {
 		'--canvas-fit': layout.fill ? 'cover' : 'contain',
@@ -543,6 +491,7 @@ export function layoutVariables( layout ) {
 			}
 			vars[ `--canvas-${ mode }-${ key }` ] = value;
 		}
+		vars[ `--canvas-${ mode }-layer` ] = layout[ mode ].layer;
 	}
 	return vars;
 }

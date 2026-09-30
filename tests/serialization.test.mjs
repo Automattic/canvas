@@ -62,44 +62,24 @@ test('named and outside-grid anchors survive compaction and density changes', ()
   }
 });
 
-test('layer-only overrides remain independent from automatic geometry and duplication', () => {
+test('source order determines layers and removed overrides are not serialized', () => {
   const saved = { desktop, layers: { desktop: 8.5, mobile: -0.5 } };
-  const before = structuredClone(saved), layouts = resolveLayouts([block(saved), block({desktop},'b')]);
-  assert.equal(layouts.a.desktop.layer,8.5);
-  assert.equal(layouts.a.tablet.layer,8.5);
-  assert.equal(layouts.a.mobile.layer,-.5);
-  assert.equal(layouts.b.mobile.layer,2);
-  const moved=savePlacement(saved,layouts.a,'desktop',{...layouts.a.desktop,row:8});
-  const copy=duplicateLayout(resolveLayouts([block(moved)]).a,moved);
-  for (const value of [moved,copy]) {
-    assert.deepEqual(value.layers,saved.layers);
-    assert.equal(value.tablet,undefined); assert.equal(value.mobile,undefined);
-    assert.equal(value.desktop.layer,undefined);
-  }
-  assert.deepEqual(saved,before);
-});
-
-test('FLOWER stays above the later image on inherited mobile layers without saving overrides', () => {
-  const blocks = [block({desktop, layers:{desktop:1,tablet:1}}, 'power'), block({desktop, layers:{desktop:5,tablet:4}}, 'flower'), block({desktop, layers:{desktop:2,tablet:3}}, 'image')];
-  const before = structuredClone(blocks);
+  const blocks = [block(saved), block({desktop}, 'b')];
+  const original = structuredClone(blocks);
   const layouts = resolveLayouts(blocks);
-  for (const mode of ['desktop','tablet','mobile']) assert.ok(layouts.flower[mode].layer > layouts.image[mode].layer);
-  assert.equal(layouts.flower.mobile.layer,4);
-  assert.deepEqual(blocks,before);
-});
-
-test('layer inheritance respects zero, fractional and explicit overrides independently of placements', () => {
-  for (const [layers, expected] of [
-    [{desktop:5}, [5,5,5]],
-    [{desktop:5,tablet:0}, [5,0,0]],
-    [{desktop:5,mobile:-.5}, [5,5,-.5]],
-    [{desktop:5,tablet:3,mobile:2}, [5,3,2]],
-    [{tablet:3}, [1,3,3]],
-    [{}, [1,1,1]],
-  ]) {
-    const layouts=resolveLayouts([block({desktop,tablet:{...desktop},mobile:{...desktop},layers})]);
-    assert.deepEqual(['desktop','tablet','mobile'].map(mode=>layouts.a[mode].layer),expected);
+  for (const mode of ['desktop','tablet','mobile']) {
+    assert.equal(layouts.a[mode].layer, 1);
+    assert.equal(layouts.b[mode].layer, 2);
   }
+  const moved = savePlacement(saved, layouts.a, 'desktop', {...layouts.a.desktop,row:8});
+  const copy = duplicateLayout(resolveLayouts([block(moved)]).a, moved);
+  for (const value of [compactCanvas(saved), moved, copy]) {
+    assert.equal(value.layers, undefined);
+    assert.equal(value.tablet, undefined);
+    assert.equal(value.mobile, undefined);
+    assert.equal(value.desktop.layer, undefined);
+  }
+  assert.deepEqual(blocks, original);
 });
 
 test('zero rotation is omitted without losing an explicit responsive reset', () => {
@@ -126,7 +106,7 @@ test('snap mutations do not mutate nested authored anchors or accumulate save no
   }
 });
 
-test('PHP and JavaScript compact the same schema, including fractional layers and free frames', () => {
+test('PHP and JavaScript compact the same schema, discarding layer overrides and retaining free frames', () => {
   const cases=[{}, ...[{left:'wide'}, {right:'canvas'}, {left:'wide',right:18}, {left:5,right:'wide'}].map(anchors=>({desktop:{...desktop,free:preciseFree,anchors}})), {desktop:{...desktop,anchorOffsets:{right:3,bottom:2.375}}}, {desktop:{rowSpan:3,anchors:{top:0,bottom:3}}}, {fill:false,shape:'none',layers:{},mobile:{}}, {fill:true,layers:{desktop:1.5,tablet:-.5},desktop:{...desktop,rotation:360,frameRatio:1.0184275607717435,anchors:{left:5,right:'wide',top:2,bottom:15}}},
     {group:1,order:2,offset:{mobile:{x:.123456789,y:1.75}},desktop:{...desktop,free:{x:.123456789,y:1.123456789,width:.333333333,ratio:1.123456789},anchors:{left:-2,right:25,top:'after:0',bottom:'canvas'}}},
     ...['desktop', 'tablet', 'mobile'].flatMap(mode => [
@@ -141,7 +121,7 @@ test('PHP and JavaScript compact the same schema, including fractional layers an
   for(const value of cases) for(const [mode,p] of Object.entries(compactCanvas(value)).filter(([key])=>['desktop','tablet','mobile'].includes(key))) assert.deepEqual(serializePlacement(p,mode),p);
 });
 
-for (const groupLayers of [undefined, {desktop: 0}, {desktop: 0, tablet: 4}, {desktop: 0, tablet: 4, mobile: -1}]) test(`PHP paint ranks match inherited and explicit group layers ${JSON.stringify(groupLayers)}`, async () => {
+for (const groupLayers of [undefined, {desktop: 0}, {desktop: 0, tablet: 4}, {desktop: 0, tablet: 4, mobile: -1}]) test(`PHP paint ranks match source order regardless of removed group overrides ${JSON.stringify(groupLayers)}`, async () => {
   const {resolveCanvasLayouts,paintLayers}=await import('../src/canvas-groups.mjs');
   const a=block({desktop,layers:{desktop:-.5,mobile:9},order:0},'a');
   const b=block({desktop,layers:{desktop:2.5,mobile:1},order:1},'b');

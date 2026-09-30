@@ -308,7 +308,7 @@ function validate_layout( $layout ) {
 	if ( ! is_array( $layout ) ) {
 		return failure( 'canvas must be an object.' );
 	}
-	$known = array( 'desktop', 'tablet', 'mobile', 'layers', 'fill', 'shape', 'shapeStretch', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
+	$known = array( 'desktop', 'tablet', 'mobile', 'fill', 'shape', 'shapeStretch', 'verticalAlign', 'imagePosition', 'aspectRatio', 'group', 'offset', 'order' );
 	foreach ( $layout as $key => $value ) {
 		if ( ! in_array( $key, $known, true ) ) {
 			return failure( "Unknown canvas field: $key" );
@@ -362,16 +362,6 @@ function validate_layout( $layout ) {
 	}
 	if ( array_key_exists( 'fill', $layout ) && ! is_bool( $layout['fill'] ) ) {
 		return failure( 'canvas.fill must be a boolean.' );
-	}
-	if ( isset( $layout['layers'] ) ) {
-		if ( ! is_array( $layout['layers'] ) ) {
-			return failure( 'canvas.layers must be an object.' );
-		}
-		foreach ( $layout['layers'] as $mode => $layer ) {
-			if ( ! in_array( $mode, array( 'desktop', 'tablet', 'mobile' ), true ) || ! ( is_int( $layer ) || is_float( $layer ) ) || ! is_finite( $layer ) ) {
-				return failure( 'canvas.layers requires finite numbers keyed by viewport.' );
-			}
-		}
 	}
 	foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
 		if ( ! isset( $layout[ $mode ] ) ) {

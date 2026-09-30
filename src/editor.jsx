@@ -61,7 +61,6 @@ import {
 	minimumSpans,
 	normalizePlacement,
 	nudge,
-	reorderLayer,
 	requiredRows,
 	savePlacement,
 } from './geometry.mjs';
@@ -85,7 +84,8 @@ import {
 } from './canvas-overlays';
 import { ItemMenu, ItemLayerMenu } from './item-controls';
 import { CanvasMenu } from './canvas-menu';
-import { ArrangeBlocksMenu } from './arrange-blocks-menu';
+import { useCanvasOrder } from './use-canvas-order';
+import { reorderBlocks } from './block-order.mjs';
 import { CanvasContext, CanvasPreviewContext } from './editor-context';
 import { owningGridItem } from './drop-layout.mjs';
 import {
@@ -140,6 +140,7 @@ export default function Edit( {
 	);
 	const registry = useRegistry();
 	useContainerSettings( clientId, registry );
+	useCanvasOrder( clientId, registry );
 	const {
 		updateBlockAttributes,
 		updateBlock,
@@ -628,42 +629,16 @@ export default function Edit( {
 			if ( ! canMoveSelection( store, ids, clientId ) ) {
 				return;
 			}
-			const siblings = Object.fromEntries(
-				Object.entries( layouts ).filter(
-					( [ key ] ) =>
-						store.getBlockRootClientId( key ) ===
-						store.getBlockRootClientId( ids[ 0 ] )
-				)
-			);
-			const next = reorderLayer( siblings, selection, mode, direction );
-			if ( next === siblings ) {
-				return;
+			const parent = store.getBlockRootClientId( ids[ 0 ] );
+			const siblings = store.getBlocks( parent );
+			const next = reorderBlocks( siblings, ids, direction );
+			if ( next !== siblings ) {
+				registry
+					.dispatch( blockEditorStore )
+					.replaceInnerBlocks( parent, next, false );
 			}
-			const updates = Object.fromEntries(
-				Object.keys( next )
-					.filter(
-						( key ) =>
-							next[ key ][ mode ].layer !==
-							layouts[ key ][ mode ].layer
-					)
-					.map( ( key ) => [
-						key,
-						{
-							[ ATTRIBUTE ]: {
-								...store.getBlockAttributes( key )[ ATTRIBUTE ],
-								layers: {
-									...store.getBlockAttributes( key )[
-										ATTRIBUTE
-									]?.layers,
-									[ mode ]: next[ key ][ mode ].layer,
-								},
-							},
-						},
-					] )
-			);
-			commitUpdates( updates );
 		},
-		[ layouts, mode, commitUpdates, registry, clientId ]
+		[ registry, clientId ]
 	);
 	const changeFill = useCallback(
 		( id, fill ) => {
@@ -1520,27 +1495,9 @@ export default function Edit( {
 						selectedClientIds?.length === 1
 							? selectedClientIds[ 0 ]
 							: null;
-					if ( canEdit && id === clientId ) {
-						return (
-							<>
-								<ArrangeBlocksMenu
-									clientId={ clientId }
-									registry={ registry }
-									gridRef={ gridRef }
-									mode={ mode }
-									onClose={ onClose }
-								/>
-								<GridModeMenu
-									cells={ cells }
-									setAttributes={ setAttributes }
-									onClose={ onClose }
-								/>
-							</>
-						);
-					}
 					// The regular slot identifies the actual menu target, including List View.
 					// The first-item slot supplies placement without exposing that target.
-					return canEdit && layouts[ id ] ? (
+					return canEdit && id !== clientId && layouts[ id ] ? (
 						<BlockSettingsMenuFirstItem>
 							<ItemLayerMenu
 								clientId={ id }
@@ -1581,14 +1538,6 @@ export default function Edit( {
 						}
 						onClose={ closeContextMenu }
 					>
-						<ArrangeBlocksMenu
-							clientId={ clientId }
-							registry={ registry }
-							gridRef={ gridRef }
-							mode={ mode }
-							onClose={ closeContextMenu }
-							contextMenu
-						/>
 						<GridModeMenu
 							cells={ cells }
 							setAttributes={ setAttributes }

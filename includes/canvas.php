@@ -387,52 +387,15 @@ function image_position( $value ) {
  * @return array Per-block layer ranks keyed by viewport.
  */
 function canvas_paint_layers( $blocks ) {
-	$leaves   = array();
+	$ranks    = array();
 	$is_group = static fn( $block ) => 'core/group' === $block->name && 1 === ( $block->attributes[ ATTRIBUTE ]['group'] ?? null );
-	$collect  = function ( $siblings ) use ( &$collect, &$leaves, $is_group ) {
+	$rank     = function ( $siblings ) use ( &$rank, &$ranks, $is_group ) {
+		$index = 0;
 		foreach ( $siblings as $block ) {
-			if ( $is_group( $block ) ) {
-				$collect( $block->inner_blocks );
-			} else {
-				$leaves[] = $block;
-			}
-		}
-	};
-	$collect( $blocks );
-	usort( $leaves, static fn( $a, $b ) => ( $a->attributes[ ATTRIBUTE ]['order'] ?? INF ) <=> ( $b->attributes[ ATTRIBUTE ]['order'] ?? INF ) );
-	$defaults = array();
-	foreach ( $leaves as $index => $leaf ) {
-		$defaults[ spl_object_id( $leaf ) ] = $index + 1;
-	}
-	$values  = array();
-	$resolve = function ( $siblings ) use ( &$resolve, &$values, $defaults, $is_group ) {
-		foreach ( $siblings as $block ) {
-			if ( $is_group( $block ) ) {
-				$resolve( $block->inner_blocks );
-			}
+			++$index;
 			foreach ( array_keys( GRID_COLUMNS ) as $mode ) {
-				$children = array();
-				if ( $is_group( $block ) ) {
-					foreach ( $block->inner_blocks as $child ) {
-						$children[] = $values[ spl_object_id( $child ) ][ $mode ];
-					}
-				}
-				$layers                                     = $block->attributes[ ATTRIBUTE ]['layers'] ?? array();
-				$values[ spl_object_id( $block ) ][ $mode ] = $layers[ $mode ] ?? ( 'mobile' === $mode ? ( $layers['tablet'] ?? null ) : null ) ?? $layers['desktop'] ?? ( $is_group( $block ) ? max( array_merge( array( 1 ), $children ) ) : $defaults[ spl_object_id( $block ) ] );
+				$ranks[ spl_object_id( $block ) ][ $mode ] = $index;
 			}
-		}
-	};
-	$resolve( $blocks );
-	$ranks = array();
-	$rank  = function ( $siblings ) use ( &$rank, &$ranks, $values, $is_group ) {
-		foreach ( array_keys( GRID_COLUMNS ) as $mode ) {
-			$ordered = is_array( $siblings ) ? $siblings : iterator_to_array( $siblings );
-			usort( $ordered, static fn( $a, $b ) => $values[ spl_object_id( $a ) ][ $mode ] <=> $values[ spl_object_id( $b ) ][ $mode ] );
-			foreach ( $ordered as $index => $block ) {
-				$ranks[ spl_object_id( $block ) ][ $mode ] = $index + 1;
-			}
-		}
-		foreach ( $siblings as $block ) {
 			if ( $is_group( $block ) ) {
 				$rank( $block->inner_blocks );
 			}

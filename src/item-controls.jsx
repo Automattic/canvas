@@ -161,8 +161,6 @@ addFilter(
 export function ItemLayerMenu( {
 	clientId,
 	clientIds,
-	layouts,
-	mode,
 	layer,
 	onClose,
 	contextMenu = false,
@@ -188,15 +186,16 @@ export function ItemLayerMenu( {
 		},
 		[ clientId, clientIds ]
 	);
-	const ids = Object.keys( layouts )
-		.filter(
-			( id ) =>
-				layouts[ id ].parents?.at( -1 ) ===
-				layouts[ selected[ 0 ] ]?.parents?.at( -1 )
-		)
-		.sort(
-			( a, b ) => layouts[ a ][ mode ].layer - layouts[ b ][ mode ].layer
-		);
+	const firstSelected = selected[ 0 ];
+	const ids = useSelect(
+		( select ) => {
+			const store = select( blockEditorStore );
+			return store.getBlockOrder(
+				store.getBlockRootClientId( firstSelected )
+			);
+		},
+		[ firstSelected ]
+	);
 	const count = selected.length;
 	const Item = contextMenu ? Menu.Item : MenuItem;
 	return (

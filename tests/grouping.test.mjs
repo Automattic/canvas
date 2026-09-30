@@ -53,7 +53,7 @@ test('ungrouping native flow content grows the canvas and preserves button minim
   assert.ok(mapped.columnSpan >= 4);
   assert.ok(mapped.rowSpan >= 2);
   const released = releasedLayout(saved, 'mobile');
-  assert.deepEqual(Object.keys(released), ['layers', 'desktop', 'mobile']);
+  assert.deepEqual(Object.keys(released), ['desktop', 'mobile']);
   assert.equal(released.desktop.gridColumns, 24);
   assert.equal(released.mobile.gridColumns, 12);
   assert.equal(JSON.stringify(released).includes('_rect'), false);

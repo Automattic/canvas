@@ -26,7 +26,7 @@ test('placement validation accepts wide anchors and rejects grid overflow and in
  assert.deepEqual(results,[true,false,true,false,false,false,false,true,false,false,true,false,false,false]);
 });
 
-test('authoring validates only the new nested schema and independent finite layer values', () => {
+test('authoring rejects independent layer overrides', () => {
  const results=php(`echo json_encode(array_map(function($layout){return true===PlaygroundPlugin\\Abilities\\validate_layout($layout);},[
  ['fill'=>true,'layers'=>['desktop'=>1.5,'mobile'=>-0.5]], ['fill'=>false],
  ['fill'=>'true'], ['layers'=>['phone'=>1]], ['layers'=>['desktop'=>'2']], ['layers'=>['mobile'=>INF]],
@@ -35,7 +35,7 @@ test('authoring validates only the new nested schema and independent finite laye
  ['desktop'=>['anchors'=>['middle'=>1]]], ['desktop'=>['anchors'=>'wide']],
  ['desktop'=>['layer'=>1]], ['desktop'=>['edgeLeft'=>'wide']], ['textFit'=>true]
 ]));`);
- assert.deepEqual(results,[true,true,false,false,false,false,true,false,false,false,false,false,false,false]);
+ assert.deepEqual(results,[false,true,false,false,false,false,true,false,false,false,false,false,false,false]);
 });
 
 test('precise frames reject every removed vertical pinning mode', () => {

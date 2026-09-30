@@ -84,16 +84,6 @@ function compact_canvas( $value ) {
 	if ( isset( $value['fill'] ) && is_bool( $value['fill'] ) ) {
 		$result['fill'] = $value['fill'];
 	}
-	$layers = array();
-	foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
-		$layer = ( (array) ( $value['layers'] ?? array() ) )[ $mode ] ?? null;
-		if ( ( is_int( $layer ) || is_float( $layer ) ) && is_finite( $layer ) ) {
-			$layers[ $mode ] = $layer;
-		}
-	}
-	if ( $layers ) {
-		$result['layers'] = (object) $layers;
-	}
 	foreach ( array( 'desktop', 'tablet', 'mobile' ) as $mode ) {
 		if ( isset( $value[ $mode ] ) && ( is_array( $value[ $mode ] ) || is_object( $value[ $mode ] ) ) ) {
 			$result[ $mode ] = serialize_placement( $value[ $mode ], $mode );

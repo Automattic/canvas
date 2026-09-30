@@ -248,7 +248,7 @@ export function ContainerActions( {
 				: canvasBlocks( orderedRoots ).find(
 						( block ) => block.clientId === status.parent
 					).innerBlocks;
-		const { siblings, layers } = prepareCanvasGroup(
+		const { siblings } = prepareCanvasGroup(
 			orderedSiblings,
 			status.ids,
 			status.layouts
@@ -272,7 +272,6 @@ export function ContainerActions( {
 				allowedBlocks: [ ...ALLOWED_BLOCKS, 'core/group' ],
 				[ ATTRIBUTE ]: {
 					group: 1,
-					layers,
 				},
 			},
 			children
@@ -354,8 +353,7 @@ export function ContainerActions( {
 					},
 					mode,
 					geometry,
-					( group.attributes[ ATTRIBUTE ]?.layers?.[ mode ] ?? 1 ) +
-						index,
+					index + 1,
 					minimumSpans( child.name )
 				);
 				return {

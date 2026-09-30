@@ -13,7 +13,7 @@ function canvas_demo_block( $name, $attrs, $html = '', $children = array(), $chu
 }
 function canvas_demo_layout( $desktop, $mobile ) {
 	$keys = array( 'column', 'row', 'columnSpan', 'rowSpan' );
-	return array( 'canvas' => array( 'layers' => array( 'desktop' => $desktop[4], 'tablet' => $desktop[4], 'mobile' => $mobile[4] ), 'desktop' => array_merge( array( 'gridColumns' => 24 ), array_combine( $keys, array_slice( $desktop, 0, 4 ) ) ), 'mobile' => array_merge( array( 'gridColumns' => 8 ), array_combine( $keys, array_slice( $mobile, 0, 4 ) ) ) ) );
+	return array( 'canvas' => array( 'desktop' => array_merge( array( 'gridColumns' => 24 ), array_combine( $keys, array_slice( $desktop, 0, 4 ) ) ), 'mobile' => array_merge( array( 'gridColumns' => 8 ), array_combine( $keys, array_slice( $mobile, 0, 4 ) ) ) ) );
 }
 
 $media = array();

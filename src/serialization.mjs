@@ -116,14 +116,6 @@ export function compactCanvas( value = {} ) {
 	if ( typeof value.fill === 'boolean' ) {
 		result.fill = value.fill;
 	}
-	const layers = Object.fromEntries(
-		Object.keys( COLUMNS )
-			.filter( ( mode ) => Number.isFinite( value.layers?.[ mode ] ) )
-			.map( ( mode ) => [ mode, value.layers[ mode ] ] )
-	);
-	if ( Object.keys( layers ).length ) {
-		result.layers = layers;
-	}
 	for ( const mode of Object.keys( COLUMNS ) ) {
 		const placement = serializePlacement( value[ mode ] );
 		if ( placement ) {

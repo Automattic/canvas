@@ -624,16 +624,15 @@ export function observeCanvasLayout( grid, onChange ) {
 			nodes.forEach( ( item ) =>
 				item.removeAttribute( 'data-canvas-frame' )
 			);
+			const ranks = paintLayers( blocks );
 			for ( const viewport of Object.keys( COLUMNS ) ) {
-				items
-					.map( ( item, index ) => ( {
-						item,
-						layer: layouts[ index ][ viewport ].layer,
-					} ) )
-					.sort( ( a, b ) => a.layer - b.layer )
-					.forEach( ( { item }, index ) =>
-						set( item, `--canvas-${ viewport }-layer`, index + 1 )
+				for ( const [ id, rank ] of Object.entries( ranks ) ) {
+					set(
+						elements.get( id ),
+						`--canvas-${ viewport }-layer`,
+						rank
 					);
+				}
 			}
 		}
 		paintImageShapes( grid, set );

@@ -10,7 +10,7 @@ import {
 	mapCanvasPlacement,
 	savedCanvasPlacement,
 } from './canvas-geometry.mjs';
-import { layerAt, resolveLayouts } from './geometry.mjs';
+import { resolveLayouts } from './geometry.mjs';
 import { freeFrameFromRect } from './aspect-ratio.mjs';
 
 export const isCanvasGroup = ( block ) =>
@@ -105,6 +105,7 @@ export function resolveCanvasLayouts(
 	flat = resolveLayouts( layoutLeaves( blocks ), geometry )
 ) {
 	const result = {};
+	const ranks = paintLayers( blocks );
 	const visit = ( block, parents, inherited ) => {
 		const saved = block.attributes?.[ ATTRIBUTE ] || {};
 		const group = isCanvasGroup( block );
@@ -126,7 +127,10 @@ export function resolveCanvasLayouts(
 		for ( const mode of Object.keys( COLUMNS ) ) {
 			const g = geometry[ mode ];
 			if ( ! g?.canvas ) {
-				layout[ mode ] ||= normalizePlacement( {}, mode );
+				layout[ mode ] = {
+					...( layout[ mode ] || normalizePlacement( {}, mode ) ),
+					layer: ranks[ block.clientId ],
+				};
 				continue;
 			}
 			const offset = translations[ mode ];
@@ -140,9 +144,7 @@ export function resolveCanvasLayouts(
 					),
 					g.groupInsets?.[ block.clientId ]
 				);
-				const layer =
-					layerAt( saved, mode ) ??
-					Math.max( 1, ...children.map( ( p ) => p.layer ) );
+				const layer = ranks[ block.clientId ];
 				layout[ mode ] = exactPlacement( rect, mode, g, {
 					layer,
 					gridColumns: g.gridColumns,
@@ -162,16 +164,14 @@ export function resolveCanvasLayouts(
 					);
 				}
 			}
-			if ( Number.isFinite( layerAt( saved, mode ) ) ) {
-				layout[ mode ] = {
-					...layout[ mode ],
-					layer: layerAt( saved, mode ),
-					_base: {
-						...layout[ mode ]._base,
-						layer: layerAt( saved, mode ),
-					},
-				};
-			}
+			layout[ mode ] = {
+				...layout[ mode ],
+				layer: ranks[ block.clientId ],
+				_base: {
+					...layout[ mode ]._base,
+					layer: ranks[ block.clientId ],
+				},
+			};
 			layout[ mode ]._offset = offset;
 		}
 		result[ block.clientId ] = layout;
@@ -268,95 +268,43 @@ export function releaseCanvasGroup( group ) {
 		},
 	} ) );
 }
-// Group at the frontmost selected layer in each viewport. Rank siblings first
-// so equal source layers retain their paint order when the group replaces the
-// first selected block in reading order. Overlapping children stay editable.
-export function prepareCanvasGroup( siblings, ids, layouts ) {
-	const layers = {};
-	const ranked = {};
-	for ( const mode of Object.keys( COLUMNS ) ) {
-		ranked[ mode ] = paintLayers( siblings, layouts, mode );
-		layers[ mode ] = Math.max(
-			1,
-			...ids.map( ( id ) => ranked[ mode ][ id ] || 1 )
-		);
-	}
+// Replace the frontmost selected sibling with the group, retaining child order.
+export function prepareCanvasGroup( siblings, ids ) {
+	const last = siblings.findLastIndex( ( block ) =>
+		ids.includes( block.clientId )
+	);
+	const selected = siblings.filter( ( block ) =>
+		ids.includes( block.clientId )
+	);
 	return {
-		layers,
-		siblings: siblings.map( ( block ) => ( {
-			...block,
-			attributes: {
-				...block.attributes,
-				[ ATTRIBUTE ]: compactCanvas( {
-					...block.attributes[ ATTRIBUTE ],
-					layers: Object.fromEntries(
-						Object.keys( COLUMNS ).map( ( mode ) => [
-							mode,
-							ranked[ mode ][ block.clientId ],
-						] )
-					),
-				} ),
-			},
-		} ) ),
+		siblings: siblings.flatMap( ( block, index ) => {
+			if ( index === last ) {
+				return selected;
+			}
+			return ids.includes( block.clientId ) ? [] : [ block ];
+		} ),
 	};
 }
 
-// Authored layers can be fractional. CSS z-index only accepts integers, so
-// render a stable rank within each parent.
-export function paintLayers( blocks, layouts, mode ) {
+// Later siblings paint in front at every viewport. Groups form stacking contexts.
+export function paintLayers( blocks ) {
 	const layers = {};
 	const visit = ( siblings ) => {
-		[ ...siblings ]
-			.sort(
-				( a, b ) =>
-					layouts[ a.clientId ][ mode ].layer -
-					layouts[ b.clientId ][ mode ].layer
-			)
-			.forEach( ( block, index ) => {
-				layers[ block.clientId ] = index + 1;
-			} );
-		siblings
-			.filter( isCanvasGroup )
-			.forEach( ( block ) => visit( block.innerBlocks ) );
+		siblings.forEach( ( block, index ) => {
+			layers[ block.clientId ] = index + 1;
+			if ( isCanvasGroup( block ) ) {
+				visit( block.innerBlocks );
+			}
+		} );
 	};
 	visit( blocks );
 	return layers;
 }
 
-export function releaseGroupSiblings( siblings, id, layouts ) {
+export function releaseGroupSiblings( siblings, id ) {
 	const group = siblings.find( ( block ) => block.clientId === id );
 	const children = releaseCanvasGroup( group );
-	const result = siblings.flatMap( ( block ) =>
+	return siblings.flatMap( ( block ) =>
 		block === group ? children : [ block ]
 	);
-	const layers = new Map(
-		result.map( ( block ) => [
-			block.clientId,
-			{ ...block.attributes[ ATTRIBUTE ]?.layers },
-		] )
-	);
-	for ( const mode of Object.keys( COLUMNS ) ) {
-		const sort = ( blocks ) =>
-			[ ...blocks ].sort(
-				( a, b ) =>
-					layouts[ a.clientId ][ mode ].layer -
-					layouts[ b.clientId ][ mode ].layer
-			);
-		const order = sort( siblings ).flatMap( ( block ) =>
-			block === group ? sort( children ) : [ block ]
-		);
-		order.forEach( ( block, index ) => {
-			layers.get( block.clientId )[ mode ] = index + 1;
-		} );
-	}
-	return result.map( ( block ) => ( {
-		...block,
-		attributes: {
-			...block.attributes,
-			[ ATTRIBUTE ]: compactCanvas( {
-				...block.attributes[ ATTRIBUTE ],
-				layers: layers.get( block.clientId ),
-			} ),
-		},
-	} ) );
 }

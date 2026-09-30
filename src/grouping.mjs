@@ -96,9 +96,6 @@ export function rectanglePlacement( rect, mode, geometry, layer = 1, minimum ) {
 }
 export function releasedLayout( placement, mode ) {
 	return compactCanvas( {
-		layers: {
-			[ mode ]: placement.layer,
-		},
 		desktop:
 			mode === 'desktop'
 				? placement
