@@ -117,6 +117,7 @@ import {
 import { CanvasPatternAfter, CanvasPatternInserter } from './canvas-patterns';
 import { RadiusHandle } from './radius-control';
 import { useCanvasGap } from './use-canvas-gap';
+import { editablePatternMetadata } from './pattern-insertion.mjs';
 export default function Edit( {
 	clientId,
 	attributes,
@@ -160,6 +161,19 @@ export default function Edit( {
 		selectBlock,
 		__unstableMarkNextChangeAsNotPersistent,
 	} = useDispatch( blockEditorStore );
+	// Core's main inserter adds patternName after parsing. Normalize it here
+	// as well as in Canvas's pickers, without an extra undo step.
+	useEffect( () => {
+		const metadata = editablePatternMetadata( attributes.metadata );
+		if ( metadata !== attributes.metadata ) {
+			__unstableMarkNextChangeAsNotPersistent();
+			setAttributes( { metadata } );
+		}
+	}, [
+		attributes.metadata,
+		setAttributes,
+		__unstableMarkNextChangeAsNotPersistent,
+	] );
 	// UPDATE_BLOCK creates a distinct public history change. Attribute-only
 	// actions coalesce successive changes to the same keys, even across drags.
 	// Batch layer swaps into one notification/undo step.

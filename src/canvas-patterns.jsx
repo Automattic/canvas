@@ -10,6 +10,7 @@ import {
 import { Button, Modal, Toolbar, ToolbarButton } from '@wordpress/components';
 import { BLOCK_NAME } from './placement.mjs';
 import { PATTERN_ICON } from './canvas-inserter-icon';
+import { editablePatternBlocks } from './pattern-insertion.mjs';
 
 // Categories and blockTypes can also describe mixed or wrapped content.
 function isCanvasPattern( pattern ) {
@@ -91,6 +92,7 @@ function CanvasPatternGrid( { clientId, onSelect } ) {
 
 export function CanvasPatternInserter( { clientId, placeholder = false } ) {
 	const [ isOpen, setIsOpen ] = useState( false );
+	const { replaceBlocks } = useDispatch( blockEditorStore );
 	const canReplace = useSelect(
 		( select ) => {
 			const store = select( blockEditorStore );
@@ -141,7 +143,18 @@ export function CanvasPatternInserter( { clientId, placeholder = false } ) {
 					onRequestClose={ () => setIsOpen( false ) }
 					isFullScreen
 				>
-					<CanvasPatternGrid clientId={ clientId } />
+					<CanvasPatternGrid
+						clientId={ clientId }
+						onSelect={ ( blocks ) => {
+							setIsOpen( false );
+							replaceBlocks(
+								clientId,
+								editablePatternBlocks( blocks ).map(
+									( block ) => cloneBlock( block )
+								)
+							);
+						} }
+					/>
 				</Modal>
 			) }
 		</>
@@ -178,7 +191,9 @@ export function CanvasPatternAfter( { clientId } ) {
 		}
 		setIsOpen( false );
 		insertBlocks(
-			blocks.map( ( block ) => cloneBlock( block ) ),
+			editablePatternBlocks( blocks ).map( ( block ) =>
+				cloneBlock( block )
+			),
 			index + 1,
 			rootClientId,
 			true
