@@ -492,6 +492,9 @@ export function layoutVariables( layout ) {
 			vars[ `--canvas-${ mode }-${ key }` ] = value;
 		}
 		vars[ `--canvas-${ mode }-layer` ] = layout[ mode ].layer;
+		vars[ `--canvas-${ mode }-rotate` ] = layout[ mode ].rotation
+			? `${ layout[ mode ].rotation }deg`
+			: 'none';
 	}
 	return vars;
 }

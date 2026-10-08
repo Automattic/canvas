@@ -10,7 +10,115 @@ namespace PlaygroundPlugin\Abilities;
 defined( 'ABSPATH' ) || exit;
 
 const VERSION = 1;
-const BLOCKS  = array( 'tabor/canvas', 'core/group', 'core/heading', 'core/paragraph', 'core/image', 'core/video', 'core/buttons', 'core/button' );
+const BLOCKS  = array(
+	'tabor/canvas',
+	'core/group',
+	'core/heading',
+	'core/paragraph',
+	'core/image',
+	'core/video',
+	'core/buttons',
+	'core/button',
+	'core/site-logo',
+	'core/site-title',
+	'core/navigation',
+	'core/navigation-link',
+	'core/navigation-submenu',
+	'core/home-link',
+	'core/page-list',
+	'core/post-title',
+	'core/post-featured-image',
+	'core/post-excerpt',
+	'core/post-content',
+	'core/post-date',
+	'core/post-terms',
+	'core/post-author',
+	'core/post-author-name',
+	'core/post-author-biography',
+	'core/query-title',
+	'core/term-description',
+	'core/query',
+	'core/post-template',
+	'core/query-no-results',
+	'core/query-pagination',
+	'core/query-pagination-previous',
+	'core/query-pagination-numbers',
+	'core/query-pagination-next',
+	'core/search',
+	'core/template-part',
+	'core/comments',
+	'core/post-comments-form',
+	'core/comments-title',
+	'core/comment-template',
+	'core/comment-content',
+	'core/comment-author-name',
+	'core/comment-date',
+	'core/comment-reply-link',
+	'core/comment-edit-link',
+	'core/avatar',
+	'core/comments-pagination',
+	'core/comments-pagination-previous',
+	'core/comments-pagination-numbers',
+	'core/comments-pagination-next',
+	'core/accordion',
+	'core/accordion-item',
+	'core/accordion-heading',
+	'core/accordion-panel',
+	'core/archives',
+	'core/audio',
+	'core/breadcrumbs',
+	'core/calendar',
+	'core/categories',
+	'core/code',
+	'core/columns',
+	'core/column',
+	'core/cover',
+	'core/details',
+	'core/embed',
+	'core/file',
+	'core/footnotes',
+	'core/freeform',
+	'core/gallery',
+	'core/html',
+	'core/icon',
+	'core/latest-comments',
+	'core/latest-posts',
+	'core/list',
+	'core/list-item',
+	'core/loginout',
+	'core/math',
+	'core/media-text',
+	'core/navigation-overlay-close',
+	'core/playlist',
+	'core/playlist-track',
+	'core/post-comments-count',
+	'core/post-comments-link',
+	'core/post-navigation-link',
+	'core/post-time-to-read',
+	'core/preformatted',
+	'core/pullquote',
+	'core/query-total',
+	'core/quote',
+	'core/read-more',
+	'core/rss',
+	'core/separator',
+	'core/site-tagline',
+	'core/social-links',
+	'core/social-link',
+	'core/spacer',
+	'core/table',
+	'core/tabs',
+	'core/tab-list',
+	'core/tab-panels',
+	'core/tab-panel',
+	'core/tag-cloud',
+	'core/term-count',
+	'core/term-name',
+	'core/term-template',
+	'core/terms-query',
+	'core/verse',
+	'core/widget-group',
+);
 
 /**
  * Create a structured authoring error with an HTTP status.
@@ -126,8 +234,59 @@ function register() {
 			),
 		),
 	);
+	// Add destination selectors without changing the legacy page contract.
+	$destination = array(
+		'post_id'       => array(
+			'type'        => 'integer',
+			'minimum'     => 1,
+			'description' => 'Saved post or page ID.',
+		),
+		'template_id'   => array(
+			'type'        => 'string',
+			'pattern'     => '^[^/]+//[^/]+$',
+			'description' => 'Effective template identity, theme//slug, from get-site-structure.',
+		),
+		'template_type' => array(
+			'type'        => 'string',
+			'enum'        => array( 'wp_template', 'wp_template_part' ),
+			'description' => 'Defaults to wp_template when template_id is provided.',
+		),
+	);
+	foreach ( array( 'get-context', 'get-sections', 'insert-sections', 'update-section' ) as $operation ) {
+		$specs[ $operation ][1]['properties'] = array_merge( $specs[ $operation ][1]['properties'], $destination );
+		$specs[ $operation ][1]['required']   = array_values( array_diff( $specs[ $operation ][1]['required'], array( 'page_id' ) ) );
+		$specs[ $operation ][0]               = str_replace( array( 'page', 'Published pages' ), array( 'document', 'Published documents' ), $specs[ $operation ][0] );
+	}
+	$specs['create-post']        = $specs['create-page'];
+	$specs['create-post'][0]     = 'Create a post of Canvas sections. Publishes by default; use status draft to save a draft.';
+	$specs['get-site-structure'] = array( 'Discover effective templates, shared template parts, and content search endpoints.', schema( array() ) );
+	$specs['create-template']    = array(
+		'Create a missing template or shared template part in the active theme. Does not replace existing effective templates.',
+		schema(
+			array(
+				'title'         => array(
+					'type'      => 'string',
+					'minLength' => 1,
+					'maxLength' => 200,
+				),
+				'slug'          => array(
+					'type'      => 'string',
+					'pattern'   => '^[a-z0-9][a-z0-9-]*$',
+					'maxLength' => 200,
+				),
+				'template_type' => $destination['template_type'],
+				'area'          => array(
+					'type'    => 'string',
+					'enum'    => array( 'header', 'footer', 'uncategorized' ),
+					'default' => 'uncategorized',
+				),
+				'markup'        => $markup,
+			),
+			array( 'title', 'slug', 'markup' )
+		),
+	);
 	foreach ( $specs as $name => $spec ) {
-		$write = in_array( $name, array( 'create-page', 'insert-sections', 'update-section' ), true );
+		$write = in_array( $name, array( 'create-page', 'create-post', 'create-template', 'insert-sections', 'update-section' ), true );
 		wp_register_ability(
 			'canvas/' . $name,
 			array(
@@ -176,16 +335,122 @@ add_action( 'wp_abilities_api_init', __NAMESPACE__ . '\\register' );
  * @return bool Whether the operation is allowed.
  */
 function permission( $name, $input ) {
-	if ( ! current_user_can( 'edit_pages' ) ) {
-		return false;
+	if ( isset( $input['template_id'] ) || in_array( $name, array( 'get-site-structure', 'create-template' ), true ) ) {
+		return current_user_can( 'edit_theme_options' );
 	}
-	if ( isset( $input['page_id'] ) ) {
-		$page = get_post( $input['page_id'] );
-		if ( ! $page || 'page' !== $page->post_type || ! current_user_can( 'edit_post', $page->ID ) ) {
-			return false;
+	if ( isset( $input['page_id'] ) || isset( $input['post_id'] ) ) {
+		$post = get_post( $input['page_id'] ?? $input['post_id'] );
+		return $post && in_array( $post->post_type, array( 'post', 'page' ), true ) && ( ! isset( $input['page_id'] ) || 'page' === $post->post_type ) && current_user_can( 'edit_post', $post->ID );
+	}
+	if ( 'create-page' === $name || 'create-post' === $name ) {
+		$type = get_post_type_object( 'create-page' === $name ? 'page' : 'post' );
+		return current_user_can( $type->cap->create_posts ) && ( 'draft' === ( $input['status'] ?? 'publish' ) || current_user_can( $type->cap->publish_posts ) );
+	}
+	return current_user_can( 'edit_posts' ) || current_user_can( 'edit_pages' ) || current_user_can( 'edit_theme_options' );
+}
+
+/**
+ * Resolve exactly one saved document or effective template destination.
+ *
+ * @param array $input Destination selectors.
+ * @return \WP_Post|\WP_Error Resolved document.
+ */
+function destination( $input ) {
+	$selectors = array_intersect( array( 'page_id', 'post_id', 'template_id' ), array_keys( $input ) );
+	if ( 1 !== count( $selectors ) || ( isset( $input['template_type'] ) && ! isset( $input['template_id'] ) ) ) {
+		return failure( 'Provide exactly one of page_id, post_id, or template_id.' );
+	}
+	if ( isset( $input['template_id'] ) ) {
+		$type = $input['template_type'] ?? 'wp_template';
+		if ( ! in_array( $type, array( 'wp_template', 'wp_template_part' ), true ) || ! is_string( $input['template_id'] ) || ! preg_match( '#^[^/]+//[^/]+$#', $input['template_id'] ) ) {
+			return failure( 'Select a valid template identity and type.' );
+		}
+		$template = get_block_template( $input['template_id'], $type );
+		if ( ! $template || get_stylesheet() !== $template->theme ) {
+			return failure( 'Select an effective template from the active theme.', 'canvas_document_not_found', 404 );
+		}
+		$post = new \WP_Post(
+			(object) array(
+				'ID'                => $template->wp_id ?? 0,
+				'post_type'         => $type,
+				'post_title'        => $template->title,
+				'post_content'      => $template->content,
+				'post_status'       => $template->status ?? 'publish',
+				'post_modified_gmt' => '',
+				'post_name'         => $template->slug,
+			)
+		);
+		if ( $post->ID ) {
+			$post = get_post( $post->ID );
+		}
+		$post->canvas_template = $template;
+		return $post;
+	}
+	$post = get_post( $input['page_id'] ?? $input['post_id'] );
+	if ( ! $post || ! in_array( $post->post_type, array( 'post', 'page' ), true ) || ( isset( $input['page_id'] ) && 'page' !== $post->post_type ) || in_array( $post->post_status, array( 'trash', 'auto-draft' ), true ) ) {
+		return failure( 'Select an existing post or page.', 'canvas_document_not_found', 404 );
+	}
+	return $post;
+}
+
+/**
+ * Discover the active theme's effective templates and shared parts.
+ *
+ * @return array Site editing destinations.
+ */
+function site_structure() {
+	$result = array(
+		'schema_version'     => VERSION,
+		'theme'              => get_stylesheet(),
+		'templates'          => array(),
+		'template_parts'     => array(),
+		'post_search_url'    => rest_url( 'wp/v2/posts?context=edit&search=' ),
+		'page_search_url'    => rest_url( 'wp/v2/pages?context=edit&search=' ),
+		'templates_url'      => rest_url( 'wp/v2/templates?context=edit' ),
+		'template_parts_url' => rest_url( 'wp/v2/template-parts?context=edit' ),
+		'navigation_url'     => rest_url( 'wp/v2/navigation?context=edit' ),
+	);
+	foreach ( array(
+		'wp_template'      => 'templates',
+		'wp_template_part' => 'template_parts',
+	) as $type => $key ) {
+		foreach ( get_block_templates( array(), $type ) as $template ) {
+			$result[ $key ][] = array(
+				'template_id'   => $template->id,
+				'template_type' => $type,
+				'title'         => $template->title,
+				'slug'          => $template->slug,
+				'source'        => $template->source,
+				'post_id'       => $template->wp_id ?? null,
+				'area'          => $template->area ?? null,
+				'references'    => template_references( parse_blocks( $template->content ) ),
+			);
 		}
 	}
-	return 'create-page' !== $name || 'draft' === ( $input['status'] ?? 'publish' ) || current_user_can( 'publish_pages' );
+	return $result;
+}
+
+/**
+ * Describe native shared template-part and navigation references.
+ *
+ * @param array $blocks Parsed blocks.
+ * @return array References in document order.
+ */
+function template_references( $blocks ) {
+	$result = array();
+	foreach ( $blocks as $block ) {
+		if ( 'core/template-part' === $block['blockName'] && isset( $block['attrs']['slug'] ) ) {
+			$result[] = array(
+				'template_id'   => ( $block['attrs']['theme'] ?? get_stylesheet() ) . '//' . $block['attrs']['slug'],
+				'template_type' => 'wp_template_part',
+			);
+		}
+		if ( 'core/navigation' === $block['blockName'] && isset( $block['attrs']['ref'] ) ) {
+			$result[] = array( 'navigation_id' => $block['attrs']['ref'] );
+		}
+		$result = array_merge( $result, template_references( $block['innerBlocks'] ) );
+	}
+	return $result;
 }
 /**
  * Hash saved page content and status for conflict detection.
@@ -194,7 +459,7 @@ function permission( $name, $input ) {
  * @return string Content fingerprint.
  */
 function fingerprint( $page ) {
-	return hash( 'sha256', $page->post_content . '\0' . $page->post_status . '\0' . $page->post_modified_gmt );
+	return hash( 'sha256', $page->post_content . '\0' . $page->post_status . '\0' . $page->post_modified_gmt . ( isset( $page->canvas_template ) ? '\0' . $page->canvas_template->id . '\0' . $page->canvas_template->source : '' ) );
 }
 /**
  * Describe a saved page and its optional recovery revision.
@@ -204,17 +469,35 @@ function fingerprint( $page ) {
  * @return array Page metadata and links.
  */
 function page_result( $id, $revision = null ) {
-	$page = get_post( $id );
-	return array(
+	$page   = $id instanceof \WP_Post ? $id : get_post( $id );
+	$id     = $page->ID;
+	$result = array(
 		'schema_version' => VERSION,
-		'page_id'        => $id,
+		'post_id'        => $id ? $id : null,
+		'post_type'      => $page->post_type,
 		'status'         => $page->post_status,
 		'fingerprint'    => fingerprint( $page ),
-		'editor_url'     => get_edit_post_link( $id, 'raw' ),
-		'url'            => get_permalink( $id ),
-		'preview_url'    => get_preview_post_link( $id ),
+		'editor_url'     => $id ? get_edit_post_link( $id, 'raw' ) : null,
+		'url'            => in_array( $page->post_type, array( 'page', 'post' ), true ) ? get_permalink( $id ) : null,
+		'preview_url'    => in_array( $page->post_type, array( 'page', 'post' ), true ) ? get_preview_post_link( $id ) : null,
 		'revision_id'    => $revision ? $revision : null,
 	);
+	if ( 'page' === $page->post_type ) {
+		$result['page_id'] = $id;
+	}
+	if ( isset( $page->canvas_template ) ) {
+		$result['template_id']   = $page->canvas_template->id;
+		$result['template_type'] = $page->post_type;
+		$result['source']        = $page->canvas_template->source;
+		$result['editor_url']    = add_query_arg(
+			array(
+				'postId'   => $page->canvas_template->id,
+				'postType' => $page->post_type,
+			),
+			admin_url( 'site-editor.php' )
+		);
+	}
+	return $result;
 }
 /**
  * Describe parsed blocks with stable paths to Canvas sections.
@@ -247,33 +530,49 @@ function section_tree( $blocks, $prefix = array() ) {
  * @return array|\WP_Error Authoring context or a page error.
  */
 function context( $input ) {
+	if ( isset( $input['template_type'] ) && ! isset( $input['template_id'] ) ) {
+		return failure( 'template_type requires template_id.' );
+	}
 	$registry = \WP_Block_Type_Registry::get_instance();
 	$types    = array();
 	foreach ( BLOCKS as $name ) {
 		$type = $registry->get_registered( $name );
 		if ( $type ) {
 			$types[ $name ] = array(
-				'attributes' => authoring_attributes( $type ),
-				'supports'   => $type->supports,
+				'attributes'       => authoring_attributes( $type ),
+				'supports'         => $type->supports,
+				'parent'           => $type->parent,
+				'ancestor'         => $type->ancestor,
+				'allowed_blocks'   => native_allowed_children( $type ),
+				'uses_context'     => $type->uses_context,
+				'provides_context' => $type->provides_context,
 			);
 		}
 	}
 	$result = array(
-		'schema_version'   => VERSION,
-		'canvas_version'   => \PlaygroundPlugin\VERSION,
+		'schema_version'     => VERSION,
+		'canvas_version'     => \PlaygroundPlugin\VERSION,
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads bundled local authoring instructions.
-		'guide'            => file_get_contents( __DIR__ . '/../AUTHORING.md' ),
-		'blocks'           => $types,
-		'settings'         => wp_get_global_settings(),
-		'styles'           => wp_get_global_styles(),
-		'width_note'       => 'Configured CSS values, not measured pixels. Parent layouts, template styles and viewport can further constrain the section. Inspect the rendered page.',
-		'page_search_url'  => rest_url( 'wp/v2/pages?context=edit&search=' ),
-		'media_search_url' => rest_url( 'wp/v2/media?search=' ),
+		'guide'              => file_get_contents( __DIR__ . '/../AUTHORING.md' ),
+		'blocks'             => $types,
+		'settings'           => wp_get_global_settings(),
+		'styles'             => wp_get_global_styles(),
+		'width_note'         => 'Configured CSS values, not measured pixels. Parent layouts, template styles and viewport can further constrain the section. Inspect the rendered page.',
+		'page_search_url'    => rest_url( 'wp/v2/pages?context=edit&search=' ),
+		'post_search_url'    => rest_url( 'wp/v2/posts?context=edit&search=' ),
+		'templates_url'      => current_user_can( 'edit_theme_options' ) ? rest_url( 'wp/v2/templates?context=edit' ) : null,
+		'template_parts_url' => current_user_can( 'edit_theme_options' ) ? rest_url( 'wp/v2/template-parts?context=edit' ) : null,
+		'template_note'      => 'Canvas abilities create and edit Canvas sections, including nested compositions and native flow children such as Post Content and Query Loop. Keep native loop structure and context; read the guide and registered schemas before composing. Native WordPress template APIs can assemble structural shared references.',
+		'media_search_url'   => rest_url( 'wp/v2/media?search=' ),
 	);
-	if ( isset( $input['page_id'] ) ) {
-		$result['page'] = sections( $input['page_id'] );
-		if ( is_wp_error( $result['page'] ) ) {
-			return $result['page'];
+	if ( isset( $input['page_id'] ) || isset( $input['post_id'] ) || isset( $input['template_id'] ) ) {
+		$document = destination( $input );
+		if ( is_wp_error( $document ) ) {
+			return $document;
+		}
+		$result['document'] = sections( $document );
+		if ( isset( $input['page_id'] ) ) {
+			$result['page'] = $result['document'];
 		}
 	}
 	return $result;
@@ -285,15 +584,16 @@ function context( $input ) {
  * @return array|\WP_Error Page sections or an error.
  */
 function sections( $id ) {
-	$page = get_post( $id );
-	if ( ! $page || 'page' !== $page->post_type || in_array( $page->post_status, array( 'trash', 'auto-draft' ), true ) ) {
-		return failure( 'Select an existing page.', 'canvas_page_not_found', 404 );
+	$page = $id instanceof \WP_Post ? $id : destination( array( 'page_id' => $id ) );
+	if ( is_wp_error( $page ) ) {
+		return $page;
 	}
 	return array_merge(
-		page_result( $id ),
+		page_result( $page ),
 		array(
-			'title'  => $page->post_title,
-			'blocks' => section_tree( parse_blocks( $page->post_content ) ),
+			'title'      => $page->post_title,
+			'blocks'     => section_tree( parse_blocks( $page->post_content ) ),
+			'references' => template_references( parse_blocks( $page->post_content ) ),
 		)
 	);
 }
@@ -444,7 +744,8 @@ function validate_layout( $layout ) {
  * @return array Attribute schemas.
  */
 function authoring_attributes( $type ) {
-	$attributes = $type->get_attributes();
+	// Editor-local state is never serialized into a saved block's attributes.
+	$attributes = array_filter( $type->get_attributes(), static fn( $schema ) => 'local' !== ( $schema['role'] ?? null ) );
 	// Core registers this typography attribute in the editor, while its PHP
 	// renderer consumes it directly from parsed attrs. Expose the same contract.
 	if ( ! empty( $type->supports['typography']['fitText'] ) ) {
@@ -454,27 +755,84 @@ function authoring_attributes( $type ) {
 }
 
 /**
+ * Retain Core's structural context through nested Canvas compositions.
+ *
+ * @param string      $name Block name.
+ * @param string|null $parent_name Immediate parent.
+ * @param array       $ancestors Ancestor block names.
+ * @param array       $constraints Registered native parent and ancestor constraints.
+ * @return true|\WP_Error Validation result.
+ */
+function validate_nesting( $name, $parent_name, $ancestors = array(), $constraints = array() ) {
+	if ( ( null === $parent_name && 'tabor/canvas' !== $name ) || ( 'core/button' === $name && 'core/buttons' !== $parent_name ) || ( 'core/buttons' === $parent_name && 'core/button' !== $name ) ) {
+		return failure( 'Unsupported nesting for ' . $name );
+	}
+	// Core's Submenu explicitly permits recursive links despite their Navigation parent metadata.
+	$submenu_child = 'core/navigation-submenu' === $parent_name && in_array( $name, array( 'core/navigation-link', 'core/navigation-submenu' ), true );
+	if ( ! $submenu_child && ! empty( $constraints['parent'] ) && ! in_array( $parent_name, $constraints['parent'], true ) ) {
+		return failure( 'Missing native parent for ' . $name );
+	}
+	if ( ! empty( $constraints['ancestor'] ) && ! array_intersect( $constraints['ancestor'], array_merge( $ancestors, array( $parent_name ) ) ) ) {
+		return failure( 'Missing native context for ' . $name );
+	}
+	return true;
+}
+
+/**
+ * Read native child restrictions, including Core's editor-only Submenu contract.
+ *
+ * @param \WP_Block_Type|null $type Registered parent block.
+ * @return array|null Permitted native children, or null when unrestricted.
+ */
+function native_allowed_children( $type ) {
+	if ( $type && 'core/navigation-submenu' === $type->name ) {
+		// Core defines these in navigation-submenu/edit, not in block.json.
+		return array( 'core/navigation-link', 'core/navigation-submenu', 'core/page-list', 'core/loginout' );
+	}
+	return $type->allowed_blocks ?? null;
+}
+
+/**
  * Validate block types, attributes, nesting, and markup recursively.
  *
  * @param array       $block Parsed block.
  * @param string|null $parent_name Parent block name.
  * @param int         $depth Current nesting depth.
+ * @param array       $ancestors Ancestor block names, nearest last.
  * @return true|\WP_Error Validation result.
  */
-function validate_block( $block, $parent_name = null, $depth = 0 ) {
+function validate_block( $block, $parent_name = null, $depth = 0, $ancestors = array() ) {
 	$name = $block['blockName'];
 	if ( $depth > 20 || ! in_array( $name, BLOCKS, true ) ) {
 		return failure( 'Unsupported block or nesting depth: ' . ( $name ? $name : 'raw HTML' ) );
 	}
-	if ( ( null === $parent_name && 'tabor/canvas' !== $name ) || ( null !== $parent_name && 'tabor/canvas' === $name ) || ( 'core/button' === $name && 'core/buttons' !== $parent_name ) || ( 'core/buttons' === $parent_name && 'core/button' !== $name ) ) {
-		return failure( 'Unsupported nesting for ' . $name );
-	}
-	if ( $block['innerBlocks'] && ! in_array( $name, array( 'tabor/canvas', 'core/group', 'core/buttons' ), true ) ) {
-		return failure( 'This block cannot contain children: ' . $name );
-	}
 	$type = \WP_Block_Type_Registry::get_instance()->get_registered( $name );
 	if ( ! $type ) {
 		return failure( 'Block is not registered: ' . $name );
+	}
+	$nesting = validate_nesting(
+		$name,
+		$parent_name,
+		$ancestors,
+		array(
+			'parent'   => $type->parent,
+			'ancestor' => $type->ancestor,
+		)
+	);
+	if ( is_wp_error( $nesting ) ) {
+		return $nesting;
+	}
+	$navigation_parent = in_array( $parent_name, array( 'core/navigation', 'core/navigation-submenu' ), true );
+	$parent_type       = $parent_name ? \WP_Block_Type_Registry::get_instance()->get_registered( $parent_name ) : null;
+	$allowed_children  = native_allowed_children( $parent_type );
+	if ( is_array( $allowed_children ) && ! in_array( $name, $allowed_children, true ) ) {
+		return failure( 'Unsupported native child for ' . $parent_name . ': ' . $name );
+	}
+	if ( $navigation_parent && ( isset( $block['attrs']['canvas'] ) || isset( $block['attrs']['fitText'] ) ) ) {
+		return failure( 'Navigation descendants require native navigation nesting without Canvas placement.' );
+	}
+	if ( $block['innerBlocks'] && ! in_array( $name, array( 'tabor/canvas', 'core/group', 'core/buttons', 'core/navigation', 'core/navigation-submenu', 'core/query', 'core/post-template', 'core/query-no-results', 'core/query-pagination', 'core/comments', 'core/comment-template', 'core/comments-pagination', 'core/accordion', 'core/accordion-item', 'core/accordion-panel', 'core/columns', 'core/column', 'core/cover', 'core/details', 'core/gallery', 'core/list', 'core/list-item', 'core/media-text', 'core/playlist', 'core/quote', 'core/social-links', 'core/tabs', 'core/tab-panels', 'core/tab-panel', 'core/terms-query', 'core/term-template', 'core/widget-group' ), true ) ) {
+		return failure( 'This block cannot contain children: ' . $name );
 	}
 	$attrs = $block['attrs'];
 	if ( 'tabor/canvas' === $name && isset( $attrs['align'] ) && ! in_array( $attrs['align'], array( '', 'wide', 'full' ), true ) ) {
@@ -509,11 +867,20 @@ function validate_block( $block, $parent_name = null, $depth = 0 ) {
 			return failure( "$key must be between 1 and 500." );
 		}
 	}
-	if ( isset( $attrs['ref'] ) || isset( $attrs['metadata']['bindings'] ) ) {
+	if ( ( isset( $attrs['ref'] ) && 'core/navigation' !== $name ) || isset( $attrs['metadata']['bindings'] ) ) {
 		return failure( 'Synced content and block bindings are not supported.' );
+	}
+	if ( 'core/navigation' === $name && isset( $attrs['ref'] ) ) {
+		$navigation = get_post( $attrs['ref'] );
+		if ( ! $navigation || 'wp_navigation' !== $navigation->post_type || 'publish' !== $navigation->post_status || ! current_user_can( 'edit_post', $navigation->ID ) || $block['innerBlocks'] ) {
+			return failure( 'Navigation ref requires an editable published navigation document and no inline links.' );
+		}
 	}
 	// Never accept executable HTML, even for users with unfiltered_html.
 	if ( preg_replace( '#\\s*/>#', ' />', wp_kses_post( $block['innerHTML'] ) ) !== preg_replace( '#\\s*/>#', ' />', $block['innerHTML'] ) ) {
+		if ( 'core/file' === $name ) {
+			return failure( 'File markup contains unsupported HTML. For PDF files, disable the embedded preview (displayPreview: false) and use native download-link serialization.' );
+		}
 		return failure( 'Markup contains unsupported HTML in ' . $name . '. Use native block serialization.' );
 	}
 	if ( 'core/image' === $name ) {
@@ -534,8 +901,9 @@ function validate_block( $block, $parent_name = null, $depth = 0 ) {
 			return failure( 'Video attachment does not exist.' );
 		}
 	}
+	$ancestors[] = $name;
 	foreach ( $block['innerBlocks'] as $child ) {
-		$valid = validate_block( $child, $name, $depth + 1 );
+		$valid = validate_block( $child, $name, $depth + 1, $ancestors );
 		if ( is_wp_error( $valid ) ) {
 			return $valid;
 		}
@@ -703,8 +1071,12 @@ function execute( $name, $input ) {
 	if ( 'get-context' === $name ) {
 		return context( $input );
 	}
+	if ( 'get-site-structure' === $name ) {
+		return site_structure();
+	}
 	if ( 'get-sections' === $name ) {
-		return sections( $input['page_id'] );
+		$document = destination( $input );
+		return is_wp_error( $document ) ? $document : sections( $document );
 	}
 	$blocks = validated( $input['markup'] );
 	if ( is_wp_error( $blocks ) ) {
@@ -718,11 +1090,60 @@ function execute( $name, $input ) {
 			'markup'         => serialize_blocks( $blocks ),
 		);
 	}
-	if ( 'create-page' === $name ) {
+	if ( 'create-template' === $name ) {
+		$type     = $input['template_type'] ?? 'wp_template';
+		$identity = get_stylesheet() . '//' . $input['slug'];
+		$lock     = 'canvas_write_' . md5( $type . ':' . $identity );
+		$previous = get_option( $lock );
+		if ( is_array( $previous ) && ( $previous['expires'] ?? PHP_INT_MAX ) < time() ) {
+			release_lock( $lock, $previous );
+		}
+		$lease = array(
+			'token'   => wp_generate_uuid4(),
+			'expires' => time() + 120,
+		);
+		if ( ! add_option( $lock, $lease, '', false ) ) {
+			return failure( 'Another Canvas write is in progress.', 'canvas_busy', 409 );
+		}
+		try {
+			if ( get_block_template( $identity, $type ) ) {
+				return failure( 'Template already exists. Read its sections before updating.', 'canvas_conflict', 409 );
+			}
+			$id = wp_insert_post(
+				wp_slash(
+					array(
+						'post_type'    => $type,
+						'post_name'    => $input['slug'],
+						'post_title'   => sanitize_text_field( $input['title'] ),
+						'post_content' => serialize_blocks( $blocks ),
+						'post_status'  => 'publish',
+						'tax_input'    => array( 'wp_theme' => array( get_stylesheet() ) ),
+					)
+				),
+				true
+			);
+			if ( is_wp_error( $id ) ) {
+				return $id;
+			}
+			if ( 'wp_template_part' === $type ) {
+				wp_set_object_terms( $id, $input['area'] ?? 'uncategorized', 'wp_template_part_area' );
+			}
+			$document = destination(
+				array(
+					'template_id'   => $identity,
+					'template_type' => $type,
+				)
+			);
+			return is_wp_error( $document ) ? $document : page_result( $document );
+		} finally {
+			release_lock( $lock, $lease );
+		}
+	}
+	if ( 'create-page' === $name || 'create-post' === $name ) {
 		$id = wp_insert_post(
 			wp_slash(
 				array(
-					'post_type'    => 'page',
+					'post_type'    => 'create-post' === $name ? 'post' : 'page',
 					'post_title'   => sanitize_text_field( $input['title'] ),
 					'post_content' => serialize_blocks( $blocks ),
 					'post_status'  => $input['status'] ?? 'publish',
@@ -733,9 +1154,13 @@ function execute( $name, $input ) {
 		);
 		return is_wp_error( $id ) ? $id : page_result( $id );
 	}
-	$id = $input['page_id'];
+	$document = destination( $input );
+	if ( is_wp_error( $document ) ) {
+		return $document;
+	}
+	$id = $document->ID;
 	// Serialize Canvas writes; other editors are protected by the fingerprint and post lock.
-	$lock     = 'canvas_write_' . $id;
+	$lock     = 'canvas_write_' . ( isset( $input['template_id'] ) ? md5( ( $input['template_type'] ?? 'wp_template' ) . ':' . $input['template_id'] ) : $id );
 	$previous = get_option( $lock );
 	if ( is_array( $previous ) && ( $previous['expires'] ?? PHP_INT_MAX ) < time() ) {
 		release_lock( $lock, $previous );
@@ -749,7 +1174,11 @@ function execute( $name, $input ) {
 	}
 	try {
 		clean_post_cache( $id );
-		$page = get_post( $id );
+		$page = destination( $input );
+		if ( is_wp_error( $page ) ) {
+			return $page;
+		}
+		$id = $page->ID;
 		if ( in_array( $page->post_status, array( 'trash', 'auto-draft' ), true ) ) {
 			return failure( 'This page is unavailable.' );
 		}
@@ -786,6 +1215,27 @@ function execute( $name, $input ) {
 			}
 			$content = substr_replace( $page->post_content, serialize_block( $blocks[0] ), $range[0], $range[1] - $range[0] );
 		}
+		if ( ! $id && isset( $page->canvas_template ) ) {
+			$id = wp_insert_post(
+				wp_slash(
+					array(
+						'post_type'    => $page->post_type,
+						'post_name'    => $page->post_name,
+						'post_title'   => $page->post_title,
+						'post_content' => $page->post_content,
+						'post_status'  => 'publish',
+						'tax_input'    => array( 'wp_theme' => array( get_stylesheet() ) ),
+					)
+				),
+				true
+			);
+			if ( is_wp_error( $id ) ) {
+				return $id;
+			}
+			if ( 'wp_template_part' === $page->post_type ) {
+				wp_set_object_terms( $id, $page->canvas_template->area ?? 'uncategorized', 'wp_template_part_area' );
+			}
+		}
 		$revision = _wp_put_post_revision( $id );
 		if ( is_wp_error( $revision ) ) {
 			return $revision;
@@ -799,7 +1249,11 @@ function execute( $name, $input ) {
 			),
 			true
 		);
-		return is_wp_error( $saved ) ? $saved : page_result( $id, $revision );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+		$document = destination( $input );
+		return is_wp_error( $document ) ? $document : page_result( $document, $revision );
 	} finally {
 		release_lock( $lock, $lease );
 	}

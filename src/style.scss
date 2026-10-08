@@ -44,6 +44,11 @@
 	}
 
 	.canvas__grid {
+		// Precise frames belong to this grid, never to an enclosing Canvas item.
+		--canvas-free-width: initial;
+		--canvas-free-height: initial;
+		--canvas-free-left: initial;
+		--canvas-free-top: initial;
 		display: grid;
 		position: relative;
 		isolation: isolate;
@@ -65,7 +70,7 @@
 		grid-column: var(--canvas-desktop-line-left, calc(2 * var(--canvas-desktop-column, 1) - 1)) / var(--canvas-desktop-line-right, span calc(2 * var(--canvas-desktop-columnSpan, 12) - 1));
 		grid-row: var(--canvas-desktop-line-top, var(--canvas-desktop-row, 1)) / var(--canvas-desktop-line-bottom, span var(--canvas-desktop-rowSpan, 6));
 		z-index: var(--canvas-desktop-layer, 1);
-		rotate: calc(var(--canvas-desktop-rotation, 0) * 1deg);
+		rotate: var(--canvas-desktop-rotate, none);
 		transform-origin: center;
 		position: relative;
 		min-width: 0;
@@ -106,7 +111,9 @@
 		align-content: inherit;
 	}
 
-	// Area fitting wraps text within the authored frame.
+	// Native and area fitting must fit words, not emergency-wrapped letters.
+	.canvas__item.has-fit-text,
+	.canvas__item > .has-fit-text,
 	[data-canvas-text-fit="true"],
 	[data-canvas-text-fit="true"] > :is(h1,h2,h3,h4,h5,h6,p) {
 		overflow-wrap: normal;
@@ -115,6 +122,18 @@
 	}
 
 	[data-canvas-auto-active] .wp-block-button__link {
+		overflow-wrap: normal;
+		word-break: normal;
+	}
+
+	// Preserve Search's native min-content label width in its flex row.
+	// Core's 300px audio minimum can exceed a narrow Canvas frame.
+	.canvas__item .wp-block-audio audio {
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	.canvas__item .wp-block-search__button {
 		overflow-wrap: normal;
 		word-break: normal;
 	}
@@ -308,6 +327,18 @@
 			display: contents;
 		}
 	}
+}
+
+// Native responsive navigation stays viewport-fixed even in a rotated group.
+// Lift every Canvas ancestor only while core's own modal menu is open.
+.wp-block-tabor-canvas:has(.wp-block-navigation__responsive-container.is-menu-open),
+.wp-block-tabor-canvas :is(.canvas__grid, .canvas__item, [data-canvas-frame]):has(.wp-block-navigation__responsive-container.is-menu-open) {
+	rotate: none !important;
+	transform: none !important;
+	scale: none !important;
+	translate: none !important;
+	isolation: auto !important;
+	z-index: 100000 !important;
 }
 
 // Masks affect pixels only. The figure, caption and Canvas frame stay intact.

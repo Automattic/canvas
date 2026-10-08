@@ -1,0 +1,4 @@
+interface:
+  display_name: "Canvas Site Designer"
+  short_description: "Design Canvas sites from mockups through verified pages"
+  default_prompt: "Use $canvas-editor with the installed Impeccable skill for design craft and Imagegen mockups for every screen, then implement in WordPress and verify readability, interactions, and mockup fidelity."

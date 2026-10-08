@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canvasInserterPlugin } from '../src/inserter-registry.mjs';
-import { BLOCK_NAME } from '../src/placement.mjs';
+import { ALLOWED_BLOCKS, BLOCK_NAME } from '../src/placement.mjs';
 
 const item = (name, extra = {}) => ({ id: name, name, ...extra });
 function fixture() {
@@ -31,11 +31,12 @@ function fixture() {
   return { plugin, scoped, selectors, marker, otherSelectors, calls, settings, listSettings, setItems: (next) => { items = next; } };
 }
 
-test('native Inserter receives only the five base entries in intentional order', () => {
+test('native Inserter retains eligible variations in intentional block order', () => {
   const { scoped, selectors, calls } = fixture();
   const options = { filtering: true };
   const result = scoped.getInserterItems('canvas', options);
-  assert.deepEqual(result.map(({ id }) => id), ['core/heading', 'core/paragraph', 'core/image', 'core/buttons', 'core/video']);
+  assert.deepEqual(result.map(({ id }) => id), ['core/heading/h1', 'core/heading', 'core/heading/h2', 'core/paragraph', 'core/image', 'core/buttons', 'core/video']);
+  assert.equal(result.find(({ id }) => id === 'core/heading/h2').isSearchOnly, true);
   assert.equal(result.find(({ id }) => id === 'core/buttons').isDisabled, true);
   assert.deepEqual(calls[0], ['canvas', options]);
   assert.equal(selectors.getInserterItems('canvas').length, 9);
@@ -47,10 +48,30 @@ test('eligibility updates remove unavailable choices without manufacturing repla
   const before = scoped.getInserterItems('canvas');
   const heading = item('core/heading');
   setItems([heading, item('core/heading', { id: 'core/heading/h3' })]);
-  assert.deepEqual(scoped.getInserterItems('canvas'), [{ ...heading, initialAttributes: { content: 'This is a heading' } }]);
+  assert.deepEqual(scoped.getInserterItems('canvas').map(({ id }) => id), ['core/heading', 'core/heading/h3']);
   assert.notStrictEqual(scoped.getInserterItems('canvas'), before);
   setItems([]);
   assert.deepEqual(scoped.getInserterItems('canvas'), []);
+});
+
+test('native container variations retain their attributes, children, and eligibility', () => {
+  const { scoped, setItems } = fixture();
+  const columns = item('core/columns', {
+    id: 'core/columns/two-columns-equal',
+    initialAttributes: { verticalAlignment: 'center' },
+    innerBlocks: [['core/column', { width: '50%' }], ['core/column', { width: '50%' }]],
+  });
+  const embed = item('core/embed', {
+    id: 'core/embed/youtube',
+    initialAttributes: { providerNameSlug: 'youtube', responsive: true },
+    isDisabled: true,
+  });
+  setItems([embed, columns]);
+  assert.deepEqual(scoped.getInserterItems('canvas'), [columns, embed]);
+  assert.strictEqual(scoped.getInserterItems('canvas')[0], columns);
+  assert.strictEqual(scoped.getInserterItems('canvas')[1], embed);
+  setItems([columns]);
+  assert.deepEqual(scoped.getInserterItems('canvas'), [columns]);
 });
 
 for (const [name, content] of [
@@ -86,10 +107,23 @@ test('Browse all is omitted only from the local settings without changing editor
 test('local priorities preserve insertion permissions and do not alter other block lists', () => {
   const { scoped, listSettings } = fixture();
   const local = scoped.getBlockListSettings('canvas');
-  assert.deepEqual(local.prioritizedInserterBlocks, ['core/heading', 'core/paragraph', 'core/image', 'core/buttons', 'core/video']);
+  assert.deepEqual(local.prioritizedInserterBlocks, ALLOWED_BLOCKS);
   assert.strictEqual(local.allowedBlocks, listSettings.allowedBlocks);
   assert.equal(local.templateLock, false);
   assert.equal('prioritizedInserterBlocks' in listSettings, false);
   assert.strictEqual(scoped.getBlockListSettings('group'), listSettings);
   assert.strictEqual(local, scoped.getBlockListSettings('canvas'));
+});
+
+test('site blocks preserve native insertion eligibility and initial attributes', () => {
+  const { scoped, setItems } = fixture();
+  const navigation = item('core/navigation', { isDisabled: true, initialAttributes: { ref: 42 } });
+  const title = item('core/post-title', { initialAttributes: { level: 1 } });
+  const query = item('core/query');
+  setItems([navigation, title, query]);
+  assert.deepEqual(scoped.getInserterItems('canvas'), [navigation, title, query]);
+  assert.strictEqual(scoped.getInserterItems('canvas')[0], navigation);
+  assert.equal(scoped.getInserterItems('canvas').some(({ name }) => name === 'core/site-logo'), false);
+  setItems([title]);
+  assert.deepEqual(scoped.getInserterItems('canvas'), [title]);
 });

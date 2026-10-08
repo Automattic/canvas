@@ -46,6 +46,18 @@ test('automatic viewports inherit current angles instead of stale measured angle
   assert.equal(manual.mobile.rotation, 0);
 });
 
+test('editor preview emits CSS rotation immediately for every resolved viewport', () => {
+  const layout = resolveLayouts([block({ desktop, tablet: { ...desktop, rotation: 0 }, mobile: { ...desktop, rotation: -15 } })]).a;
+  const variables = layoutVariables(layout);
+  assert.equal(variables['--canvas-desktop-rotate'], '20deg');
+  assert.equal(variables['--canvas-tablet-rotate'], 'none');
+  assert.equal(variables['--canvas-mobile-rotate'], '-15deg');
+  assert.equal(variables['--canvas-desktop-rotation'], 20);
+  const automatic = layoutVariables(resolveLayouts([block({ desktop })]).a);
+  assert.equal(automatic['--canvas-tablet-rotate'], '20deg');
+  assert.equal(automatic['--canvas-mobile-rotate'], '20deg');
+});
+
 test('rotating mapped canvas placements preserves anchors and persists through moving and resizing', () => {
   const pad = { left: 20, right: 20, top: 20, bottom: 20 };
   const g = { ...canvasColumns(1200, pad, 100, 1100, 12, 'desktop'), ...canvasRows(20, 20, 12, 12), gap: 12 };

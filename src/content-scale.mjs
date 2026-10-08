@@ -43,7 +43,12 @@ export function scaleCanvasContent( items, geometry, set, placements = [] ) {
 			item,
 			...item.querySelectorAll( '[data-canvas-content-scaled]' ),
 		] ) {
-			node.removeAttribute( 'data-canvas-content-scaled' );
+			if (
+				node.closest( '.canvas__grid' ) ===
+				item.closest( '.canvas__grid' )
+			) {
+				node.removeAttribute( 'data-canvas-content-scaled' );
+			}
 		}
 	}
 	// Snapshot all native sizes before applying any scaled size to ancestors.

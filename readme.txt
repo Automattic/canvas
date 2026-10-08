@@ -20,6 +20,7 @@ Canvas adds a block for composing responsive layouts with WordPress headings, pa
 * Fit text to its area, shape and reposition images, and group related blocks.
 * Start from bundled patterns in the Canvas category.
 * Work with a mouse, keyboard, or touch screen.
+* Compose templates and shared headers or footers with native site titles, navigation, post titles, featured images, and excerpts.
 
 Canvas 0.1.0 is an experimental team preview for test sites, not a stable production release. Its saved layout format can change, and it uses private and experimental WordPress editor APIs that need review when WordPress changes. The repository README tracks the remaining release work.
 
@@ -30,6 +31,7 @@ Canvas changes the layout of its own blocks. It also makes inserted unsynced pat
 1. Upload canvas.zip through Plugins → Add New → Upload Plugin, or copy its canvas folder into /wp-content/plugins/.
 2. Activate Canvas from the Plugins screen.
 3. Open a page or post in the block editor and insert a Canvas block, or choose a pattern from the Canvas category.
+4. In a block theme, open Appearance > Editor to compose Canvas sections inside templates and template parts. Native Query and Post Content blocks can be placed inside Canvas with natural-height content; nested Canvas cards retain native post context.
 
 A source checkout needs a production build before installation. Run npm ci and npm run package:plugin from the repository root to create dist/canvas.zip. The separate canvas-playground.zip is a browser demo, not an installable plugin. Node.js is only needed for development. Install updates manually using a newly built plugin ZIP.
 
@@ -77,7 +79,7 @@ Use Full height in the Canvas toolbar to make the section at least one screen ta
 
 Use WordPress's Desktop, Tablet, and Mobile previews. Automatic layouts preserve desktop proportions, image sizes, and spacing. Smaller views inherit the section's row count, including empty space, while row heights and cell gaps scale together. The simpler tablet and mobile grids are for editing; automatic block edges can fall between those larger cells. Readable text and buttons can grow when their content needs more room, and paragraphs do not automatically become full width. Moving, resizing, or aligning an individual block resolves its frame to that view’s grid and creates an override; content and typography stay shared. Use Reset responsive layouts in the Canvas Settings panel to restore automatic placement.
 
-Review reading order, text fit, images, and overlaps at several widths before publishing. List View controls reading and stacking order: later siblings appear in front at every screen size. Reordering keeps canvas positions unchanged. Bring to front and Send to back move blocks to the end or start of their sibling list. Groups stack as a unit, with their own child order. Use Undo to restore the previous order. Nested Canvases and arbitrary third-party blocks are outside the supported scope.
+Review reading order, text fit, images, and overlaps at several widths before publishing. List View controls reading and stacking order: later siblings appear in front at every screen size. Reordering keeps canvas positions unchanged. Bring to front and Send to back move blocks to the end or start of their sibling list. Groups stack as a unit, with their own child order. Use Undo to restore the previous order. Nested Canvases are supported; arbitrary third-party blocks are outside the supported scope. Native structural children retain their WordPress parent requirements. Interactive, external-media, and context-dependent blocks need testing with the actual site content; registration alone is not a compatibility guarantee.
 
 == Frequently Asked Questions ==
 
@@ -91,7 +93,7 @@ The headings, paragraphs, images, videos, buttons, and groups remain saved as co
 
 = Can an agent create or edit Canvas sections? =
 
-Yes. Canvas exposes WordPress abilities for reading context, validating sections, and creating or updating pages. An MCP client also needs the separate WordPress MCP Adapter or a local Playground bridge. The bundled AUTHORING.md describes the format and authoring workflow; the repository README covers connections. No AI provider account is required to use Canvas itself.
+Yes. Canvas exposes WordPress abilities for discovering site structure, reading context, validating sections, and creating or updating pages, posts, templates, and shared parts. Template edits require native site-editing permissions. An MCP client also needs the separate WordPress MCP Adapter or a local Playground bridge. The bundled AUTHORING.md describes the format and authoring workflow; the repository README covers connections. No AI provider account is required to use Canvas itself.
 
 = Videos =
 

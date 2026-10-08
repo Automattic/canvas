@@ -1,3 +1,5 @@
+import { intrinsicBoxSize } from './measurement-box.mjs';
+
 export const MIN_TEXT_SIZE = 12;
 const MAX_TEXT_SIZE = 2400;
 
@@ -140,7 +142,9 @@ export function measureText(
 	);
 	// Emergency character wrapping must not count as a successful text fit.
 	styles.overflowWrap =
-		item.hasAttribute( 'data-canvas-text-fit' ) || width === 'min-content'
+		item.hasAttribute( 'data-canvas-text-fit' ) ||
+		text.classList.contains( 'has-fit-text' ) ||
+		width === 'min-content'
 			? 'normal'
 			: css.overflowWrap;
 	delete styles.wordBreak;
@@ -225,7 +229,8 @@ export function measureText(
 				const frameWidth = parseFloat( probe.style.width );
 				const height = Math.max(
 					probe.offsetHeight,
-					probe.scrollHeight
+					probe.scrollHeight,
+					Math.ceil( intrinsicBoxSize( probe ).height || 0 )
 				);
 				if (
 					Number.isFinite( frameWidth ) &&

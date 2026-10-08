@@ -2,6 +2,7 @@ import { compactCanvas } from './serialization.mjs';
 import { isCanvasGroup } from './canvas-groups.mjs';
 import {
 	ALLOWED_BLOCKS,
+	BLOCK_NAME,
 	ATTRIBUTE,
 	MAX_ROWS,
 	rowPitch,
@@ -25,7 +26,10 @@ export function withoutGrid( block ) {
 	return {
 		...block,
 		attributes,
-		innerBlocks: block.innerBlocks.map( withoutGrid ),
+		innerBlocks:
+			block.name === BLOCK_NAME
+				? block.innerBlocks
+				: block.innerBlocks.map( withoutGrid ),
 	};
 }
 export function replaceSelection( siblings, ids, replacement ) {

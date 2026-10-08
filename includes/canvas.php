@@ -18,7 +18,100 @@ const GRID_COLUMNS   = array(
 	'tablet'  => 12,
 	'mobile'  => 12,
 );
-const ALLOWED_BLOCKS = array( 'core/image', 'core/video', 'core/heading', 'core/paragraph', 'core/buttons' );
+const ALLOWED_BLOCKS = array(
+	'core/image',
+	'core/video',
+	'core/heading',
+	'core/paragraph',
+	'core/buttons',
+	'core/site-logo',
+	'core/site-title',
+	'core/navigation',
+	'core/post-title',
+	'core/post-featured-image',
+	'core/post-excerpt',
+	'core/post-date',
+	'core/post-terms',
+	'core/post-author',
+	'core/post-author-name',
+	'core/post-author-biography',
+	'core/query-title',
+	'core/term-description',
+	'core/comments-title',
+	'core/comment-author-name',
+	'core/comment-date',
+	'core/comment-reply-link',
+	'core/comment-edit-link',
+	'core/avatar',
+	'core/query-pagination-previous',
+	'core/query-pagination-numbers',
+	'core/query-pagination-next',
+	'core/comments-pagination-previous',
+	'core/comments-pagination-numbers',
+	'core/comments-pagination-next',
+	'core/query',
+	'core/post-content',
+	'core/search',
+	'core/comments',
+	'core/template-part',
+	'core/query-pagination',
+	'core/comments-pagination',
+	'core/comment-template',
+	'core/comment-content',
+	'core/post-comments-form',
+	'core/accordion',
+	'core/archives',
+	'core/audio',
+	'core/breadcrumbs',
+	'core/calendar',
+	'core/categories',
+	'core/code',
+	'core/columns',
+	'core/cover',
+	'core/details',
+	'core/embed',
+	'core/file',
+	'core/footnotes',
+	'core/freeform',
+	'core/gallery',
+	'core/html',
+	'core/icon',
+	'core/latest-comments',
+	'core/latest-posts',
+	'core/list',
+	'core/loginout',
+	'core/math',
+	'core/media-text',
+	'core/navigation-overlay-close',
+	'core/page-list',
+	'core/playlist',
+	'core/post-comments-count',
+	'core/post-comments-link',
+	'core/post-navigation-link',
+	'core/post-template',
+	'core/post-time-to-read',
+	'core/preformatted',
+	'core/pullquote',
+	'core/query-no-results',
+	'core/query-total',
+	'core/quote',
+	'core/read-more',
+	'core/rss',
+	'core/separator',
+	'core/site-tagline',
+	'core/social-links',
+	'core/spacer',
+	'core/table',
+	'core/tabs',
+	'core/tag-cloud',
+	'core/term-count',
+	'core/term-name',
+	'core/term-template',
+	'core/terms-query',
+	'core/verse',
+	'core/widget-group',
+	BLOCK_NAME,
+);
 
 // Match inheritedGap/resolveGap in cell-gap.mjs, retaining unresolved presets
 // so the browser measures each axis in this canvas's own style context.
@@ -187,6 +280,18 @@ function register_child_attribute( $args, $name ) {
 add_filter( 'register_block_type_args', __NAMESPACE__ . '\\register_child_attribute', 10, 2 );
 
 /**
+ * Let WordPress extract native excerpts from Canvas's readable children.
+ *
+ * @param string[] $blocks Allowed excerpt wrapper blocks.
+ * @return string[] Wrapper blocks, including Canvas.
+ */
+function excerpt_wrapper_blocks( $blocks ) {
+	$blocks[] = 'tabor/canvas';
+	return array_values( array_unique( $blocks ) );
+}
+add_filter( 'excerpt_allowed_wrapper_blocks', __NAMESPACE__ . '\\excerpt_wrapper_blocks' );
+
+/**
  * Register the dynamic Canvas block from its compiled metadata.
  *
  * @return void
@@ -225,7 +330,7 @@ function enqueue_viewport_styles() {
 		$count       = GRID_COLUMNS[ $mode ] - 1;
 		$span        = 'mobile' === $mode ? GRID_COLUMNS[ $mode ] : 6;
 		$css        .= "$query { $canvas { --canvas-viewport:$mode; --canvas-range-start:$range_start; } $grid { grid-template-columns:var(--canvas-$mode-tracks,repeat($count,minmax(0,1fr) var(--canvas-column-gap,var(--wp--preset--spacing--20))) minmax(0,1fr));grid-template-rows:var(--canvas-$mode-row-tracks,repeat(var(--canvas-$mode-rows,18),24px)); }";
-		$css        .= "$grid > .canvas__item { grid-column:var(--canvas-$mode-line-left,calc(2 * var(--canvas-$mode-column,1) - 1)) / var(--canvas-$mode-line-right,span calc(2 * var(--canvas-$mode-columnSpan,$span) - 1));grid-row:var(--canvas-$mode-line-top,var(--canvas-$mode-row,1)) / var(--canvas-$mode-line-bottom,span var(--canvas-$mode-rowSpan,6));z-index:var(--canvas-$mode-layer,1);rotate:calc(var(--canvas-$mode-rotation,0) * 1deg); } }";
+		$css        .= "$grid > .canvas__item { grid-column:var(--canvas-$mode-line-left,calc(2 * var(--canvas-$mode-column,1) - 1)) / var(--canvas-$mode-line-right,span calc(2 * var(--canvas-$mode-columnSpan,$span) - 1));grid-row:var(--canvas-$mode-line-top,var(--canvas-$mode-row,1)) / var(--canvas-$mode-line-bottom,span var(--canvas-$mode-rowSpan,6));z-index:var(--canvas-$mode-layer,1);rotate:var(--canvas-$mode-rotate,none); } }";
 	}
 	wp_enqueue_style( 'tabor-canvas-style' );
 	wp_add_inline_style( 'tabor-canvas-style', $css );
@@ -465,6 +570,7 @@ function canvas_item_open( $child, $index, &$next, $desktop_columns, $paint = ar
 		'mobile'  => $mobile,
 	) as $mode => $position ) {
 		$position['layer'] = $paint[ spl_object_id( $child ) ][ $mode ] ?? $index + 1;
+		$css              .= '--canvas-' . $mode . '-rotate:' . ( ! empty( $position['rotation'] ) ? $position['rotation'] . 'deg' : 'none' ) . ';';
 		$next[ $mode ]     = max( $next[ $mode ], occupied_rows( $position ) + 1 );
 		if ( ! empty( $position['fillHeight'] ) ) {
 			$css .= "--canvas-$mode-line-top:1;--canvas-$mode-line-bottom:-1;";
@@ -545,11 +651,27 @@ function render_canvas( $attributes, $content, $block ) {
 	);
 	$items           = '';
 	foreach ( $block->inner_blocks as $index => $child ) {
+		// Canvas skips Core's automatic inner rendering to add placement wrappers.
+		// Preserve the same native child filters before rendering each child once.
+		$pre_render = apply_filters( 'pre_render_block', null, $child->parsed_block, $block );
+		if ( null === $pre_render ) {
+			$source_block        = $child->parsed_block;
+			$context             = $child->context;
+			$child->parsed_block = apply_filters( 'render_block_data', $child->parsed_block, $source_block, $block );
+			$child->context      = apply_filters( 'render_block_context', $child->context, $child->parsed_block, $block );
+			if ( $child->context !== $context ) {
+				$child->refresh_context_dependents();
+			} elseif ( $child->parsed_block !== $source_block ) {
+				$child->refresh_parsed_block_dependents();
+			}
+		}
 		$open    = canvas_item_open( $child, $index, $next, $desktop_columns, $paint );
 		$restore = array();
 		try {
-			prepare_canvas_group( $child, $next, $restore, $desktop_columns, $paint );
-			$items .= $open . $child->render() . '</div>';
+			if ( null === $pre_render ) {
+				prepare_canvas_group( $child, $next, $restore, $desktop_columns, $paint );
+			}
+			$items .= $open . ( $pre_render ?? $child->render() ) . '</div>';
 		} finally {
 			foreach ( $restore as $entry ) {
 				$entry[0]->inner_content = $entry[1];

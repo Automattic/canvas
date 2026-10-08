@@ -43,7 +43,9 @@ test('releasing native flow children clears their grid metadata without altering
   assert.ok(child.attributes[ATTRIBUTE]);
   assert.equal(canContain(parent), true);
   assert.equal(canContain(block('generic', { layout: { type: 'constrained' } }, 'core/group')), false);
-  assert.equal(canContain(block('canvas', {}, 'tabor/canvas')), false);
+  assert.equal(canContain(block('canvas', {}, 'tabor/canvas')), true);
+  assert.equal(canContain(block('calendar', {}, 'core/calendar')), true);
+  assert.equal(canContain(block('unsupported', {}, 'example/unknown')), false);
 });
 
 test('ungrouping native flow content grows the canvas and preserves button minimums', () => {
