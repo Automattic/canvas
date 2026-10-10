@@ -21,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -46,6 +46,22 @@ jobs:
       - name: Check Canvas
         run: npm run check
 
+      - name: Check authoring permissions and recovery
+        run: npm run test:abilities
+
+      - name: Check whole-site composition
+        run: |
+          for profile in service editorial portfolio; do
+            npm run test:site -- --profile "$profile"
+          done
+
+      - name: Check nested Canvas and native flow
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:flow
+          npm run test:editor
+          npm run test:core
+
       - name: Package the plugin and Playground
         run: |
           npm run package:preview
@@ -55,6 +71,9 @@ jobs:
           unzip -q dist/canvas-preview.zip -d dist/playground
           unzip -t dist/regular-patterns-preview.zip
           unzip -q dist/regular-patterns-preview.zip -d dist/regular-patterns
+
+      - name: Check fresh packaged installation
+        run: npm run test:site -- --packaged
 
       - name: Upload installable plugin
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

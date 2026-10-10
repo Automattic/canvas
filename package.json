@@ -25,6 +25,10 @@
     "package:playground": "node scripts/package-playground.mjs",
     "playground:link": "node scripts/playground-link.mjs",
     "test:abilities": "node scripts/test-abilities.mjs",
+    "test:flow": "node scripts/test-native-flow.mjs",
+    "test:core": "node scripts/test-core-blocks.mjs",
+    "test:editor": "node scripts/test-editor-controls.mjs",
+    "test:site": "node scripts/test-site-benchmark.mjs",
     "lint": "npm run lint:php && npm run lint:js && npm run lint:css",
     "lint:js": "wp-scripts lint-js \"src/**/*.{js,jsx,mjs}\" --max-warnings=0",
     "lint:css": "wp-scripts lint-style \"src/**/*.scss\" --max-warnings=0",
@@ -34,6 +38,7 @@
   },
   "devDependencies": {
     "@wordpress/scripts": "35.0.0",
-    "@wp-playground/cli": "3.1.34"
+    "@wp-playground/cli": "3.1.34",
+    "playwright": "1.63.0"
   }
 }

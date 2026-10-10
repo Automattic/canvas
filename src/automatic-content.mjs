@@ -1,7 +1,8 @@
-import { normalizePlacement } from './placement.mjs';
+import { FLOW_BLOCKS, normalizePlacement } from './placement.mjs';
 import { measureWidthFit, measureText, textElement } from './text-fit.mjs';
 import { savedCanvasPlacement } from './canvas-geometry.mjs';
 import { readablePlacements } from './automatic-layout.mjs';
+import { intrinsicBoxSize } from './measurement-box.mjs';
 
 // Measure a detached copy at its natural content height. The live selection and
 // core block markup remain untouched, including native button layout.
@@ -27,9 +28,15 @@ export function measureBox( element, width, buttons = false ) {
 		}
 	}
 	try {
+		const bounds = intrinsicBoxSize( clone );
 		return {
-			width: clone.getBoundingClientRect().width,
-			height: Math.max( clone.offsetHeight, clone.scrollHeight, 48 ),
+			width: bounds.width,
+			height: Math.max(
+				clone.offsetHeight,
+				clone.scrollHeight,
+				Math.ceil( bounds.height || 0 ),
+				buttons ? 48 : 0
+			),
 		};
 	} finally {
 		clone.remove();
@@ -38,7 +45,10 @@ export function measureBox( element, width, buttons = false ) {
 
 // Use the same natural content measurement for layout and live resizing.
 export function readableContentHeight( element, width, textMeasurements ) {
-	const height = element.classList.contains( 'canvas__container' )
+	if ( isHiddenContent( element ) ) {
+		return 0;
+	}
+	const height = usesIntrinsicHeight( element )
 		? null
 		: measureText(
 				element,
@@ -60,13 +70,32 @@ export function readableContentHeight( element, width, textMeasurements ) {
 	);
 }
 
+export function isHiddenContent( element ) {
+	const view = element.ownerDocument?.defaultView;
+	if ( ! view ) {
+		return false;
+	}
+	return (
+		view.getComputedStyle( element ).display === 'none' ||
+		( element.childElementCount === 1 &&
+			view.getComputedStyle( element.firstElementChild ).display ===
+				'none' )
+	);
+}
+
+export const usesIntrinsicHeight = ( element ) =>
+	element.classList.contains( 'canvas__container' ) ||
+	FLOW_BLOCKS.includes( element.getAttribute( 'data-canvas-name' ) ) ||
+	( element.querySelectorAll?.( 'h1,h2,h3,h4,h5,h6,p' ).length || 0 ) > 1;
+
 export function canResizeReadableContent( element ) {
 	return (
 		!! element &&
 		! element.classList.contains( 'canvas__image' ) &&
 		! element.classList.contains( 'canvas__video' ) &&
 		element.getAttribute( 'data-canvas-text-fit' ) !== 'true' &&
-		! textElement( element )?.classList.contains( 'has-fit-text' )
+		( usesIntrinsicHeight( element ) ||
+			! textElement( element )?.classList.contains( 'has-fit-text' ) )
 	);
 }
 export function resolveAutomaticContent(
@@ -88,11 +117,13 @@ export function resolveAutomaticContent(
 					sources[ index ]._canvas.viewport || 'desktop'
 				)
 			: savedCanvasPlacement( sources[ index ] );
-		const text = textElement( element );
+		const text = usesIntrinsicHeight( element )
+			? null
+			: textElement( element );
 		const buttons =
 			element.matches( '.wp-block-buttons' ) ||
 			element.firstElementChild?.matches( '.wp-block-buttons' );
-		const container = element.classList.contains( 'canvas__container' );
+		const container = usesIntrinsicHeight( element );
 		let kind;
 		if ( container ) {
 			kind = 'container';
@@ -118,7 +149,13 @@ export function resolveAutomaticContent(
 			element.getAttribute( 'data-canvas-text-fit' ) === 'true';
 		const widthFit = text?.classList.contains( 'has-fit-text' );
 		let minWidth = 0;
-		if ( automatic && kind !== 'image' && ! areaFit && ! widthFit ) {
+		if (
+			automatic &&
+			kind !== 'image' &&
+			! areaFit &&
+			! widthFit &&
+			! isHiddenContent( element )
+		) {
 			if ( container ) {
 				minWidth = measureBox( element, 'min-content' ).width;
 			} else if ( buttons ) {

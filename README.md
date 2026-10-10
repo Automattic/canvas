@@ -57,7 +57,7 @@ npm run package:plugin    # Installable dist/canvas.zip, built in isolation
 npm run package:preview   # Plugin ZIP plus a reproducible browser Playground bundle
 npm run watch:blocks      # Asset watcher without starting WordPress
 npm run demo              # Create or reopen the local draft demonstration
-npm run test:abilities    # WordPress integration checks; stop dev first
+npm run test:abilities    # Isolated WordPress permission and authoring checks
 ```
 
 The demo command preserves an existing demo and prints its edit link. Ability integration checks create and clean up their own fixtures; run them only while the local server is stopped. Layout changes also need editor save/reload and frontend checks across mobile, tablet, desktop, and intermediate widths.
@@ -102,9 +102,51 @@ Canvas uses `tabor/canvas` and stores authored child settings in `canvas`. Core 
 
 ## Agent connections
 
-For page and section editing, use the portable [Canvas editor skill](.agents/skills/canvas-editor/SKILL.md). It reads the connected site's current authoring contract instead of bundling a second copy. To make it available across local Codex projects, link its folder into `~/.codex/skills/canvas-editor`; other skill-capable agents can install the same folder. The skill still needs an authenticated site connection. Use the [pattern builder skill](.agents/skills/pattern-builder/SKILL.md) for reusable patterns in this repository.
+For connected-site design and editing, use the portable [Canvas editor skill](.agents/skills/canvas-editor/SKILL.md), including pages, posts, shared parts, and whole-site layouts. It reads the connected site's current authoring contract instead of bundling a second copy. To make it available across local Codex projects, link its folder into `~/.codex/skills/canvas-editor`; other skill-capable agents can install the same folder. The skill still needs an authenticated site connection. Use the [pattern builder skill](.agents/skills/pattern-builder/SKILL.md) for reusable compositions and source-backed site builds. Its complete folder is also installable separately; repository examples are optional, and the connected site's contract remains authoritative.
 
-Canvas supplies six WordPress abilities: `get-context`, `get-sections`, `validate-sections`, `create-page`, `insert-sections`, and `update-section`, all prefixed with `canvas/`. `get-context` returns the bundled authoring instructions, registered schemas, and site styles. No separate AI provider key is needed. Canvas remains usable without MCP Adapter.
+Canvas supplies nine WordPress abilities: `get-context`, `get-site-structure`, `get-sections`, `validate-sections`, `create-page`, `create-post`, `create-template`, `insert-sections`, and `update-section`, all prefixed with `canvas/`. `get-context` returns the bundled authoring instructions, registered schemas, and site styles. Existing page callers retain `page_id`; document operations also accept `post_id` or an active-theme `template_id` with its `template_type`. No separate AI provider key is needed. Canvas remains usable without MCP Adapter.
+
+### Whole-site composition
+
+Canvas supports Site Logo, Site Title, Navigation, Post Title, Featured Image, and Post Excerpt as native children, in addition to its existing composition blocks. WordPress resolves their data and rendering context. Shared headers and footers remain native template parts; discover their identities and references with `get-site-structure`. Editing a theme-provided template creates a database customization and a recovery revision, while preserving the theme file. Scoped section writes retain surrounding blocks and reject stale fingerprints and active editor locks.
+
+Native article bodies, Query Loops, pagination, search, comments, and shared references can be placed inside Canvas. These flow blocks retain their native context and natural content height; nested Canvas compositions allow each real query result to have an editable layout. Keep Post Template and Query No Results under Query, and pagination controls under their native pagination container. Canvas isolates nested measurements and editor gestures so the outer section does not take over its inner composition. Use the Site Editor or native template REST endpoints for structural template assembly, and Canvas abilities to compose or revise Canvas sections. Global styles continue to come from WordPress. Synced patterns and block bindings are not accepted by the Canvas section validator.
+
+See [native flow compositions](docs/native-flow.md) for structure, limitations, the all-Canvas design demonstration, and the reproducible `npm run test:flow` browser check.
+
+### Core block compatibility
+
+Canvas admits ordinary native content and layout blocks, including lists, quotes, tables, galleries, audio, Columns, Cover, Media & Text, Details, Accordion, and Tabs, while retaining Core's insertion eligibility and structural parent rules. Native variations remain available. The authoring context exposes parent/ancestor, allowed-child, and context metadata so agents can compose valid native structures.
+
+Run `npm run test:core` for the isolated WordPress core-block inventory and browser fixtures. The report in `.playground/core-blocks/report.json` lists every registered core type and distinguishes serialization, rendered smoke coverage, contextual children, and missing fixtures. Meaningful fixtures cover all 106 admitted types in the pinned installation, including real post, term, and comment contexts. Additional checks exercise local media playback, pagination, search, comments, disclosures, and saved native editing. Remote providers, assistive technology, and every block setting are not certified by these checks. The audit does not modify the demo or normal development site.
+
+Run `npm run test:editor` for bounded actual-control checks in a separate disposable installation. Set `CANVAS_EDITOR_SUITE=image-logo`, `layout`, or `media` to run one family. Reports distinguish exercised controls from untested controls; this is not exhaustive editor certification. Image and Site Logo checks exercise Freeform mode as well as saved frontend behavior. The suite never needs access to a real site's media or settings.
+
+Custom HTML and Classic content retain the existing strict post-HTML sanitization. Synced references, Legacy Widget references, and Shortcode blocks are not admitted by the authoring contract; More and Page Break belong between sections rather than inside Canvas. File download links are supported by the authoring tools, but PDF object previews remain outside their HTML safety boundary. See [AUTHORING.md](AUTHORING.md) for these limits. Do not describe all core blocks as fully verified merely because their default serialization passes.
+
+The isolated whole-site benchmark creates shared Canvas headers/footers and front-page, page, single, archive, index, search, and 404 templates. It exercises dynamic content, long articles, missing featured images, and shared site data without touching `.playground/wordpress/`:
+
+```sh
+npm run build
+npm run test:site
+npm run test:site -- --profile editorial
+npm run test:site -- --profile portfolio
+npm run test:site -- --serve
+node scripts/review-site.mjs .playground/site-benchmark/wordpress/canvas-site-benchmark.json
+node scripts/test-site-editor.mjs
+```
+
+Profiles use separate `.playground/site-benchmark[-profile]/wordpress/` directories and pin WordPress 7.1.3 with PHP 8.3. They reuse their own saved sites; stop a profile's server before running its fixture again. CI runs all three profiles after the standard checks. After `npm run package:plugin`, `npm run test:site -- --packaged` verifies a fresh ZIP installation in a separate site without mounting plugin source. CI also runs that packaged check.
+
+The browser tools use Chromium from Playwright (`npx playwright install chromium` when missing). The review captures frontend routes at 320, 390, 768, 1024, and 1440px, checks editor block validity, and verifies that Canvas renders in the editor iframe. The editor smoke test verifies native edit entry, keyboard movement, undo, save/reload, and saved-content restoration in a shared header, full template, page, and post. It uses the isolated service benchmark on port 9404 by default and trashes its own temporary draft fixtures. Screenshots and JSON reports stay in ignored `.playground/` directories. Intentional overlap, design quality, reading order, keyboard/touch usability, and screen-reader behavior still require review; a successful browser run does not establish accessibility or visual fidelity.
+
+Before treating whole-site authoring as production-ready, complete these gates:
+
+- Verify the benchmark across supported themes and browsers, including shared-part editing and save/reload.
+- Review content changes, navigation overlays, font loading, and intermediate widths for layout and readability.
+- Test keyboard, touch, and screen-reader workflows, including semantic reading order.
+- Measure long-page layout performance and verify plugin/theme export on a fresh site.
+- Define the stable saved-format compatibility policy and finish the release requirements above.
 
 ### Local development
 
@@ -147,11 +189,13 @@ The bridge also has broad file and PHP access to that browser sandbox; connect a
 
 ### Canvas pattern builder
 
-The [pattern builder skill](.agents/skills/pattern-builder/SKILL.md) owns the pattern-authoring workflow. The [named agent](.codex/agents/pattern-builder.toml) follows that same skill. Invoke `$pattern-builder` with a screenshot, URL, or design brief:
+The [pattern builder skill](.agents/skills/pattern-builder/SKILL.md) covers reusable patterns and complete editable Canvas sites, including native queries, article flow, nested compositions, and Site Editor templates. The [named agent](.codex/agents/pattern-builder.toml) follows that same skill. Invoke `$pattern-builder` with a screenshot, URL, or design brief:
 
 > Turn this reference into a reusable Canvas pattern. Register it, create a local preview, and check the editor and frontend on mobile, tablet, desktop, and ultrawide screens.
 
-For a first run, confirm the skill is discovered, the pattern appears in WordPress's **Canvas** category, and its inserted blocks remain editable after saving and reloading. Review the preview links and responsive checks. Agent configuration does not supply WordPress credentials; use an MCP connection or an authenticated browser session.
+For a whole-site build, specify the intended Pages, Posts, and Site Editor editing surfaces, real content routes, and visual direction. For live MCP editing without source registration, invoke `$canvas-editor` with the same brief. Confirm skill discovery and native block editability after saving and reloading; registered patterns should appear in WordPress's **Canvas** category. Review actual responsive screenshots, navigation, search, pagination, and long-content behavior. Agent configuration does not supply WordPress credentials; use an MCP connection or an authenticated browser session.
+
+In Codex, new designs start with Imagegen mockups for every screen on desktop and mobile, before layout implementation. The agent then builds the selected designs as editable Canvas blocks and compares real browser screenshots against the mockups. The skills require fixing material visual differences, not just matching colors or passing tests. They retain existing branding unless a change is requested, and report tool limitations or unresolved mismatches honestly. Small copy changes and nonvisual fixes do not trigger a full design round.
 
 ## Share the demo
 

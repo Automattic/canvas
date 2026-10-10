@@ -78,6 +78,8 @@ export function observeCanvasLayout( grid, onChange ) {
 			attributeFilter: [
 				'style',
 				'class',
+				'open',
+				'hidden',
 				'data-canvas-layout',
 				'data-canvas-auto',
 				'data-canvas-text-fit',
@@ -482,6 +484,11 @@ export function observeCanvasLayout( grid, onChange ) {
 				);
 			}
 			values.forEach( ( placement, index ) => {
+				set(
+					items[ index ],
+					`--canvas-${ viewport }-rotate`,
+					placement.rotation ? `${ placement.rotation }deg` : 'none'
+				);
 				if ( placement.fillHeight ) {
 					placement = mapPlacement(
 						placement._base,
@@ -631,7 +638,7 @@ export function observeCanvasLayout( grid, onChange ) {
 				set(
 					item,
 					'--canvas-frame-rotation',
-					( p.rotation || 0 ) + 'deg'
+					p.rotation ? p.rotation + 'deg' : 'none'
 				);
 			}
 		} else {
@@ -710,6 +717,9 @@ export function observeCanvasLayout( grid, onChange ) {
 		for ( const node of grid.querySelectorAll(
 			'[data-canvas-content-scaled]'
 		) ) {
+			if ( node.closest( '.canvas__grid' ) !== grid ) {
+				continue;
+			}
 			node.removeAttribute( 'data-canvas-content-scaled' );
 			node.style.removeProperty( '--canvas-content-font-size' );
 			node.style.removeProperty( '--canvas-content-line-height' );

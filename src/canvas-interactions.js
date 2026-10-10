@@ -1,4 +1,6 @@
 import { isFrameMedia } from './content-fill.mjs';
+import { FLOW_BLOCKS, SITE_BLOCKS } from './placement.mjs';
+import { ownsCanvasTarget, ownsCanvasBlock } from './canvas-scope.mjs';
 import { isCanvasGroup } from './canvas-groups.mjs';
 import { rotationModifier } from './rotation.mjs';
 import { centerResizeModifier } from './resize-modifiers.mjs';
@@ -59,9 +61,7 @@ export function useCanvasInteractions( {
 		const store = registry.select( blockEditorStore );
 		return store
 			.getSelectedBlockClientIds()
-			.filter( ( id ) =>
-				store.getBlockParents( id ).includes( clientId )
-			);
+			.filter( ( id ) => ownsCanvasBlock( store, clientId, id ) );
 	}, [ registry, clientId ] );
 	const selectedIds =
 		canvasSelection.length &&
@@ -478,6 +478,8 @@ export function useCanvasInteractions( {
 							'core/heading',
 							'core/paragraph',
 							'core/buttons',
+							...SITE_BLOCKS,
+							...FLOW_BLOCKS,
 						].includes( store.getBlockName( child ) )
 					) {
 						enter( node, target );
@@ -561,6 +563,8 @@ export function useCanvasInteractions( {
 						'core/buttons',
 						'core/group',
 						'core/video',
+						...SITE_BLOCKS,
+						...FLOW_BLOCKS,
 					].includes( store.getBlockName( id ) ) ||
 						canRepositionImage( item, store ) );
 				let openMenu;
@@ -672,6 +676,8 @@ export function useCanvasInteractions( {
 					'core/group',
 					'core/image',
 					'core/video',
+					...SITE_BLOCKS,
+					...FLOW_BLOCKS,
 				].includes( store.getBlockName( id ) )
 			) {
 				editOnClick = id;
@@ -995,6 +1001,14 @@ export function useCanvasInteractions( {
 				return;
 			}
 			if ( grid.contains( event.target ) ) {
+				if (
+					! ownsCanvasTarget(
+						grid.closest( '.wp-block-tabor-canvas' ),
+						event.target
+					)
+				) {
+					return;
+				}
 				key( event );
 			} else if (
 				event.target === doc.body &&
@@ -1005,6 +1019,9 @@ export function useCanvasInteractions( {
 				const native = store.getSelectedBlockClientIds();
 				if (
 					native.length > 1 &&
+					native.every( ( id ) =>
+						ownsCanvasBlock( store, clientId, id )
+					) &&
 					native.every( ( id ) => selection.current.includes( id ) )
 				) {
 					latest.current.moveWithKey(
@@ -1029,7 +1046,18 @@ export function useCanvasInteractions( {
 			dragstart: dragStart,
 			focusin: focus,
 		};
-		for ( const [ name, handler ] of Object.entries( handlers ) ) {
+		const canvasElement = grid.closest( '.wp-block-tabor-canvas' );
+		const scopedHandlers = Object.fromEntries(
+			Object.entries( handlers ).map( ( [ name, handler ] ) => [
+				name,
+				( event ) => {
+					if ( ownsCanvasTarget( canvasElement, event.target ) ) {
+						handler( event );
+					}
+				},
+			] )
+		);
+		for ( const [ name, handler ] of Object.entries( scopedHandlers ) ) {
 			grid.addEventListener( name, handler, true );
 		}
 		return () => {
@@ -1043,7 +1071,9 @@ export function useCanvasInteractions( {
 			}
 			touchMenu.current = null;
 			touchSurface.current = null;
-			for ( const [ name, handler ] of Object.entries( handlers ) ) {
+			for ( const [ name, handler ] of Object.entries(
+				scopedHandlers
+			) ) {
 				grid.removeEventListener( name, handler, true );
 			}
 		};

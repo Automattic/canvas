@@ -90,3 +90,46 @@ test('shared fill rejects removed fields and non-boolean values', () => {
  }, [['fill'=>true],['fill'=>false],['fill'=>null],['fill'=>1],['fill'=>'false'],['fitArea'=>true],['fit'=>'cover'],['fit'=>'contain']]));`);
  assert.deepEqual(results, [true,true,false,false,false,false,false,false]);
 });
+
+test('native submenu recursion preserves other parent restrictions', () => {
+ const results = php(`echo json_encode(array_map(function($case) {
+   return true === PlaygroundPlugin\\Abilities\\validate_nesting($case[0], $case[1], ['tabor/canvas','core/navigation'], ['parent'=>['core/navigation']]);
+ }, [
+   ['core/navigation-link','core/navigation-submenu'],
+   ['core/navigation-submenu','core/navigation-submenu'],
+   ['core/home-link','core/navigation-submenu'],
+   ['core/navigation-link','tabor/canvas'],
+   ['core/navigation-submenu','core/group'],
+   ['core/navigation-link','core/navigation']
+ ]));`);
+ assert.deepEqual(results, [true,true,false,false,false,true]);
+});
+
+test('nested Canvas retains native query and comment context without allowing orphan structures', () => {
+ const results = php(`$native = [
+   'core/post-template'=>['ancestor'=>['core/query']],
+   'core/query-no-results'=>['ancestor'=>['core/query']],
+   'core/query-pagination-numbers'=>['parent'=>['core/query-pagination']],
+   'core/comment-content'=>['ancestor'=>['core/comment-template']],
+   'core/comments-pagination'=>['parent'=>['core/comments']]
+ ]; echo json_encode(array_map(function($case) use ($native) {
+   return true === PlaygroundPlugin\\Abilities\\validate_nesting($case[0], $case[1], $case[2], $native[$case[0]] ?? []);
+ }, [
+   ['tabor/canvas','core/post-template',['tabor/canvas','core/query','core/post-template']],
+   ['tabor/canvas','tabor/canvas',['tabor/canvas']],
+   ['core/post-template','core/query',['tabor/canvas','core/query']],
+   ['core/post-template','tabor/canvas',['tabor/canvas']],
+   ['core/query-no-results','core/query',['tabor/canvas','core/query']],
+   ['core/query-no-results','core/group',['tabor/canvas','core/query','core/group']],
+   ['core/query-pagination-numbers','core/query-pagination',['tabor/canvas','core/query','tabor/canvas','core/query-pagination']],
+   ['core/query-pagination-numbers','tabor/canvas',['tabor/canvas']],
+   ['core/comment-content','tabor/canvas',['tabor/canvas','core/comments','core/comment-template','tabor/canvas']],
+   ['core/comment-content','tabor/canvas',['tabor/canvas']],
+   ['core/comments-pagination','core/comments',['tabor/canvas','core/comments']],
+   ['core/comments-pagination','tabor/canvas',['tabor/canvas']],
+   ['core/button','tabor/canvas',['tabor/canvas']],
+   ['core/button','core/buttons',['tabor/canvas','core/buttons']],
+   ['core/query',null,[]]
+ ]));`);
+ assert.deepEqual(results, [true,true,true,false,true,true,true,false,true,false,true,false,false,true,false]);
+});

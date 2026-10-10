@@ -37,10 +37,9 @@ export function canvasInserterPlugin( registry ) {
 						itemsCache.set(
 							items,
 							INSERTER_BLOCKS.flatMap( ( name ) =>
-								items.filter(
-									( item ) =>
-										item.id === name && item.name === name
-								)
+								// Core has already applied insertion eligibility, including
+								// native variations and their initial child structure.
+								items.filter( ( item ) => item.name === name )
 							)
 								// Supply the content before RichText mounts so its initial value
 								// and the insertion's history both include the default text.

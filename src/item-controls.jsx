@@ -711,14 +711,12 @@ export function registerItemControls() {
 						: props.context;
 				// Supply the default on the first render, before Core Image starts uploading.
 				// Core resolves the Large URL and falls back when that size is unavailable.
-				const container = !! canvas && props.name === 'core/group';
+				const container = direct && props.name === 'core/group';
 				let attributes;
-				if ( container ) {
+				if ( container && isCanvasGroup( props ) ) {
 					attributes = {
 						...props.attributes,
-						allowedBlocks: isCanvasGroup( props )
-							? [ ...ALLOWED_BLOCKS, 'core/group' ]
-							: ALLOWED_BLOCKS,
+						allowedBlocks: [ ...ALLOWED_BLOCKS, 'core/group' ],
 					};
 				} else if ( image && ! props.attributes.sizeSlug ) {
 					attributes = {

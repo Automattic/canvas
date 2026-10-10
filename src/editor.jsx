@@ -1016,8 +1016,6 @@ export default function Edit( {
 				) {
 					return;
 				}
-				event.preventDefault();
-				event.stopPropagation();
 				const store = registry.select( blockEditorStore );
 				if (
 					! ids.includes( anchorId ) ||
@@ -1026,6 +1024,8 @@ export default function Edit( {
 				) {
 					return;
 				}
+				event.preventDefault();
+				event.stopPropagation();
 				const [ x, y ] = offsets[ event.key ];
 				const start = layouts[ anchorId ][ mode ];
 				let next;

@@ -173,12 +173,21 @@ export function canvasRows(
 			} )
 		),
 	];
+	// Round boundaries, not individual lengths: per-track browser rounding
+	// otherwise accumulates enough error to crop long native-flow sections.
+	const renderedEdge = ( edge ) => Math.round( edge * 4 ) / 4;
 	const template = rows
 		.flatMap( ( row, i ) => [
 			...( i
-				? [ `${ Math.max( 0, row.start - rows[ i - 1 ].end ) }px` ]
+				? [
+						`${ Math.max(
+							0,
+							renderedEdge( row.start ) -
+								renderedEdge( rows[ i - 1 ].end )
+						) }px`,
+					]
 				: [] ),
-			`${ row.end - row.start }px`,
+			`${ renderedEdge( row.end ) - renderedEdge( row.start ) }px`,
 		] )
 		.join( ' ' );
 	return {

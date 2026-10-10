@@ -1,3 +1,4 @@
 interface:
-  display_name: "Canvas Pattern Builder"
-  short_description: "Build and refine native Canvas block patterns"
+  display_name: "Canvas Site And Pattern Builder"
+  short_description: "Mock up Canvas screens, then build and verify the design"
+  default_prompt: "Use $pattern-builder with the installed Impeccable skill for design craft, generate Imagegen mockups for every screen, build them in Canvas, and verify readability, interactions, and mockup fidelity."

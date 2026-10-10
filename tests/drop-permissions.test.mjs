@@ -47,12 +47,18 @@ test('move locks and destination restrictions reject native drops', () => {
 });
 
 test('unsupported blocks, self-drops, ancestors, and empty payloads are rejected', () => {
-  const unsupported = { clientId: 'audio', name: 'core/audio', attributes: {} };
+  const unsupported = { clientId: 'unknown', name: 'example/unknown', attributes: {} };
   assert.equal(canDropBlocks({ blocks: [image('image'), unsupported], move: true }, 'canvas', store()), false);
   assert.equal(canDropBlocks(payload('canvas'), 'canvas', store()), false);
   assert.equal(canDropBlocks(payload('ancestor'), 'canvas', store({ ancestors: ['ancestor'] })), false);
   assert.equal(canDropBlocks(payload(), 'canvas', store()), false);
   assert.equal(canDropBlocks(null, 'canvas', store()), false);
+});
+
+test('native audio uses the same destination permissions as other supported blocks', () => {
+  const audio = { clientId: 'audio', name: 'core/audio', attributes: {} };
+  assert.equal(canDropBlocks({ blocks: [audio], move: true }, 'canvas', store()), true);
+  assert.equal(canDropBlocks({ blocks: [audio], move: true }, 'canvas', store({ insertLocked: true })), false);
 });
 
 test('existing Canvas groups can move internally but external groups remain unsupported', () => {

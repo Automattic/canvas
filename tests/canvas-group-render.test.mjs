@@ -7,12 +7,14 @@ test('native rendering retains wrappers through nested context refresh and resto
   const code = String.raw`
 define('ABSPATH', '/');
 function add_action() {} function add_filter() {}
+function apply_filters($name, $value) { return $value; }
 function esc_attr($value) { return htmlspecialchars((string)$value, ENT_QUOTES); }
 function wp_json_encode($value) { return json_encode($value); }
 function wp_get_global_styles() { return []; }
 function get_block_wrapper_attributes() { return 'class="wp-block-tabor-canvas"'; }
 require $argv[1];
 class RenderBlock {
+  public $context=[];
   public $name, $attributes, $inner_content, $inner_blocks, $parsed_block;
   function __construct($parsed) {
     $this->parsed_block=$parsed; $this->name=$parsed['blockName']; $this->attributes=$parsed['attrs'];
